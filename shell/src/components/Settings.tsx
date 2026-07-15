@@ -207,10 +207,10 @@ function buildModuleText(m: ModuleDesc, t: (k: string) => string, locale: string
     m.file_path ? `${t("settings.file_path")}: ${m.file_path}` : "",
     "",
     `${t("settings.fn_list")} (${m.functions.length}):`,
-    ...m.functions.flatMap((fn, i) => [
-      i > 0 ? "" : null,
+    ...m.functions.flatMap((fn) => [
+      "  ────────────────────",
       `  ${buildFnText(fn, t, locale).split("\n").join("\n  ")}`,
-    ].filter((l) => l !== null)),
+    ]),
   ].filter(Boolean);
   return lines.join("\n");
 }
