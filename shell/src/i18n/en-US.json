@@ -53,6 +53,7 @@
   "settings.file_path": "File",
   "settings.browse": "Browse",
   "settings.filter_libs": "Search libraries...",
+  "settings.lib_used_by": "Used by",
   "settings.select_lib": "Select a library to view details",
   "settings.lib_author": "Author",
   "settings.lib_email": "Email",

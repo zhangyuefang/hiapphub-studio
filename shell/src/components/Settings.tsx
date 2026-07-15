@@ -274,6 +274,24 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
   modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string; locale: string;
 }) {
   const [filter, setFilter] = useState("");
+  const [usageStats, setUsageStats] = useState<Record<string, { id: string; name: string }[]>>({});
+  const [showUsage, setShowUsage] = useState<string | null>(null);
+  const usageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    invoke<Record<string, { id: string; name: string }[]>>("hap_lib_usage_stats")
+      .then(setUsageStats)
+      .catch(() => {});
+  }, [modules]);
+
+  useEffect(() => {
+    if (!showUsage) return;
+    const handler = (e: MouseEvent) => {
+      if (usageRef.current && !usageRef.current.contains(e.target as Node)) setShowUsage(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUsage]);
   const filtered = filter.trim()
     ? modules.filter((m) =>
         m.name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -320,6 +338,24 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
                   <div className="text-[11px] opacity-50 truncate">{i18nText(m.description, m.descriptions, locale)}</div>
                 )}
               </div>
+              {(usageStats[m.name]?.length ?? 0) > 0 && (
+                <span className="relative" ref={showUsage === m.name ? usageRef : undefined}>
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 cursor-pointer shrink-0"
+                    onClick={(e) => { e.stopPropagation(); setShowUsage(showUsage === m.name ? null : m.name); }}
+                  >
+                    {usageStats[m.name].length}
+                  </span>
+                  {showUsage === m.name && (
+                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 border rounded shadow-lg p-2 min-w-[140px] z-50 text-[11px]" style={{ borderColor: "var(--fs-border)" }}>
+                      <div className="font-medium mb-1 opacity-60">{t("settings.lib_used_by")}</div>
+                      {usageStats[m.name].map((app) => (
+                        <div key={app.id} className="py-0.5 truncate">{app.name}</div>
+                      ))}
+                    </div>
+                  )}
+                </span>
+              )}
             </button>
           ))}
         </div>

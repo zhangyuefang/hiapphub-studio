@@ -58,6 +58,35 @@ pub fn hap_list_plugins() -> Result<Vec<Value>, String> {
 }
 
 #[tauri::command]
+pub fn hap_lib_usage_stats() -> Result<Value, String> {
+    let plugins = hap_manager::list_installed_plugins().unwrap_or_default();
+    let modules = cdylib_loader::get_all_descriptors();
+    let mut stats = serde_json::Map::new();
+
+    for m in &modules {
+        let mut apps = Vec::new();
+        for p in &plugins {
+            let perms = p["permissions"].as_array();
+            let has_perm = perms.map_or(false, |arr| {
+                arr.iter().any(|v| v.as_str().map_or(false, |s| s == m.permission || s.starts_with(&format!("{}:", m.permission))))
+            });
+            let has_dep = p["dependencies"]["hal"].as_array().map_or(false, |deps| {
+                deps.iter().any(|d| {
+                    d["uuid"].as_str() == m.uuid.as_deref() || d["id"].as_str().map_or(false, |id| id == format!("hap-mod-{}", m.name))
+                })
+            });
+            if has_perm || has_dep {
+                let app_id = p["id"].as_str().unwrap_or("unknown");
+                let app_name = p["name"].as_str().unwrap_or(app_id);
+                apps.push(serde_json::json!({ "id": app_id, "name": app_name }));
+            }
+        }
+        stats.insert(m.name.clone(), Value::Array(apps));
+    }
+    Ok(Value::Object(stats))
+}
+
+#[tauri::command]
 pub fn hap_install_plugin(hap_path: String) -> Result<Value, String> {
     hap_manager::install_from_hap(&hap_path)
 }
