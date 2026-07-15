@@ -80,7 +80,15 @@ export function Settings({ onBack }: Props) {
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </button>
-        <h2 className="text-base font-semibold">{t("settings.console")}</h2>
+        <h2 className="text-base font-semibold flex-1">{t("settings.console")}</h2>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          onClick={onBack}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">

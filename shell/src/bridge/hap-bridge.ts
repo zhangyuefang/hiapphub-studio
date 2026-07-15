@@ -9,7 +9,7 @@ export function createBridge(pluginId: string, permissions: string[]) {
 
   function guard(perm: string) {
     if (!allowed.has(perm)) {
-      throw new Error(`[PermissionDenied] 插件 ${pluginId} 未声明权限: ${perm}`);
+      throw new Error(`[PermissionDenied] Plugin ${pluginId} missing permission: ${perm}`);
     }
   }
 
@@ -115,7 +115,7 @@ export function createBridge(pluginId: string, permissions: string[]) {
       },
       async copyToClipboard(text: string): Promise<void> {
         await invoke("clipboard_write_text", { text });
-        this.toast("已复制", "success");
+        this.toast("Copied", "success");
       },
       get theme() {
         return document.documentElement.getAttribute("data-theme") === "dark"
