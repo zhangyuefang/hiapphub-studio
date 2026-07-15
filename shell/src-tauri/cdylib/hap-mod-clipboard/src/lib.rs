@@ -21,10 +21,11 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "min_shell_version": "0.1.0",
   "category": "system",
   "description": "剪贴板读写能力模块",
+  "descriptions": {"zh-CN":"剪贴板读写能力模块","en-US":"Clipboard read/write module"},
   "permission": "clipboard",
   "functions": [
-    {"name":"read_text","description":"读取系统剪贴板中的文本内容","symbol":"hap_clipboard_read_text","params":[],"returns":{"type":"string","desc":"剪贴板文本"},"bridge_path":"clipboard.readText"},
-    {"name":"write_text","description":"将文本写入系统剪贴板","symbol":"hap_clipboard_write_text","params":[{"name":"text","type":"string","desc":"写入文本"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"clipboard.writeText"}
+    {"name":"read_text","description":"读取系统剪贴板中的文本内容","descriptions":{"zh-CN":"读取系统剪贴板中的文本内容","en-US":"Read text from system clipboard"},"symbol":"hap_clipboard_read_text","params":[],"returns":{"type":"string","desc":"剪贴板文本","descs":{"zh-CN":"剪贴板文本","en-US":"Clipboard text"}},"bridge_path":"clipboard.readText"},
+    {"name":"write_text","description":"将文本写入系统剪贴板","descriptions":{"zh-CN":"将文本写入系统剪贴板","en-US":"Write text to system clipboard"},"symbol":"hap_clipboard_write_text","params":[{"name":"text","type":"string","desc":"写入文本","descs":{"zh-CN":"写入文本","en-US":"Text to write"}}],"returns":{"type":"string","desc":"ok或error","descs":{"zh-CN":"ok或error","en-US":"ok or error"}},"bridge_path":"clipboard.writeText"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()

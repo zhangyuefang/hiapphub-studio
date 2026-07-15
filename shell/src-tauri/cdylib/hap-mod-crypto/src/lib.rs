@@ -27,27 +27,30 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "min_shell_version": "0.1.0",
   "category": "security",
   "description": "加密/哈希/随机数能力模块",
+  "descriptions": {"zh-CN":"加密/哈希/随机数能力模块","en-US":"Crypto, hash and random number module"},
   "permission": "crypto",
   "functions": [
     {
       "name": "hash",
       "description": "计算数据的哈希摘要（MD5/SHA-256/SHA-512）",
+      "descriptions": {"zh-CN":"计算数据的哈希摘要","en-US":"Compute hash digest (MD5/SHA-256/SHA-512)"},
       "symbol": "hap_crypto_hash",
       "params": [
-        {"name": "algorithm", "type": "string", "desc": "md5|sha256|sha512"},
-        {"name": "data", "type": "string", "desc": "待哈希数据"}
+        {"name": "algorithm", "type": "string", "desc": "md5|sha256|sha512", "descs":{"zh-CN":"算法: md5|sha256|sha512","en-US":"Algorithm: md5|sha256|sha512"}},
+        {"name": "data", "type": "string", "desc": "待哈希数据", "descs":{"zh-CN":"待哈希数据","en-US":"Data to hash"}}
       ],
-      "returns": {"type": "string", "desc": "十六进制摘要"},
+      "returns": {"type": "string", "desc": "十六进制摘要", "descs":{"zh-CN":"十六进制摘要","en-US":"Hex digest"}},
       "bridge_path": "crypto.hash"
     },
     {
       "name": "random_bytes",
       "description": "生成指定长度的随机字节序列",
+      "descriptions": {"zh-CN":"生成指定长度的随机字节序列","en-US":"Generate random bytes of specified length"},
       "symbol": "hap_crypto_random_bytes",
       "params": [
-        {"name": "length", "type": "u32", "desc": "字节数"}
+        {"name": "length", "type": "u32", "desc": "字节数", "descs":{"zh-CN":"字节数","en-US":"Number of bytes"}}
       ],
-      "returns": {"type": "string", "desc": "十六进制随机字节"},
+      "returns": {"type": "string", "desc": "十六进制随机字节", "descs":{"zh-CN":"十六进制随机字节","en-US":"Hex random bytes"}},
       "bridge_path": "crypto.randomBytes"
     }
   ]

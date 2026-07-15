@@ -9,12 +9,15 @@ interface Props {
 
 type Tab = "settings" | "account" | "libraries" | "dev_mode";
 
+type I18nMap = Record<string, string> | null;
+
 interface FnDesc {
   name: string;
   description: string | null;
+  descriptions: I18nMap;
   symbol: string;
-  params: { name: string; type: string; desc: string }[];
-  returns: { type: string; desc: string };
+  params: { name: string; type: string; desc: string; descs: I18nMap }[];
+  returns: { type: string; desc: string; descs: I18nMap };
   bridge_path: string;
 }
 
@@ -29,10 +32,16 @@ interface ModuleDesc {
   min_shell_version: string | null;
   category: string;
   description: string;
+  descriptions: I18nMap;
   permission: string;
   functions: FnDesc[];
   file_path: string | null;
   file_size: number | null;
+}
+
+function i18nText(defaultText: string, i18nMap: I18nMap, locale: string): string {
+  if (i18nMap && i18nMap[locale]) return i18nMap[locale];
+  return defaultText;
 }
 
 export function Settings({ onBack }: Props) {
@@ -93,7 +102,7 @@ export function Settings({ onBack }: Props) {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
           {tab === "account" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
-          {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} />}
+          {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} />}
           {tab === "dev_mode" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
         </div>
       </div>
@@ -213,8 +222,8 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
-  modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string;
+function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
+  modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string; locale: string;
 }) {
   const [filter, setFilter] = useState("");
   const filtered = filter.trim()
@@ -284,7 +293,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                   </div>
                 </div>
                 <div className="flex items-baseline justify-between mt-0.5">
-                  <span className="text-xs opacity-60">{selected.description}</span>
+                  <span className="text-xs opacity-60">{i18nText(selected.description, selected.descriptions, locale)}</span>
                   <span className="text-[10px] font-mono opacity-40 shrink-0 ml-2">{selected.uuid ?? ""}</span>
                 </div>
               </div>
@@ -337,7 +346,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                       </div>
                     </div>
                     <div className="px-3 py-2 space-y-2">
-                      {fn.description && <div className="text-xs opacity-60">{fn.description}</div>}
+                      {fn.description && <div className="text-xs opacity-60">{i18nText(fn.description, fn.descriptions, locale)}</div>}
                       {fn.params.length > 0 && (
                         <table className="w-full text-xs">
                           <thead>
@@ -352,7 +361,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                               <tr key={p.name}>
                                 <td className="pr-4 py-0.5 font-mono text-blue-500">{p.name}</td>
                                 <td className="pr-4 py-0.5 opacity-60">{p.type}</td>
-                                <td className="py-0.5 opacity-50">{p.desc}</td>
+                                <td className="py-0.5 opacity-50">{i18nText(p.desc, p.descs, locale)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -363,7 +372,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                         <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: "var(--fs-border)" }}>
                           {fn.returns.type}
                         </code>
-                        <span className="opacity-50">{fn.returns.desc}</span>
+                        <span className="opacity-50">{i18nText(fn.returns.desc, fn.returns.descs, locale)}</span>
                       </div>
                     </div>
                   </div>

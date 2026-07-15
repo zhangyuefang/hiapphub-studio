@@ -24,6 +24,8 @@ pub struct ModuleDescriptor {
     pub min_shell_version: Option<String>,
     pub category: String,
     pub description: String,
+    #[serde(default)]
+    pub descriptions: Option<HashMap<String, String>>,
     pub permission: String,
     #[serde(default)]
     pub functions: Vec<FunctionDescriptor>,
@@ -38,6 +40,8 @@ pub struct FunctionDescriptor {
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
+    #[serde(default)]
+    pub descriptions: Option<HashMap<String, String>>,
     pub symbol: String,
     pub params: Vec<ParamDescriptor>,
     pub returns: ReturnDescriptor,
@@ -50,6 +54,8 @@ pub struct ParamDescriptor {
     #[serde(rename = "type")]
     pub param_type: String,
     pub desc: String,
+    #[serde(default)]
+    pub descs: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +63,8 @@ pub struct ReturnDescriptor {
     #[serde(rename = "type")]
     pub return_type: String,
     pub desc: String,
+    #[serde(default)]
+    pub descs: Option<HashMap<String, String>>,
 }
 
 struct LoadedModule {

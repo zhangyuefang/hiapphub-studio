@@ -22,9 +22,10 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "min_shell_version": "0.1.0",
   "category": "network",
   "description": "HTTP 请求客户端",
+  "descriptions": {"zh-CN":"HTTP 请求客户端","en-US":"HTTP request client"},
   "permission": "http:request",
   "functions": [
-    {"name":"fetch","description":"发起 HTTP 请求（GET/POST/PUT/DELETE）","symbol":"hap_http_fetch","params":[{"name":"url","type":"string","desc":"请求URL"},{"name":"options","type":"json","desc":"请求选项JSON"}],"returns":{"type":"json","desc":"响应JSON"},"bridge_path":"http.fetch"}
+    {"name":"fetch","description":"发起 HTTP 请求（GET/POST/PUT/DELETE）","descriptions":{"zh-CN":"发起 HTTP 请求","en-US":"Send HTTP request (GET/POST/PUT/DELETE)"},"symbol":"hap_http_fetch","params":[{"name":"url","type":"string","desc":"请求URL","descs":{"zh-CN":"请求URL","en-US":"Request URL"}},{"name":"options","type":"json","desc":"请求选项JSON","descs":{"zh-CN":"请求选项JSON","en-US":"Request options JSON"}}],"returns":{"type":"json","desc":"响应JSON","descs":{"zh-CN":"响应JSON","en-US":"Response JSON"}},"bridge_path":"http.fetch"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()
