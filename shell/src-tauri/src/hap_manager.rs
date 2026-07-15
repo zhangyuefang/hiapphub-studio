@@ -30,6 +30,7 @@ pub fn ensure_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
 
 pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
     let mut plugins = Vec::new();
+    let mut seen_ids = std::collections::HashSet::new();
 
     let app_dir = data_dir().join("app");
     if app_dir.exists() {
@@ -38,6 +39,9 @@ pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) == Some("hap") {
                 if let Ok(manifest) = read_manifest_from_hap(&path) {
+                    if let Some(id) = manifest["id"].as_str() {
+                        seen_ids.insert(id.to_string());
+                    }
                     plugins.push(manifest);
                 }
             }
@@ -55,6 +59,11 @@ pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
                     .map_err(|e| format!("读取 manifest 失败: {e}"))?;
                 let mut manifest: Value =
                     serde_json::from_str(&content).map_err(|e| format!("解析 manifest 失败: {e}"))?;
+                if let Some(id) = manifest["id"].as_str() {
+                    if seen_ids.contains(id) {
+                        continue;
+                    }
+                }
                 if let Value::Object(ref mut map) = manifest {
                     map.insert("_installPath".to_string(), Value::String(plugin_dir.to_string_lossy().to_string()));
                 }
