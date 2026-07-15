@@ -28,7 +28,7 @@
   "settings.about": "关于",
   "settings.version": "版本",
   "settings.framework": "技术框架",
-  "settings.website": "官网",
+  "settings.website": "网址",
   "settings.import_lang": "导入语言包",
   "settings.import_lang_desc": "从本地导入 JSON 语言包文件",
   "settings.account": "个人中心",
