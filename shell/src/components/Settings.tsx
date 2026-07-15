@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
@@ -329,12 +330,14 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
                 )}
               </div>
               {(usageStats[m.name]?.length ?? 0) > 0 && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 cursor-pointer shrink-0"
-                  onClick={(e) => { e.stopPropagation(); setShowUsage(showUsage === m.name ? null : m.name); }}
+                <button
+                  type="button"
+                  className="text-[10px] px-2 py-1 rounded-full bg-blue-500/15 text-blue-500 cursor-pointer shrink-0 hover:bg-blue-500/25 transition-colors"
+                  onPointerDown={(e) => { e.stopPropagation(); }}
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowUsage(showUsage === m.name ? null : m.name); }}
                 >
                   {usageStats[m.name].length}
-                </span>
+                </button>
               )}
             </button>
           ))}
@@ -453,25 +456,30 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
         )}
       </div>
 
-      {showUsage && usageStats[showUsage] && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30" onClick={() => setShowUsage(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 min-w-[240px] max-w-[360px]" style={{ borderColor: "var(--fs-border)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
+      {showUsage && usageStats[showUsage] && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30" onClick={() => setShowUsage(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5 w-[480px] max-h-[70vh] flex flex-col" style={{ borderColor: "var(--fs-border)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <h4 className="text-sm font-semibold">{t("settings.lib_used_by")}</h4>
               <button className="opacity-40 hover:opacity-100" onClick={() => setShowUsage(null)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
               </button>
             </div>
-            <div className="text-xs opacity-50 mb-2">{showUsage}</div>
-            {usageStats[showUsage].map((app) => (
-              <div key={app.id} className="flex items-center gap-2 py-1.5 text-sm border-t" style={{ borderColor: "var(--fs-border)" }}>
-                <span>📦</span>
-                <span>{app.name}</span>
-                <span className="text-[10px] opacity-40 ml-auto">{app.id}</span>
-              </div>
-            ))}
+            <div className="text-xs opacity-50 mb-2 shrink-0">{showUsage} — {usageStats[showUsage].length} {t("settings.lib_usage_apps")}</div>
+            <div className="overflow-y-auto flex-1">
+              {usageStats[showUsage].map((app) => (
+                <div key={app.id} className="flex items-center gap-3 py-2 text-sm border-t" style={{ borderColor: "var(--fs-border)" }}>
+                  <span className="text-lg">📦</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{app.name}</div>
+                    <div className="text-[11px] opacity-40 font-mono truncate">{app.id}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

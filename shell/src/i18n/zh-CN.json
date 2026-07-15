@@ -54,6 +54,7 @@
   "settings.browse": "浏览",
   "settings.filter_libs": "搜索支持库...",
   "settings.lib_used_by": "使用此支持库的应用",
+  "settings.lib_usage_apps": "个应用",
   "settings.select_lib": "请选择左侧支持库查看详情",
   "settings.lib_author": "作者",
   "settings.lib_email": "邮箱",
