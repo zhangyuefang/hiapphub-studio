@@ -220,16 +220,20 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
             {/* 头部 */}
             <div className="flex items-start gap-3">
               <span className="text-3xl">{selected.icon ?? "📦"}</span>
-              <div>
-                <h3 className="text-base font-semibold">{selected.name}</h3>
-                <div className="text-xs opacity-60 mt-0.5">{selected.description}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-base font-semibold">{selected.name}</h3>
+                  <span className="text-xs opacity-50 shrink-0 ml-2">v{selected.version}</span>
+                </div>
+                <div className="flex items-baseline justify-between mt-0.5">
+                  <span className="text-xs opacity-60">{selected.description}</span>
+                  <span className="text-[10px] font-mono opacity-40 shrink-0 ml-2">{selected.uuid ?? ""}</span>
+                </div>
               </div>
             </div>
 
             {/* 基本信息 */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-              <InfoRow label="UUID" value={selected.uuid ?? "-"} mono />
-              <InfoRow label={t("settings.version")} value={`v${selected.version}`} />
               <InfoRow label={t("settings.lib_author")} value={selected.author ?? "-"} />
               <InfoRow label={t("settings.lib_email")} value={selected.author_email ?? "-"} />
               {selected.author_url && (
