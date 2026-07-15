@@ -271,14 +271,16 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
               onClick={() => setExpandedMod(m.name)}
             >
               <span className="text-base shrink-0">{m.icon ?? "📦"}</span>
-              <div className="min-w-0">
-                <div className="font-medium truncate">{m.name}</div>
-                <div className="text-[10px] opacity-50">v{m.version}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-medium truncate">{m.name}</span>
+                  <span className="text-[10px] opacity-50 shrink-0">v{m.version}</span>
+                </div>
               </div>
             </button>
           ))}
         </div>
-        <div className="px-3 py-2 text-[10px] opacity-40 border-t" style={{ borderColor: "var(--fs-border)" }}>
+        <div className="px-3 py-1 text-[10px] opacity-40 border-t" style={{ borderColor: "var(--fs-border)" }}>
           {t("settings.loaded_count")}: {modules.length}
         </div>
       </div>
