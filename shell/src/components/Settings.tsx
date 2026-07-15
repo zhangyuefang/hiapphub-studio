@@ -230,6 +230,32 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function SizeInfoButton({ modules, t, locale }: { modules: ModuleDesc[]; t: (k: string) => string; locale: string }) {
+  const [show, setShow] = useState(false);
+  const total = modules.reduce((sum, m) => sum + (m.file_size ?? 0), 0);
+  return (
+    <span className="relative">
+      <button onClick={() => setShow(!show)} className="opacity-60 hover:opacity-100" title={t("settings.lib_size")}>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/><text x="8" y="12" textAnchor="middle" fontSize="10" fill="currentColor">i</text></svg>
+      </button>
+      {show && (
+        <div className="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-800 border rounded shadow-lg p-2 min-w-[180px] z-50 text-[11px]" style={{ borderColor: "var(--fs-border)" }}>
+          {modules.map((m) => (
+            <div key={m.name} className="flex justify-between py-0.5">
+              <span className="truncate mr-2">{m.name}</span>
+              <span className="shrink-0 opacity-60">{formatSize(m.file_size)}</span>
+            </div>
+          ))}
+          <div className="border-t mt-1 pt-1 flex justify-between font-medium" style={{ borderColor: "var(--fs-border)" }}>
+            <span>{t("settings.loaded_count")}: {modules.length}</span>
+            <span>{formatSize(total)}</span>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
   modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string; locale: string;
 }) {
@@ -283,8 +309,9 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
             </button>
           ))}
         </div>
-        <div className="px-3 py-1 text-[10px] opacity-40 border-t" style={{ borderColor: "var(--fs-border)" }}>
-          {t("settings.loaded_count")}: {modules.length}
+        <div className="px-3 py-0.5 text-[10px] opacity-40 border-t flex items-center justify-between" style={{ borderColor: "var(--fs-border)" }}>
+          <span>{t("settings.loaded_count")}: {modules.length}</span>
+          <SizeInfoButton modules={modules} t={t} locale={locale} />
         </div>
       </div>
 
