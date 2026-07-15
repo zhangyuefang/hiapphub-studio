@@ -24,7 +24,7 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "description": "HTTP 请求客户端",
   "permission": "http:request",
   "functions": [
-    {"name":"fetch","symbol":"hap_http_fetch","params":[{"name":"url","type":"string","desc":"请求URL"},{"name":"options","type":"json","desc":"请求选项JSON"}],"returns":{"type":"json","desc":"响应JSON"},"bridge_path":"http.fetch"}
+    {"name":"fetch","description":"发起 HTTP 请求（GET/POST/PUT/DELETE）","symbol":"hap_http_fetch","params":[{"name":"url","type":"string","desc":"请求URL"},{"name":"options","type":"json","desc":"请求选项JSON"}],"returns":{"type":"json","desc":"响应JSON"},"bridge_path":"http.fetch"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()

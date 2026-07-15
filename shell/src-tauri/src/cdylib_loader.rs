@@ -36,6 +36,8 @@ pub struct ModuleDescriptor {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionDescriptor {
     pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
     pub symbol: String,
     pub params: Vec<ParamDescriptor>,
     pub returns: ReturnDescriptor,

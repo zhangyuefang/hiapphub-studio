@@ -11,6 +11,7 @@ type Tab = "settings" | "account" | "libraries" | "dev_mode";
 
 interface FnDesc {
   name: string;
+  description: string | null;
   symbol: string;
   params: { name: string; type: string; desc: string }[];
   returns: { type: string; desc: string };
@@ -269,6 +270,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                 {selected.functions.map((fn) => (
                   <div key={fn.symbol} className="border rounded px-3 py-2 text-xs" style={{ borderColor: "var(--fs-border)" }}>
                     <div className="font-mono font-medium">{fn.name}</div>
+                    {fn.description && <div className="text-[11px] opacity-50 mt-0.5">{fn.description}</div>}
                     <div className="mt-1 opacity-60 space-y-0.5">
                       <div>{t("settings.fn_params")}: {fn.params.length === 0 ? "-" : fn.params.map((p) => `${p.name}: ${p.type} (${p.desc})`).join(", ")}</div>
                       <div>{t("settings.fn_return")}: {fn.returns.type} ({fn.returns.desc})</div>

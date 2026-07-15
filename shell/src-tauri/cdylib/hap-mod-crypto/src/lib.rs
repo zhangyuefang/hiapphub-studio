@@ -31,6 +31,7 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "functions": [
     {
       "name": "hash",
+      "description": "计算数据的哈希摘要（MD5/SHA-256/SHA-512）",
       "symbol": "hap_crypto_hash",
       "params": [
         {"name": "algorithm", "type": "string", "desc": "md5|sha256|sha512"},
@@ -41,6 +42,7 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
     },
     {
       "name": "random_bytes",
+      "description": "生成指定长度的随机字节序列",
       "symbol": "hap_crypto_random_bytes",
       "params": [
         {"name": "length", "type": "u32", "desc": "字节数"}

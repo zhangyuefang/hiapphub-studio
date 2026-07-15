@@ -31,11 +31,11 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "description": "SQLite 数据库操作",
   "permission": "db:sqlite",
   "functions": [
-    {"name":"open","symbol":"hap_sqlite_open","params":[{"name":"db_path","type":"string","desc":"数据库文件路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"sqlite.open"},
-    {"name":"execute","symbol":"hap_sqlite_execute","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"sql","type":"string","desc":"SQL语句"},{"name":"params","type":"json","desc":"参数JSON数组"}],"returns":{"type":"json","desc":"执行结果"},"bridge_path":"sqlite.execute"},
-    {"name":"query","symbol":"hap_sqlite_query","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"sql","type":"string","desc":"SQL语句"},{"name":"params","type":"json","desc":"参数JSON数组"}],"returns":{"type":"json","desc":"查询结果"},"bridge_path":"sqlite.query"},
-    {"name":"kv_get","symbol":"hap_sqlite_kv_get","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"key","type":"string","desc":"键"}],"returns":{"type":"string","desc":"值或空"},"bridge_path":"sqlite.kvGet"},
-    {"name":"kv_set","symbol":"hap_sqlite_kv_set","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"key","type":"string","desc":"键"},{"name":"value","type":"string","desc":"值"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"sqlite.kvSet"}
+    {"name":"open","description":"打开或创建 SQLite 数据库文件","symbol":"hap_sqlite_open","params":[{"name":"db_path","type":"string","desc":"数据库文件路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"sqlite.open"},
+    {"name":"execute","description":"执行 SQL 语句（INSERT/UPDATE/DELETE/CREATE）","symbol":"hap_sqlite_execute","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"sql","type":"string","desc":"SQL语句"},{"name":"params","type":"json","desc":"参数JSON数组"}],"returns":{"type":"json","desc":"执行结果"},"bridge_path":"sqlite.execute"},
+    {"name":"query","description":"执行 SQL 查询并返回结果集","symbol":"hap_sqlite_query","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"sql","type":"string","desc":"SQL语句"},{"name":"params","type":"json","desc":"参数JSON数组"}],"returns":{"type":"json","desc":"查询结果"},"bridge_path":"sqlite.query"},
+    {"name":"kv_get","description":"从键值表中读取指定键的值","symbol":"hap_sqlite_kv_get","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"key","type":"string","desc":"键"}],"returns":{"type":"string","desc":"值或空"},"bridge_path":"sqlite.kvGet"},
+    {"name":"kv_set","description":"向键值表中写入或更新键值对","symbol":"hap_sqlite_kv_set","params":[{"name":"db_path","type":"string","desc":"数据库路径"},{"name":"key","type":"string","desc":"键"},{"name":"value","type":"string","desc":"值"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"sqlite.kvSet"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()

@@ -24,13 +24,13 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "description": "操作系统与硬件信息",
   "permission": "system:info",
   "functions": [
-    {"name":"platform","symbol":"hap_system_platform","params":[],"returns":{"type":"string","desc":"windows/macos/linux"},"bridge_path":"system.platform"},
-    {"name":"arch","symbol":"hap_system_arch","params":[],"returns":{"type":"string","desc":"CPU架构"},"bridge_path":"system.arch"},
-    {"name":"hostname","symbol":"hap_system_hostname","params":[],"returns":{"type":"string","desc":"主机名"},"bridge_path":"system.hostname"},
-    {"name":"cpu_info","symbol":"hap_system_cpu_info","params":[],"returns":{"type":"json","desc":"CPU信息"},"bridge_path":"system.cpuInfo"},
-    {"name":"memory_info","symbol":"hap_system_memory_info","params":[],"returns":{"type":"json","desc":"内存信息"},"bridge_path":"system.memoryInfo"},
-    {"name":"disk_info","symbol":"hap_system_disk_info","params":[],"returns":{"type":"json","desc":"磁盘信息"},"bridge_path":"system.diskInfo"},
-    {"name":"process_list","symbol":"hap_system_process_list","params":[],"returns":{"type":"json","desc":"进程列表"},"bridge_path":"system.processList"}
+    {"name":"platform","description":"获取当前操作系统类型","symbol":"hap_system_platform","params":[],"returns":{"type":"string","desc":"windows/macos/linux"},"bridge_path":"system.platform"},
+    {"name":"arch","description":"获取 CPU 架构标识","symbol":"hap_system_arch","params":[],"returns":{"type":"string","desc":"CPU架构"},"bridge_path":"system.arch"},
+    {"name":"hostname","description":"获取计算机主机名","symbol":"hap_system_hostname","params":[],"returns":{"type":"string","desc":"主机名"},"bridge_path":"system.hostname"},
+    {"name":"cpu_info","description":"获取 CPU 型号和核心数等信息","symbol":"hap_system_cpu_info","params":[],"returns":{"type":"json","desc":"CPU信息"},"bridge_path":"system.cpuInfo"},
+    {"name":"memory_info","description":"获取系统内存使用情况","symbol":"hap_system_memory_info","params":[],"returns":{"type":"json","desc":"内存信息"},"bridge_path":"system.memoryInfo"},
+    {"name":"disk_info","description":"获取磁盘分区和使用情况","symbol":"hap_system_disk_info","params":[],"returns":{"type":"json","desc":"磁盘信息"},"bridge_path":"system.diskInfo"},
+    {"name":"process_list","description":"获取系统当前运行的进程列表","symbol":"hap_system_process_list","params":[],"returns":{"type":"json","desc":"进程列表"},"bridge_path":"system.processList"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()

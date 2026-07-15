@@ -23,13 +23,13 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "description": "文件系统读写操作",
   "permission": "fs",
   "functions": [
-    {"name":"read_text_file","symbol":"hap_fs_read_text_file","params":[{"name":"path","type":"string","desc":"文件路径"}],"returns":{"type":"string","desc":"文件内容"},"bridge_path":"fs.readTextFile"},
-    {"name":"write_text_file","symbol":"hap_fs_write_text_file","params":[{"name":"path","type":"string","desc":"文件路径"},{"name":"content","type":"string","desc":"写入内容"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.writeTextFile"},
-    {"name":"exists","symbol":"hap_fs_exists","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"string","desc":"true/false"},"bridge_path":"fs.exists"},
-    {"name":"remove","symbol":"hap_fs_remove","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.remove"},
-    {"name":"read_dir","symbol":"hap_fs_read_dir","params":[{"name":"path","type":"string","desc":"目录路径"}],"returns":{"type":"json","desc":"文件列表JSON"},"bridge_path":"fs.readDir"},
-    {"name":"create_dir","symbol":"hap_fs_create_dir","params":[{"name":"path","type":"string","desc":"目录路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.createDir"},
-    {"name":"metadata","symbol":"hap_fs_metadata","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"json","desc":"元信息JSON"},"bridge_path":"fs.metadata"}
+    {"name":"read_text_file","description":"读取文本文件的完整内容","symbol":"hap_fs_read_text_file","params":[{"name":"path","type":"string","desc":"文件路径"}],"returns":{"type":"string","desc":"文件内容"},"bridge_path":"fs.readTextFile"},
+    {"name":"write_text_file","description":"将文本内容写入指定文件","symbol":"hap_fs_write_text_file","params":[{"name":"path","type":"string","desc":"文件路径"},{"name":"content","type":"string","desc":"写入内容"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.writeTextFile"},
+    {"name":"exists","description":"检查文件或目录是否存在","symbol":"hap_fs_exists","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"string","desc":"true/false"},"bridge_path":"fs.exists"},
+    {"name":"remove","description":"删除指定的文件或目录","symbol":"hap_fs_remove","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.remove"},
+    {"name":"read_dir","description":"列出目录下的所有文件和子目录","symbol":"hap_fs_read_dir","params":[{"name":"path","type":"string","desc":"目录路径"}],"returns":{"type":"json","desc":"文件列表JSON"},"bridge_path":"fs.readDir"},
+    {"name":"create_dir","description":"递归创建目录","symbol":"hap_fs_create_dir","params":[{"name":"path","type":"string","desc":"目录路径"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"fs.createDir"},
+    {"name":"metadata","description":"获取文件/目录的元信息（大小、时间等）","symbol":"hap_fs_metadata","params":[{"name":"path","type":"string","desc":"路径"}],"returns":{"type":"json","desc":"元信息JSON"},"bridge_path":"fs.metadata"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()

@@ -23,8 +23,8 @@ pub extern "C" fn hap_module_describe() -> *const c_char {
   "description": "剪贴板读写能力模块",
   "permission": "clipboard",
   "functions": [
-    {"name":"read_text","symbol":"hap_clipboard_read_text","params":[],"returns":{"type":"string","desc":"剪贴板文本"},"bridge_path":"clipboard.readText"},
-    {"name":"write_text","symbol":"hap_clipboard_write_text","params":[{"name":"text","type":"string","desc":"写入文本"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"clipboard.writeText"}
+    {"name":"read_text","description":"读取系统剪贴板中的文本内容","symbol":"hap_clipboard_read_text","params":[],"returns":{"type":"string","desc":"剪贴板文本"},"bridge_path":"clipboard.readText"},
+    {"name":"write_text","description":"将文本写入系统剪贴板","symbol":"hap_clipboard_write_text","params":[{"name":"text","type":"string","desc":"写入文本"}],"returns":{"type":"string","desc":"ok或error"},"bridge_path":"clipboard.writeText"}
   ]
 }"#;
     CString::new(desc).unwrap().into_raw()
