@@ -276,22 +276,12 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
   const [filter, setFilter] = useState("");
   const [usageStats, setUsageStats] = useState<Record<string, { id: string; name: string }[]>>({});
   const [showUsage, setShowUsage] = useState<string | null>(null);
-  const usageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     invoke<Record<string, { id: string; name: string }[]>>("hap_lib_usage_stats")
       .then(setUsageStats)
       .catch(() => {});
   }, [modules]);
-
-  useEffect(() => {
-    if (!showUsage) return;
-    const handler = (e: MouseEvent) => {
-      if (usageRef.current && !usageRef.current.contains(e.target as Node)) setShowUsage(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showUsage]);
   const filtered = filter.trim()
     ? modules.filter((m) =>
         m.name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -465,7 +455,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
 
       {showUsage && usageStats[showUsage] && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30" onClick={() => setShowUsage(null)}>
-          <div ref={usageRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 min-w-[240px] max-w-[360px]" style={{ borderColor: "var(--fs-border)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 min-w-[240px] max-w-[360px]" style={{ borderColor: "var(--fs-border)" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold">{t("settings.lib_used_by")}</h4>
               <button className="opacity-40 hover:opacity-100" onClick={() => setShowUsage(null)}>
