@@ -1,0 +1,11 @@
+[package]
+name = "hap-mod-clipboard"
+version = "0.1.0"
+edition = "2021"
+description = "HiAppHub cdylib 能力模块 — 剪贴板读写"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+arboard = "3"
