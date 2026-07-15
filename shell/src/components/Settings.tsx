@@ -207,10 +207,10 @@ function buildModuleText(m: ModuleDesc, t: (k: string) => string, locale: string
     m.file_path ? `${t("settings.file_path")}: ${m.file_path}` : "",
     "",
     `${t("settings.fn_list")} (${m.functions.length}):`,
-    ...m.functions.map((fn) => {
-      const fnDesc = i18nText(fn.description ?? "", fn.descriptions, locale);
-      return `  ${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}${fnDesc ? `  // ${fnDesc}` : ""}`;
-    }),
+    ...m.functions.flatMap((fn, i) => [
+      i > 0 ? "" : null,
+      `  ${buildFnText(fn, t, locale).split("\n").join("\n  ")}`,
+    ].filter((l) => l !== null)),
   ].filter(Boolean);
   return lines.join("\n");
 }
