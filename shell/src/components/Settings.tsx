@@ -152,6 +152,60 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
   );
 }
 
+function CopyIcon({ text, title }: { text: string; title?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      title={title}
+      className="shrink-0 p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+    >
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M20 6L9 17l-5-5"/></svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      )}
+    </button>
+  );
+}
+
+function buildModuleText(m: ModuleDesc): string {
+  const lines = [
+    `${m.name} v${m.version}`,
+    m.description,
+    m.uuid ? `UUID: ${m.uuid}` : "",
+    m.author ? `Author: ${m.author}` : "",
+    m.author_email ? `Email: ${m.author_email}` : "",
+    m.author_url ? `URL: ${m.author_url}` : "",
+    `Category: ${m.category}`,
+    `Permission: ${m.permission}`,
+    m.min_shell_version ? `Min Shell: ${m.min_shell_version}` : "",
+    m.file_size ? `Size: ${formatSize(m.file_size)}` : "",
+    m.file_path ? `Path: ${m.file_path}` : "",
+    "",
+    `Functions (${m.functions.length}):`,
+    ...m.functions.map((fn) =>
+      `  ${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}${fn.description ? `  // ${fn.description}` : ""}`
+    ),
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function buildFnText(fn: FnDesc): string {
+  return [
+    `${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}`,
+    fn.description ?? "",
+    fn.params.length ? `Params: ${fn.params.map((p) => `${p.name}: ${p.type} (${p.desc})`).join(", ")}` : "",
+    `Return: ${fn.returns.type} (${fn.returns.desc})`,
+    `Bridge: ${fn.bridge_path}`,
+  ].filter(Boolean).join("\n");
+}
+
 function formatSize(bytes: number | null): string {
   if (!bytes) return "-";
   if (bytes < 1024) return `${bytes} B`;
@@ -222,9 +276,12 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
             <div className="flex items-start gap-3">
               <span className="text-3xl">{selected.icon ?? "📦"}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline justify-between">
+                <div className="flex items-center justify-between">
                   <h3 className="text-base font-semibold">{selected.name}</h3>
-                  <span className="text-xs opacity-50 shrink-0 ml-2">v{selected.version}</span>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <span className="text-xs opacity-50">v{selected.version}</span>
+                    <CopyIcon text={buildModuleText(selected)} title={t("settings.copy_all")} />
+                  </div>
                 </div>
                 <div className="flex items-baseline justify-between mt-0.5">
                   <span className="text-xs opacity-60">{selected.description}</span>
@@ -274,7 +331,10 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                         {fn.name}(<span className="opacity-70">{fn.params.map((p) => `${p.name}`).join(", ")}</span>)
                         <span className="opacity-50"> → {fn.returns.type}</span>
                       </code>
-                      <span className="text-[10px] font-mono opacity-40">{fn.bridge_path}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-[10px] font-mono opacity-40">{fn.bridge_path}</span>
+                        <CopyIcon text={buildFnText(fn)} />
+                      </div>
                     </div>
                     <div className="px-3 py-2 space-y-2">
                       {fn.description && <div className="text-xs opacity-60">{fn.description}</div>}

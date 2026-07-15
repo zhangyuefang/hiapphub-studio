@@ -45,6 +45,7 @@
   "settings.fn_bridge": "Bridge",
   "settings.fn_type": "Type",
   "settings.fn_desc": "Description",
+  "settings.copy_all": "Copy All Info",
   "settings.file_path": "File",
   "settings.browse": "Browse",
   "settings.filter_libs": "Search libraries...",

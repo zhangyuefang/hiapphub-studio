@@ -45,6 +45,7 @@
   "settings.fn_bridge": "桥接路径",
   "settings.fn_type": "类型",
   "settings.fn_desc": "说明",
+  "settings.copy_all": "复制全部信息",
   "settings.file_path": "文件路径",
   "settings.browse": "浏览",
   "settings.filter_libs": "搜索支持库...",
