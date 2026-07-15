@@ -266,15 +266,45 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
               <h4 className="text-xs font-medium opacity-60 mb-2">
                 {t("settings.fn_list")} ({selected.functions.length})
               </h4>
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 {selected.functions.map((fn) => (
-                  <div key={fn.symbol} className="border rounded px-3 py-2 text-xs" style={{ borderColor: "var(--fs-border)" }}>
-                    <div className="font-mono font-medium">{fn.name}</div>
-                    {fn.description && <div className="text-[11px] opacity-50 mt-0.5">{fn.description}</div>}
-                    <div className="mt-1 opacity-60 space-y-0.5">
-                      <div>{t("settings.fn_params")}: {fn.params.length === 0 ? "-" : fn.params.map((p) => `${p.name}: ${p.type} (${p.desc})`).join(", ")}</div>
-                      <div>{t("settings.fn_return")}: {fn.returns.type} ({fn.returns.desc})</div>
-                      <div>{t("settings.fn_bridge")}: <span className="font-mono">{fn.bridge_path}</span></div>
+                  <div key={fn.symbol} className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--fs-border)" }}>
+                    <div className="px-3 py-2 flex items-center justify-between" style={{ background: "var(--fs-border)", opacity: 0.6 }}>
+                      <code className="text-xs font-semibold">
+                        {fn.name}(<span className="opacity-70">{fn.params.map((p) => `${p.name}`).join(", ")}</span>)
+                        <span className="opacity-50"> → {fn.returns.type}</span>
+                      </code>
+                      <span className="text-[10px] font-mono opacity-40">{fn.bridge_path}</span>
+                    </div>
+                    <div className="px-3 py-2 space-y-2">
+                      {fn.description && <div className="text-xs opacity-60">{fn.description}</div>}
+                      {fn.params.length > 0 && (
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="opacity-40">
+                              <th className="text-left font-normal pb-1 pr-4">{t("settings.fn_params")}</th>
+                              <th className="text-left font-normal pb-1 pr-4">{t("settings.fn_type")}</th>
+                              <th className="text-left font-normal pb-1">{t("settings.fn_desc")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {fn.params.map((p) => (
+                              <tr key={p.name}>
+                                <td className="pr-4 py-0.5 font-mono text-blue-500">{p.name}</td>
+                                <td className="pr-4 py-0.5 opacity-60">{p.type}</td>
+                                <td className="py-0.5 opacity-50">{p.desc}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                      <div className="text-xs flex items-center gap-2">
+                        <span className="opacity-40">{t("settings.fn_return")}:</span>
+                        <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: "var(--fs-border)" }}>
+                          {fn.returns.type}
+                        </code>
+                        <span className="opacity-50">{fn.returns.desc}</span>
+                      </div>
                     </div>
                   </div>
                 ))}

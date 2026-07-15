@@ -43,6 +43,8 @@
   "settings.fn_return": "返回值",
   "settings.fn_list": "函数列表",
   "settings.fn_bridge": "桥接路径",
+  "settings.fn_type": "类型",
+  "settings.fn_desc": "说明",
   "settings.file_path": "文件路径",
   "settings.browse": "浏览",
   "settings.filter_libs": "搜索支持库...",
