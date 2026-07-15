@@ -372,25 +372,15 @@ pub fn is_hap_format(path: &Path) -> io::Result<bool> {
 }
 
 #[allow(dead_code)]
-pub fn read_file_from_hap_or_zip(hap_path: &Path, file_path: &str) -> io::Result<Vec<u8>> {
-    if is_hap_format(hap_path)? {
-        let mut reader = HapReader::open_file(hap_path)?;
-        reader.read_file(file_path)
-    } else {
-        let file = fs::File::open(hap_path)?;
-        let mut archive = zip::ZipArchive::new(file)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        let mut entry = archive.by_name(file_path)
-            .map_err(|e| io::Error::new(io::ErrorKind::NotFound, e))?;
-        let mut buf = Vec::new();
-        entry.read_to_end(&mut buf)?;
-        Ok(buf)
-    }
+pub fn read_file_from_hap(hap_path: &Path, file_path: &str) -> io::Result<Vec<u8>> {
+    let mut reader = HapReader::open_file(hap_path)?;
+    reader.read_file(file_path)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn roundtrip_basic() {
