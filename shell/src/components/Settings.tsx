@@ -339,21 +339,11 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
                 )}
               </div>
               {(usageStats[m.name]?.length ?? 0) > 0 && (
-                <span className="relative" ref={showUsage === m.name ? usageRef : undefined}>
-                  <span
-                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 cursor-pointer shrink-0"
-                    onClick={(e) => { e.stopPropagation(); setShowUsage(showUsage === m.name ? null : m.name); }}
-                  >
-                    {usageStats[m.name].length}
-                  </span>
-                  {showUsage === m.name && (
-                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 border rounded shadow-lg p-2 min-w-[140px] z-50 text-[11px]" style={{ borderColor: "var(--fs-border)" }}>
-                      <div className="font-medium mb-1 opacity-60">{t("settings.lib_used_by")}</div>
-                      {usageStats[m.name].map((app) => (
-                        <div key={app.id} className="py-0.5 truncate">{app.name}</div>
-                      ))}
-                    </div>
-                  )}
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 cursor-pointer shrink-0"
+                  onClick={(e) => { e.stopPropagation(); setShowUsage(showUsage === m.name ? null : m.name); }}
+                >
+                  {usageStats[m.name].length}
                 </span>
               )}
             </button>
@@ -472,6 +462,27 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
           </div>
         )}
       </div>
+
+      {showUsage && usageStats[showUsage] && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30" onClick={() => setShowUsage(null)}>
+          <div ref={usageRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 min-w-[240px] max-w-[360px]" style={{ borderColor: "var(--fs-border)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold">{t("settings.lib_used_by")}</h4>
+              <button className="opacity-40 hover:opacity-100" onClick={() => setShowUsage(null)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="text-xs opacity-50 mb-2">{showUsage}</div>
+            {usageStats[showUsage].map((app) => (
+              <div key={app.id} className="flex items-center gap-2 py-1.5 text-sm border-t" style={{ borderColor: "var(--fs-border)" }}>
+                <span>📦</span>
+                <span>{app.name}</span>
+                <span className="text-[10px] opacity-40 ml-auto">{app.id}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
