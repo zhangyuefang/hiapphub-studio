@@ -43,6 +43,7 @@
   "settings.fn_return": "Return",
   "settings.fn_list": "Functions",
   "settings.file_path": "File",
+  "settings.browse": "Browse",
   "settings.filter_libs": "Search libraries...",
   "settings.select_lib": "Select a library to view details",
   "settings.lib_author": "Author",

@@ -43,6 +43,7 @@
   "settings.fn_return": "返回值",
   "settings.fn_list": "函数列表",
   "settings.file_path": "文件路径",
+  "settings.browse": "浏览",
   "settings.filter_libs": "搜索支持库...",
   "settings.select_lib": "请选择左侧支持库查看详情",
   "settings.lib_author": "作者",

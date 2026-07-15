@@ -151,6 +151,39 @@ pub fn hap_close_sub_window(
 }
 
 #[tauri::command]
+pub fn hap_reveal_in_folder(path: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err(format!("路径不存在: {path}"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("{e}"))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", path.replace('/', "\\")))
+            .spawn()
+            .map_err(|e| format!("{e}"))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(parent) = p.parent() {
+            std::process::Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .map_err(|e| format!("{e}"))?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn hap_load_plugin_html(install_path: String) -> Result<String, String> {
     let base = Path::new(&install_path);
     let html_path = base.join("index.html");

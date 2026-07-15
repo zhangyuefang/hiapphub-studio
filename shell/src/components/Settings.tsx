@@ -248,7 +248,13 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
               {selected.file_path && (
                 <div className="col-span-2">
                   <InfoRow label={t("settings.file_path")} value={
-                    <span className="font-mono truncate block" title={selected.file_path}>{selected.file_path}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-mono truncate" title={selected.file_path}>{selected.file_path}</span>
+                      <button
+                        className="shrink-0 text-blue-500 hover:underline whitespace-nowrap"
+                        onClick={() => invoke("hap_reveal_in_folder", { path: selected.file_path })}
+                      >{t("settings.browse")}</button>
+                    </span>
                   } />
                 </div>
               )}
