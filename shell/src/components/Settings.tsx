@@ -274,7 +274,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t }: {
                     <div className="mt-1 opacity-60 space-y-0.5">
                       <div>{t("settings.fn_params")}: {fn.params.length === 0 ? "-" : fn.params.map((p) => `${p.name}: ${p.type} (${p.desc})`).join(", ")}</div>
                       <div>{t("settings.fn_return")}: {fn.returns.type} ({fn.returns.desc})</div>
-                      <div>Bridge: <span className="font-mono">{fn.bridge_path}</span></div>
+                      <div>{t("settings.fn_bridge")}: <span className="font-mono">{fn.bridge_path}</span></div>
                     </div>
                   </div>
                 ))}

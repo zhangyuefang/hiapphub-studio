@@ -42,6 +42,7 @@
   "settings.fn_params": "Params",
   "settings.fn_return": "Return",
   "settings.fn_list": "Functions",
+  "settings.fn_bridge": "Bridge",
   "settings.file_path": "File",
   "settings.browse": "Browse",
   "settings.filter_libs": "Search libraries...",
