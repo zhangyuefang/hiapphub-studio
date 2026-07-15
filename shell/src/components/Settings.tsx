@@ -272,10 +272,13 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
             >
               <span className="text-base shrink-0">{m.icon ?? "📦"}</span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-1.5">
+                <div className="flex items-baseline gap-1">
                   <span className="font-medium truncate">{m.name}</span>
-                  <span className="text-[10px] opacity-50 shrink-0">v{m.version}</span>
+                  <span className="text-[10px] opacity-40 shrink-0">v{m.version}</span>
                 </div>
+                {m.description && (
+                  <div className="text-[11px] opacity-50 truncate">{i18nText(m.description, m.descriptions, locale)}</div>
+                )}
               </div>
             </button>
           ))}
