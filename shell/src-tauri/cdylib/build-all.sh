@@ -36,6 +36,11 @@ for mod in "${MODULES[@]}"; do
   fi
 done
 
+DATA_LIB="$HOME/.hiapphub/lib"
+mkdir -p "$DATA_LIB"
+echo "📦 同步到运行时目录 $DATA_LIB ..."
+cp "$OUT_DIR"/*.hal "$DATA_LIB"/ 2>/dev/null || true
+
 echo ""
 echo "📊 modules 目录内容:"
 ls -lh "$OUT_DIR"/*.hal 2>/dev/null || echo "无 .hal 文件"
