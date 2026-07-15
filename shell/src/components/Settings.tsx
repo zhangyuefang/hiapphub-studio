@@ -107,7 +107,7 @@ export function Settings({ onBack }: Props) {
           ))}
         </nav>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className={`flex-1 overflow-hidden ${tab === "libraries" ? "" : "overflow-y-auto px-6 py-4"}`}>
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
           {tab === "account" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
           {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} />}
@@ -275,7 +275,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
   }
 
   return (
-    <div className="flex h-full -my-4 -mx-6">
+    <div className="flex h-full">
       {/* 左侧模块列表 */}
       <div className="w-48 shrink-0 border-r flex flex-col" style={{ borderColor: "var(--fs-border)" }}>
         <div className="px-2 py-2 border-b" style={{ borderColor: "var(--fs-border)" }}>
