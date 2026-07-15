@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
@@ -230,11 +230,22 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function SizeInfoButton({ modules, t, locale }: { modules: ModuleDesc[]; t: (k: string) => string; locale: string }) {
+function SizeInfoButton({ modules, t }: { modules: ModuleDesc[]; t: (k: string) => string; locale: string }) {
   const [show, setShow] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
   const total = modules.reduce((sum, m) => sum + (m.file_size ?? 0), 0);
+
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setShow(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [show]);
+
   return (
-    <span className="relative">
+    <span className="relative" ref={ref}>
       <button onClick={() => setShow(!show)} className="opacity-60 hover:opacity-100" title={t("settings.lib_size")}>
         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/><text x="8" y="12" textAnchor="middle" fontSize="10" fill="currentColor">i</text></svg>
       </button>
