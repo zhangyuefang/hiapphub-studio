@@ -2,6 +2,7 @@ mod bridge;
 mod cdylib_loader;
 mod hap_format;
 mod hap_manager;
+mod hap_protocol;
 mod db;
 
 use tauri::{Emitter, Listener};
@@ -15,40 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .register_asynchronous_uri_scheme_protocol("hap", |_ctx, req, responder| {
             std::thread::spawn(move || {
-                let url = req.uri().to_string();
-                let path = url.strip_prefix("hap://localhost/").unwrap_or(&url);
-                let decoded = urlencoding::decode(path).unwrap_or_default();
-                let file_path = hap_manager::data_dir()
-                    .join("plugins/installed")
-                    .join(decoded.as_ref());
-
-                if file_path.exists() {
-                    let data = std::fs::read(&file_path).unwrap_or_default();
-                    let mime = match file_path.extension().and_then(|e| e.to_str()) {
-                        Some("html") => "text/html",
-                        Some("js") => "application/javascript",
-                        Some("css") => "text/css",
-                        Some("json") => "application/json",
-                        Some("wasm") => "application/wasm",
-                        Some("png") => "image/png",
-                        Some("svg") => "image/svg+xml",
-                        Some("jpg" | "jpeg") => "image/jpeg",
-                        _ => "application/octet-stream",
-                    };
-                    let resp = tauri::http::Response::builder()
-                        .status(200)
-                        .header("Content-Type", mime)
-                        .header("Access-Control-Allow-Origin", "*")
-                        .body(data)
-                        .unwrap();
-                    responder.respond(resp);
-                } else {
-                    let resp = tauri::http::Response::builder()
-                        .status(404)
-                        .body(b"Not Found".to_vec())
-                        .unwrap();
-                    responder.respond(resp);
-                }
+                hap_protocol::handle_request(req, responder);
             });
         })
         .setup(|app| {

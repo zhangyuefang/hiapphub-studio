@@ -1,4 +1,4 @@
-use std::io::{self, Read, Seek, SeekFrom, Write, Cursor};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::fs;
 use serde::{Serialize, Deserialize};
@@ -177,6 +177,7 @@ impl<R: Read + Seek> HapReader<R> {
         self.read_entry(&entry)
     }
 
+    #[allow(dead_code)]
     pub fn is_encrypted(&self) -> bool {
         self.header.flags & FLAG_ENCRYPTED != 0
     }
