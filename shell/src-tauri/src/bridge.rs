@@ -72,7 +72,7 @@ pub fn hap_lib_usage_stats() -> Result<Value, String> {
             });
             let has_dep = p["dependencies"]["hal"].as_array().map_or(false, |deps| {
                 deps.iter().any(|d| {
-                    d["uuid"].as_str() == m.uuid.as_deref() || d["id"].as_str().map_or(false, |id| id == format!("hap-mod-{}", m.name))
+                    (m.uuid.is_some() && d["uuid"].as_str() == m.uuid.as_deref()) || d["id"].as_str().map_or(false, |id| id == format!("hap-mod-{}", m.name))
                 })
             });
             if has_perm || has_dep {
