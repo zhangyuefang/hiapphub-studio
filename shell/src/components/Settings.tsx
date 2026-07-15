@@ -191,35 +191,38 @@ function CopyIcon({ text, title }: { text: string; title?: string }) {
   );
 }
 
-function buildModuleText(m: ModuleDesc): string {
+function buildModuleText(m: ModuleDesc, t: (k: string) => string, locale: string): string {
+  const desc = i18nText(m.description, m.descriptions, locale);
   const lines = [
     `${m.name} v${m.version}`,
-    m.description,
+    desc,
     m.uuid ? `UUID: ${m.uuid}` : "",
-    m.author ? `Author: ${m.author}` : "",
-    m.author_email ? `Email: ${m.author_email}` : "",
+    m.author ? `${t("settings.lib_author")}: ${m.author}` : "",
+    m.author_email ? `${t("settings.lib_email")}: ${m.author_email}` : "",
     m.author_url ? `URL: ${m.author_url}` : "",
-    `Category: ${m.category}`,
-    `Permission: ${m.permission}`,
-    m.min_shell_version ? `Min Shell: ${m.min_shell_version}` : "",
-    m.file_size ? `Size: ${formatSize(m.file_size)}` : "",
-    m.file_path ? `Path: ${m.file_path}` : "",
+    `${t("settings.lib_category")}: ${t(`category.${m.category}`) !== `category.${m.category}` ? t(`category.${m.category}`) : m.category}`,
+    `${t("settings.permission")}: ${m.permission}`,
+    m.min_shell_version ? `${t("settings.lib_min_shell")}: ${m.min_shell_version}` : "",
+    m.file_size ? `${t("settings.lib_size")}: ${formatSize(m.file_size)}` : "",
+    m.file_path ? `${t("settings.file_path")}: ${m.file_path}` : "",
     "",
-    `Functions (${m.functions.length}):`,
-    ...m.functions.map((fn) =>
-      `  ${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}${fn.description ? `  // ${fn.description}` : ""}`
-    ),
+    `${t("settings.fn_list")} (${m.functions.length}):`,
+    ...m.functions.map((fn) => {
+      const fnDesc = i18nText(fn.description ?? "", fn.descriptions, locale);
+      return `  ${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}${fnDesc ? `  // ${fnDesc}` : ""}`;
+    }),
   ].filter(Boolean);
   return lines.join("\n");
 }
 
-function buildFnText(fn: FnDesc): string {
+function buildFnText(fn: FnDesc, t: (k: string) => string, locale: string): string {
+  const fnDesc = i18nText(fn.description ?? "", fn.descriptions, locale);
   return [
     `${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}`,
-    fn.description ?? "",
-    fn.params.length ? `Params: ${fn.params.map((p) => `${p.name}: ${p.type} (${p.desc})`).join(", ")}` : "",
-    `Return: ${fn.returns.type} (${fn.returns.desc})`,
-    `Bridge: ${fn.bridge_path}`,
+    fnDesc,
+    fn.params.length ? `${t("settings.fn_params")}: ${fn.params.map((p) => `${p.name}: ${p.type} (${i18nText(p.desc, p.descs, locale)})`).join(", ")}` : "",
+    `${t("settings.fn_return")}: ${fn.returns.type} (${i18nText(fn.returns.desc, fn.returns.descs, locale)})`,
+    `${t("settings.fn_bridge")}: ${fn.bridge_path}`,
   ].filter(Boolean).join("\n");
 }
 
@@ -340,7 +343,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
                   <h3 className="text-base font-semibold">{selected.name}</h3>
                   <div className="flex items-center gap-1 shrink-0 ml-2">
                     <span className="text-xs opacity-50">v{selected.version}</span>
-                    <CopyIcon text={buildModuleText(selected)} title={t("settings.copy_all")} />
+                    <CopyIcon text={buildModuleText(selected, t, locale)} title={t("settings.copy_all")} />
                   </div>
                 </div>
                 <div className="flex items-baseline justify-between mt-0.5">
@@ -393,7 +396,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
                       </code>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className="text-[10px] font-mono opacity-40">{fn.bridge_path}</span>
-                        <CopyIcon text={buildFnText(fn)} />
+                        <CopyIcon text={buildFnText(fn, t, locale)} />
                       </div>
                     </div>
                     <div className="px-3 py-2 space-y-2">
