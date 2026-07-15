@@ -45,27 +45,12 @@ pub fn handle_request(
     let app_dir = hap_manager::data_dir().join("app");
     let hap_path = app_dir.join(format!("{app_id}.hap"));
 
-    let data = if hap_path.exists() {
-        match read_from_hap(&hap_path, file_path) {
-            Ok(d) => d,
-            Err(e) => {
-                eprintln!("[hap://] 从 .hap 读取失败: {e}, 尝试回退到目录");
-                match read_from_dir(app_id, file_path) {
-                    Ok(d) => d,
-                    Err(_) => {
-                        respond_404(responder);
-                        return;
-                    }
-                }
-            }
-        }
-    } else {
-        match read_from_dir(app_id, file_path) {
-            Ok(d) => d,
-            Err(_) => {
-                respond_404(responder);
-                return;
-            }
+    let data = match read_from_hap(&hap_path, file_path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("[hap://] {app_id}/{file_path}: {e}");
+            respond_404(responder);
+            return;
         }
     };
 
@@ -87,14 +72,6 @@ fn read_from_hap(hap_path: &PathBuf, file_path: &str) -> Result<Vec<u8>, String>
     let mut reader = hap_format::HapReader::open_file(hap_path)
         .map_err(|e| format!("{e}"))?;
     reader.read_file(file_path).map_err(|e| format!("{e}"))
-}
-
-fn read_from_dir(app_id: &str, file_path: &str) -> Result<Vec<u8>, String> {
-    let dir_path = hap_manager::data_dir()
-        .join("plugins/installed")
-        .join(app_id)
-        .join(file_path);
-    std::fs::read(&dir_path).map_err(|e| format!("{e}"))
 }
 
 fn guess_mime(path: &str) -> &'static str {

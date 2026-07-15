@@ -15,7 +15,6 @@ pub fn ensure_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
         "data/plugins",
         "config",
         "app",
-        "plugins/installed",
         "lib",
         "cache/downloads",
         "cache/wasm",
@@ -30,7 +29,6 @@ pub fn ensure_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
 
 pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
     let mut plugins = Vec::new();
-    let mut seen_ids = std::collections::HashSet::new();
 
     let app_dir = data_dir().join("app");
     if app_dir.exists() {
@@ -39,35 +37,8 @@ pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) == Some("hap") {
                 if let Ok(manifest) = read_manifest_from_hap(&path) {
-                    if let Some(id) = manifest["id"].as_str() {
-                        seen_ids.insert(id.to_string());
-                    }
                     plugins.push(manifest);
                 }
-            }
-        }
-    }
-
-    let installed_dir = data_dir().join("plugins/installed");
-    if installed_dir.exists() {
-        let entries = fs::read_dir(&installed_dir).map_err(|e| format!("读取插件目录失败: {e}"))?;
-        for entry in entries.flatten() {
-            let plugin_dir = entry.path();
-            let manifest_path = plugin_dir.join("manifest.json");
-            if manifest_path.exists() {
-                let content = fs::read_to_string(&manifest_path)
-                    .map_err(|e| format!("读取 manifest 失败: {e}"))?;
-                let mut manifest: Value =
-                    serde_json::from_str(&content).map_err(|e| format!("解析 manifest 失败: {e}"))?;
-                if let Some(id) = manifest["id"].as_str() {
-                    if seen_ids.contains(id) {
-                        continue;
-                    }
-                }
-                if let Value::Object(ref mut map) = manifest {
-                    map.insert("_installPath".to_string(), Value::String(plugin_dir.to_string_lossy().to_string()));
-                }
-                plugins.push(manifest);
             }
         }
     }
@@ -115,23 +86,7 @@ pub fn install_from_hap(hap_path: &str) -> Result<Value, String> {
         fs::copy(hap_file, &target).map_err(|e| format!("复制失败: {e}"))?;
         Ok(manifest)
     } else {
-        let file = fs::File::open(hap_file).map_err(|e| format!("打开文件失败: {e}"))?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("ZIP 解析失败: {e}"))?;
-        let manifest_content = {
-            let mut mf = archive.by_name("manifest.json")
-                .map_err(|_| "hap 包中缺少 manifest.json")?;
-            let mut buf = String::new();
-            std::io::Read::read_to_string(&mut mf, &mut buf)
-                .map_err(|e| format!("读取 manifest 失败: {e}"))?;
-            buf
-        };
-        let manifest: Value = serde_json::from_str(&manifest_content)
-            .map_err(|e| format!("manifest 解析失败: {e}"))?;
-        let plugin_id = manifest["id"].as_str().ok_or("manifest 缺少 id 字段")?;
-        let target_dir = data_dir().join("plugins/installed").join(plugin_id);
-        fs::create_dir_all(&target_dir).map_err(|e| format!("创建目录失败: {e}"))?;
-        archive.extract(&target_dir).map_err(|e| format!("解压失败: {e}"))?;
-        Ok(manifest)
+        Err("不支持的文件格式，请使用 HAP 自定义格式的 .hap 文件".into())
     }
 }
 
