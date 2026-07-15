@@ -1,5 +1,6 @@
 mod bridge;
 mod cdylib_loader;
+mod hap_format;
 mod hap_manager;
 mod db;
 

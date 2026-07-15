@@ -15,7 +15,7 @@ pub fn ensure_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
         "data/plugins",
         "config",
         "plugins/installed",
-        "plugins/modules",
+        "lib",
         "cache/downloads",
         "cache/wasm",
         "backup",
