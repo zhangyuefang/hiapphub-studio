@@ -44,6 +44,7 @@ pub fn run() {
             bridge::crypto_hash,
             bridge::crypto_random_bytes,
             bridge::hap_list_modules,
+            bridge::hap_call_function,
             bridge::hap_reload_modules,
             bridge::hap_list_plugins,
             bridge::hap_lib_usage_stats,

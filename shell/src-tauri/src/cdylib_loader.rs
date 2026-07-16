@@ -319,3 +319,42 @@ pub fn get_module_descriptor(name: &str) -> Option<ModuleDescriptor> {
         .get(name)
         .and_then(|m| m.descriptor.clone())
 }
+
+type HalCallFn = unsafe extern "C" fn(CCharPtr) -> CCharPtr;
+
+/// 通用 HAL 函数调用：通过 symbol 名称动态查找并调用模块导出函数。
+/// HAL 函数统一签名：`extern "C" fn(params_json: *const c_char) -> *const c_char`
+pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) -> Result<String, String> {
+    let map = LOADED_MODULES.lock().unwrap();
+    let loaded = map.get(module_name)
+        .ok_or_else(|| format!("模块 '{module_name}' 未加载"))?;
+
+    let desc = loaded.descriptor.as_ref()
+        .ok_or_else(|| format!("模块 '{module_name}' 无描述信息"))?;
+
+    let _fn_desc = desc.functions.iter()
+        .find(|f| f.symbol == symbol_name)
+        .ok_or_else(|| format!("模块 '{module_name}' 中未找到函数 '{symbol_name}'"))?;
+
+    let func: Symbol<HalCallFn> = unsafe {
+        loaded._lib.get(symbol_name.as_bytes())
+    }.map_err(|e| format!("查找符号 '{symbol_name}' 失败: {e}"))?;
+
+    let c_params = std::ffi::CString::new(params_json)
+        .map_err(|e| format!("参数编码失败: {e}"))?;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        unsafe { func(c_params.as_ptr()) }
+    }));
+
+    match result {
+        Ok(ptr) if !ptr.is_null() => {
+            let c_str = unsafe { std::ffi::CStr::from_ptr(ptr) };
+            c_str.to_str()
+                .map(|s| s.to_string())
+                .map_err(|e| format!("返回值 UTF-8 解码失败: {e}"))
+        }
+        Ok(_) => Ok("null".to_string()),
+        Err(_) => Err(format!("函数 '{symbol_name}' 执行时发生 panic")),
+    }
+}

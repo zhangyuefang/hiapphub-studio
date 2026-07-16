@@ -53,6 +53,11 @@ pub fn hap_list_modules() -> Result<Vec<cdylib_loader::ModuleDescriptor>, String
 }
 
 #[tauri::command]
+pub fn hap_call_function(module_name: String, symbol_name: String, params_json: String) -> Result<String, String> {
+    cdylib_loader::call_function(&module_name, &symbol_name, &params_json)
+}
+
+#[tauri::command]
 pub fn hap_reload_modules() -> Result<cdylib_loader::ReloadResult, String> {
     let data_dir = hap_manager::data_dir();
     cdylib_loader::reload_modules(&data_dir).map_err(|e| format!("重载失败: {e}"))

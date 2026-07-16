@@ -2,18 +2,27 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { apiFetch } from "@/lib/api";
 
+export interface OAuthAccount {
+  id: string;
+  provider: string;
+  createdAt: string;
+}
+
 export interface UserInfo {
   id: string;
   username: string | null;
   email: string | null;
+  phone: string | null;
   name: string | null;
   avatar: string | null;
   bio: string | null;
   website: string | null;
+  githubUsername: string | null;
   emailVerified: boolean;
   status: string;
   createdAt: string;
   lastLoginAt: string | null;
+  oauthAccounts?: OAuthAccount[];
 }
 
 interface AuthData {
@@ -75,7 +84,7 @@ export interface AuthState {
   fetchProfile: () => Promise<void>;
   loadFromStorage: () => void;
   clearError: () => void;
-  updateProfile: (data: { name?: string; avatar?: string; bio?: string }) => Promise<void>;
+  updateProfile: (data: { name?: string; avatar?: string; bio?: string; phone?: string; website?: string; githubUsername?: string }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 

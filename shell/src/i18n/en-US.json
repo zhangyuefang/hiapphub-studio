@@ -128,5 +128,26 @@
   "account.current_pwd": "Current Password",
   "account.new_pwd": "New Password",
   "account.change_pwd_btn": "Confirm Change",
-  "account.pwd_changed": "Password changed successfully"
+  "account.pwd_changed": "Password changed successfully",
+  "account.field_phone": "Phone",
+  "account.field_github": "GitHub Username",
+  "account.verify_email": "Send Verification Email",
+  "account.verify_email_sent": "Verification email sent, please check your inbox",
+  "account.verify_email_no_email": "Please set an email first",
+  "account.linked_accounts": "Linked Accounts",
+  "account.no_linked": "No linked accounts",
+  "account.unlink": "Unlink",
+  "account.unlink_confirm": "Are you sure you want to unlink this account?",
+  "account.unlink_success": "Unlinked successfully",
+  "account.danger_zone": "Danger Zone",
+  "account.delete_account": "Delete Account",
+  "account.delete_confirm": "Are you sure? This action cannot be undone!",
+  "account.delete_need_pwd": "Enter password to confirm deletion",
+  "account.delete_success": "Account deleted",
+  "account.security": "Security",
+
+  "settings.hal_execute": "Execute",
+  "settings.hal_success": "Success",
+  "settings.hal_error": "Error",
+  "settings.hal_history": "History"
 }

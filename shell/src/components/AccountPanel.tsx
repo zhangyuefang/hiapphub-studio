@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useAuthStore, type UserInfo } from "@/store/auth-store";
+import { useAuthStore, type UserInfo, type OAuthAccount } from "@/store/auth-store";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/store/app-store";
 import { apiFetch, getApiBase, getWebBase } from "@/lib/api";
@@ -204,6 +204,9 @@ function ProfileView({ user, theme, t, onLogout }: {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [pwdMode, setPwdMode] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState("");
 
   useEffect(() => {
     apiFetch<{ list: LoginHistory[] }>("/user/login-history")
@@ -212,8 +215,21 @@ function ProfileView({ user, theme, t, onLogout }: {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleVerifyEmail = async () => {
+    if (!user.email) { setVerifyMsg(t("account.verify_email_no_email")); return; }
+    setVerifyingEmail(true);
+    try {
+      await apiFetch("/auth/verify-email", { method: "POST" });
+      setVerifyMsg(t("account.verify_email_sent"));
+    } catch (e: any) {
+      setVerifyMsg(e.message || "Error");
+    }
+    setVerifyingEmail(false);
+  };
+
   if (editMode) return <ProfileEditForm user={user} theme={theme} t={t} onBack={() => setEditMode(false)} />;
   if (pwdMode) return <PasswordChangeForm theme={theme} t={t} onBack={() => setPwdMode(false)} />;
+  if (deleteMode) return <DeleteAccountForm theme={theme} t={t} onBack={() => setDeleteMode(false)} />;
 
   const avatarFallback = (user.name || user.username || "U").charAt(0).toUpperCase();
   const cardBg = theme === "dark" ? "bg-[#2a2a3e]" : "bg-gray-50";
@@ -248,12 +264,28 @@ function ProfileView({ user, theme, t, onLogout }: {
         <div className="grid grid-cols-2 gap-3 text-xs">
           <InfoItem label={t("account.field_username")} value={user.username || "-"} />
           <InfoItem label={t("account.field_email")} value={user.email || "-"} verified={user.email ? user.emailVerified : undefined} t={t} />
+          {user.phone && <InfoItem label={t("account.field_phone")} value={user.phone} />}
           <InfoItem label={t("account.field_status")} value={t(`account.status_${user.status}`)} />
           <InfoItem label={t("account.field_joined")} value={formatDate(user.createdAt)} />
           {user.lastLoginAt && <InfoItem label={t("account.field_last_login")} value={formatDate(user.lastLoginAt)} />}
           {user.website && <InfoItem label={t("account.field_website")} value={user.website} link />}
+          {user.githubUsername && <InfoItem label={t("account.field_github")} value={user.githubUsername} />}
         </div>
+        {user.email && !user.emailVerified && (
+          <div className="mt-3 pt-3 border-t flex items-center gap-2" style={{ borderColor: "var(--fs-border)" }}>
+            <button onClick={handleVerifyEmail} disabled={verifyingEmail}
+              className="text-[10px] text-blue-500 hover:underline disabled:opacity-50">
+              {verifyingEmail ? "..." : t("account.verify_email")}
+            </button>
+            {verifyMsg && <span className="text-[10px] text-green-500">{verifyMsg}</span>}
+          </div>
+        )}
       </div>
+
+      {/* OAuth 关联账号 */}
+      {user.oauthAccounts && user.oauthAccounts.length > 0 && (
+        <OAuthAccountsCard accounts={user.oauthAccounts} t={t} cardBg={cardBg} cardBorder={cardBorder} />
+      )}
 
       {loading ? (
         <div className="py-6 text-center"><div className="inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -271,10 +303,60 @@ function ProfileView({ user, theme, t, onLogout }: {
         </div>
       )}
 
+      {/* 危险操作区 */}
+      <div className={`rounded-lg border p-4 ${cardBg} border-red-500/20`}>
+        <h4 className="text-xs font-medium text-red-500 mb-2">{t("account.danger_zone")}</h4>
+        <button onClick={() => setDeleteMode(true)}
+          className="text-xs text-red-500 hover:underline">
+          {t("account.delete_account")}
+        </button>
+      </div>
+
       <div className="text-center pt-2">
         <a href={`${getWebBase()}/account`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">
           {t("account.go_website")} →
         </a>
+      </div>
+    </div>
+  );
+}
+
+function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
+  accounts: OAuthAccount[]; t: (k: string) => string; cardBg: string; cardBorder: string;
+}) {
+  const { fetchProfile } = useAuthStore();
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+
+  const providerIcon: Record<string, string> = { google: "🔵", github: "⚫" };
+  const providerName: Record<string, string> = { google: "Google", github: "GitHub" };
+
+  const handleUnlink = async (accountId: string) => {
+    if (!confirm(t("account.unlink_confirm"))) return;
+    setUnlinking(accountId);
+    try {
+      await apiFetch(`/user/oauth/${accountId}`, { method: "DELETE" });
+      await fetchProfile();
+    } catch { /* error handled by apiFetch */ }
+    setUnlinking(null);
+  };
+
+  return (
+    <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
+      <h4 className="text-xs font-medium opacity-50 mb-2">{t("account.linked_accounts")}</h4>
+      <div className="space-y-2">
+        {accounts.map((a) => (
+          <div key={a.id} className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5">
+              <span>{providerIcon[a.provider] ?? "🔗"}</span>
+              <span>{providerName[a.provider] ?? a.provider}</span>
+              <span className="opacity-40">{formatDate(a.createdAt)}</span>
+            </span>
+            <button onClick={() => handleUnlink(a.id)} disabled={unlinking === a.id}
+              className="text-red-500 hover:underline disabled:opacity-50">
+              {unlinking === a.id ? "..." : t("account.unlink")}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -287,6 +369,9 @@ function ProfileEditForm({ user, theme, t, onBack }: {
   const [name, setName] = useState(user.name || "");
   const [bio, setBio] = useState(user.bio || "");
   const [avatar, setAvatar] = useState(user.avatar || "");
+  const [phone, setPhone] = useState(user.phone || "");
+  const [website, setWebsite] = useState(user.website || "");
+  const [githubUsername, setGithubUsername] = useState(user.githubUsername || "");
   const [success, setSuccess] = useState(false);
 
   const inputCls = `w-full px-3 py-2 text-sm rounded-lg border outline-none transition-colors focus:border-blue-500 ${
@@ -296,7 +381,14 @@ function ProfileEditForm({ user, theme, t, onBack }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateProfile({ name: name.trim(), bio: bio.trim(), avatar: avatar.trim() || undefined });
+      await updateProfile({
+        name: name.trim(),
+        bio: bio.trim(),
+        avatar: avatar.trim() || undefined,
+        phone: phone.trim() || undefined,
+        website: website.trim() || undefined,
+        githubUsername: githubUsername.trim() || undefined,
+      });
       await fetchProfile();
       setSuccess(true);
       setTimeout(() => onBack(), 800);
@@ -316,6 +408,9 @@ function ProfileEditForm({ user, theme, t, onBack }: {
       <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_name")}</label><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} /></div>
       <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_bio")}</label><textarea className={`${inputCls} resize-none`} rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={256} /></div>
       <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_avatar_url")}</label><input className={inputCls} value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://..." /></div>
+      <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_phone")}</label><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+      <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_website")}</label><input className={inputCls} value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." /></div>
+      <div><label className="text-xs opacity-50 mb-1 block">{t("account.field_github")}</label><input className={inputCls} value={githubUsername} onChange={(e) => setGithubUsername(e.target.value)} /></div>
       <button type="submit" disabled={isLoading || !name.trim()} className="w-full py-2.5 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
         {isLoading ? "..." : t("account.save")}
       </button>
@@ -366,6 +461,53 @@ function PasswordChangeForm({ theme, t, onBack }: {
       <button type="submit" disabled={isLoading || !current || !newPwd || newPwd !== confirm}
         className="w-full py-2.5 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
         {isLoading ? "..." : t("account.change_pwd_btn")}
+      </button>
+    </form>
+  );
+}
+
+function DeleteAccountForm({ theme, t, onBack }: {
+  theme: string; t: (k: string) => string; onBack: () => void;
+}) {
+  const { logout } = useAuthStore();
+  const [pwd, setPwd] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const inputCls = `w-full px-3 py-2 text-sm rounded-lg border outline-none transition-colors focus:border-blue-500 ${
+    theme === "dark" ? "bg-[#2a2a3e] border-[#444] text-white" : "bg-white border-gray-300 text-gray-900"
+  }`;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pwd) return;
+    setLoading(true);
+    setError("");
+    try {
+      await apiFetch("/user/account", { method: "DELETE", body: JSON.stringify({ password: pwd }) });
+      logout();
+    } catch (e: any) {
+      setError(e.message || "Error");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        <button type="button" onClick={onBack} className="opacity-50 hover:opacity-100">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h3 className="text-sm font-semibold text-red-500">{t("account.delete_account")}</h3>
+      </div>
+      <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs">
+        {t("account.delete_confirm")}
+      </div>
+      {error && <ErrorBanner error={error} onClear={() => setError("")} />}
+      <input className={inputCls} type="password" placeholder={t("account.delete_need_pwd")} value={pwd} onChange={(e) => setPwd(e.target.value)} autoFocus />
+      <button type="submit" disabled={loading || !pwd}
+        className="w-full py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        {loading ? "..." : t("account.delete_account")}
       </button>
     </form>
   );
