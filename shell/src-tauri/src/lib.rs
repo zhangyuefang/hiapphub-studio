@@ -1,4 +1,5 @@
 mod bridge;
+mod bridge_inject;
 mod cdylib_loader;
 mod hap_format;
 mod hap_manager;

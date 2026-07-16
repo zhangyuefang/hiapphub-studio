@@ -311,6 +311,15 @@ pub fn get_all_descriptors() -> Vec<ModuleDescriptor> {
         .collect()
 }
 
+pub fn get_module_permission(module_name: &str) -> Option<String> {
+    LOADED_MODULES
+        .lock()
+        .unwrap()
+        .get(module_name)
+        .and_then(|m| m.descriptor.as_ref())
+        .map(|d| d.permission.clone())
+}
+
 #[allow(dead_code)]
 pub fn get_module_descriptor(name: &str) -> Option<ModuleDescriptor> {
     LOADED_MODULES

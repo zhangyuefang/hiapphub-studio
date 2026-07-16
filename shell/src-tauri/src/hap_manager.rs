@@ -90,6 +90,13 @@ pub fn install_from_hap(hap_path: &str) -> Result<Value, String> {
     }
 }
 
+pub fn get_plugin_version(app_id: &str) -> Option<String> {
+    let hap_path = data_dir().join("app").join(format!("{app_id}.hap"));
+    if !hap_path.exists() { return None; }
+    read_manifest_from_hap(&hap_path).ok()
+        .and_then(|m| m["version"].as_str().map(String::from))
+}
+
 #[allow(dead_code)]
 pub fn compute_sha256(_path: &Path) -> Result<String, String> {
     Err("sha256 已移至 crypto cdylib 模块".into())

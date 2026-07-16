@@ -303,6 +303,12 @@ function ProfileView({ user, theme, t, onLogout }: {
         </div>
       )}
 
+      {/* 安全设置区 */}
+      <SecuritySection t={t} cardBg={cardBg} cardBorder={cardBorder} />
+
+      {/* API Token 管理 */}
+      <ApiTokenSection t={t} theme={theme} cardBg={cardBg} cardBorder={cardBorder} />
+
       {/* 危险操作区 */}
       <div className={`rounded-lg border p-4 ${cardBg} border-red-500/20`}>
         <h4 className="text-xs font-medium text-red-500 mb-2">{t("account.danger_zone")}</h4>
@@ -363,6 +369,164 @@ function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SecuritySection({ t, cardBg, cardBorder }: {
+  t: (k: string) => string; cardBg: string; cardBorder: string;
+}) {
+  const [twoFaStatus, setTwoFaStatus] = useState<{ enabled: boolean } | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ enabled: boolean }>("/user/two-factor/status")
+      .then(setTwoFaStatus)
+      .catch(() => setTwoFaStatus({ enabled: false }));
+  }, []);
+
+  return (
+    <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
+      <h4 className="text-xs font-medium opacity-50 mb-3">{t("account.security")}</h4>
+      <div className="space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span>{t("account.two_factor")}</span>
+          <div className="flex items-center gap-2">
+            {twoFaStatus === null ? (
+              <span className="opacity-40">...</span>
+            ) : (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                twoFaStatus.enabled ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+              }`}>
+                {twoFaStatus.enabled ? t("account.two_factor_enabled") : t("account.two_factor_disabled")}
+              </span>
+            )}
+            <a href={`${getWebBase()}/account`} target="_blank" rel="noreferrer"
+              className="text-[10px] text-blue-500 hover:underline">{t("account.two_factor_manage")}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ApiToken {
+  id: string;
+  name: string;
+  scope: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+function ApiTokenSection({ t, theme, cardBg, cardBorder }: {
+  t: (k: string) => string; theme: string; cardBg: string; cardBorder: string;
+}) {
+  const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newTokenName, setNewTokenName] = useState("");
+  const [expiryDays, setExpiryDays] = useState("");
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [createError, setCreateError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const loadTokens = useCallback(() => {
+    apiFetch<{ list: ApiToken[] }>("/user/tokens")
+      .then((d) => setTokens(d.list ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { loadTokens(); }, [loadTokens]);
+
+  const handleCreate = async () => {
+    if (!newTokenName.trim()) return;
+    setCreateError("");
+    try {
+      const body: Record<string, unknown> = { name: newTokenName.trim() };
+      if (expiryDays && parseInt(expiryDays) > 0) body.expiresInDays = parseInt(expiryDays);
+      const res = await apiFetch<ApiToken & { token: string }>("/user/tokens", { method: "POST", body: JSON.stringify(body) });
+      setCreatedToken(res.token);
+      setNewTokenName("");
+      setExpiryDays("");
+      loadTokens();
+    } catch (e: any) {
+      setCreateError(e.message || t("account.token_create_error"));
+    }
+  };
+
+  const handleRevoke = async (id: string) => {
+    if (!confirm(t("account.token_revoke_confirm"))) return;
+    try {
+      await apiFetch(`/user/tokens/${id}`, { method: "DELETE" });
+      loadTokens();
+    } catch { /* ignore */ }
+  };
+
+  const handleCopy = () => {
+    if (!createdToken) return;
+    navigator.clipboard.writeText(createdToken).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const inputCls = `w-full px-3 py-2 text-sm rounded-lg border outline-none transition-colors focus:border-blue-500 ${
+    theme === "dark" ? "bg-[#2a2a3e] border-[#444] text-white" : "bg-white border-gray-300 text-gray-900"
+  }`;
+
+  return (
+    <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-xs font-medium opacity-50">{t("account.api_tokens")}</h4>
+          <p className="text-[10px] opacity-30 mt-0.5">{t("account.api_tokens_desc")}</p>
+        </div>
+        <button onClick={() => { setCreating(!creating); setCreatedToken(null); setCreateError(""); }}
+          className="text-[10px] text-blue-500 hover:underline">{t("account.token_create")}</button>
+      </div>
+
+      {createdToken && (
+        <div className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs space-y-1.5">
+          <p className="text-green-600 font-medium">{t("account.token_created_tip")}</p>
+          <div className="flex items-center gap-1.5">
+            <code className="flex-1 font-mono text-[10px] truncate select-all">{createdToken}</code>
+            <button onClick={handleCopy} className="shrink-0 text-[10px] text-blue-500 hover:underline">
+              {copied ? t("account.token_copied") : t("account.token_copy")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {creating && !createdToken && (
+        <div className="mb-3 space-y-2">
+          <input className={inputCls} placeholder={t("account.token_name_placeholder")} value={newTokenName} onChange={(e) => setNewTokenName(e.target.value)} />
+          <input className={inputCls} type="number" min="1" max="365" placeholder={t("account.token_expiry_days")} value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} />
+          {createError && <p className="text-[10px] text-red-500">{createError}</p>}
+          <button onClick={handleCreate} disabled={!newTokenName.trim()}
+            className="w-full py-2 text-xs rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+            {t("account.token_create")}
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-4 text-center"><div className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : tokens.length === 0 ? (
+        <p className="text-[10px] opacity-30 text-center py-2">{t("account.token_none")}</p>
+      ) : (
+        <div className="space-y-2">
+          {tokens.map((tk) => (
+            <div key={tk.id} className="flex items-center justify-between text-xs py-1.5 border-t" style={{ borderColor: "var(--fs-border)" }}>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{tk.name}</div>
+                <div className="text-[10px] opacity-40 flex gap-3 mt-0.5">
+                  <span>{tk.expiresAt ? formatDate(tk.expiresAt) : t("account.token_no_expiry")}</span>
+                  <span>{tk.lastUsedAt ? formatDate(tk.lastUsedAt) : t("account.token_never")}</span>
+                </div>
+              </div>
+              <button onClick={() => handleRevoke(tk.id)} className="text-[10px] text-red-500 hover:underline shrink-0 ml-2">{t("account.token_revoke")}</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

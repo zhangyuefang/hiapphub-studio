@@ -3,6 +3,7 @@ use std::path::Path;
 use serde_json::Value;
 use tauri::Manager;
 
+use crate::bridge_inject;
 use crate::db;
 use crate::hap_manager;
 use crate::cdylib_loader;
@@ -53,8 +54,37 @@ pub fn hap_list_modules() -> Result<Vec<cdylib_loader::ModuleDescriptor>, String
 }
 
 #[tauri::command]
-pub fn hap_call_function(module_name: String, symbol_name: String, params_json: String) -> Result<String, String> {
+pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symbol_name: String, params_json: String) -> Result<String, String> {
+    let label = window.label();
+    if label.starts_with("plugin-") {
+        let app_id = label.strip_prefix("plugin-")
+            .unwrap_or(label)
+            .split("-sub-")
+            .next()
+            .unwrap_or(label);
+        let module_perm = cdylib_loader::get_module_permission(&module_name);
+        if let Some(perm) = module_perm {
+            if !perm.is_empty() && !app_has_permission(app_id, &perm) {
+                return Err(format!("应用 '{app_id}' 没有 '{perm}' 权限，无法调用模块 '{module_name}'"));
+            }
+        }
+    }
     cdylib_loader::call_function(&module_name, &symbol_name, &params_json)
+}
+
+fn app_has_permission(app_id: &str, required: &str) -> bool {
+    let plugins = hap_manager::list_installed_plugins().unwrap_or_default();
+    for p in &plugins {
+        if p["id"].as_str() == Some(app_id) {
+            if let Some(perms) = p["permissions"].as_array() {
+                return perms.iter().any(|v| {
+                    v.as_str().map_or(false, |s| s == required || s.starts_with(&format!("{required}:")))
+                });
+            }
+            return false;
+        }
+    }
+    false
 }
 
 #[tauri::command]
@@ -162,8 +192,10 @@ pub fn hap_open_plugin_window(
         return Ok(());
     }
 
+    let bridge_script = bridge_inject::generate_bridge_script(&plugin_id);
     tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(url.parse().unwrap()))
         .title(&plugin_name)
+        .initialization_script(&bridge_script)
         .inner_size(width.unwrap_or(900.0), height.unwrap_or(640.0))
         .min_inner_size(400.0, 300.0)
         .center()
@@ -196,12 +228,14 @@ pub fn hap_create_sub_window(
         format!("hap://localhost/{plugin_id}/{url}")
     };
 
+    let bridge_script = bridge_inject::generate_bridge_script(&plugin_id);
     tauri::WebviewWindowBuilder::new(
         &app,
         &label,
         tauri::WebviewUrl::External(full_url.parse().unwrap()),
     )
     .title(&title)
+    .initialization_script(&bridge_script)
     .inner_size(width.unwrap_or(600.0), height.unwrap_or(400.0))
     .min_inner_size(320.0, 240.0)
     .center()

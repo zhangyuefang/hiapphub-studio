@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
 import { AccountPanel } from "./AccountPanel";
+import { useAuthStore } from "@/store/auth-store";
 import { getApiBase } from "@/lib/api";
 
 interface Props {
@@ -116,7 +117,7 @@ export function Settings({ onBack }: Props) {
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
           {tab === "account" && <AccountPanel />}
           {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} onReload={reloadModules} />}
-          {tab === "dev_mode" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
+          {tab === "dev_mode" && <DevModeLauncher t={t} />}
         </div>
       </div>
     </div>
@@ -568,6 +569,43 @@ function InfoRow({ label, value, mono }: { label: string; value: React.ReactNode
     <div className="flex items-baseline gap-2 text-xs">
       <span className="opacity-50 shrink-0">{label}:</span>
       <span className={mono ? "font-mono" : ""}>{value}</span>
+    </div>
+  );
+}
+
+function DevModeLauncher({ t }: { t: (k: string) => string }) {
+  const { isLoggedIn } = useAuthStore();
+
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <div className="inline-flex w-16 h-16 bg-yellow-500/10 rounded-2xl items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-yellow-500">
+              <path d="M12 9v4m0 4h.01M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+            </svg>
+          </div>
+          <p className="text-sm opacity-60">{t("devtools.need_login")}</p>
+          <p className="text-xs opacity-40">{t("devtools.need_login_desc")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center space-y-6 max-w-sm">
+        <div className="inline-flex w-20 h-20 bg-blue-500/10 rounded-3xl items-center justify-center">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-blue-500">
+            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-bold">{t("devtools.title")}</h3>
+          <p className="text-xs opacity-50 mt-2 leading-relaxed">{t("devtools.hap_app_desc")}</p>
+        </div>
+        <p className="text-xs opacity-40">{t("devtools.hap_app_hint")}</p>
+      </div>
     </div>
   );
 }
