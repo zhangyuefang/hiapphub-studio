@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
+import { AccountPanel } from "./AccountPanel";
+import { getApiBase } from "@/lib/api";
 
 interface Props {
   onBack: () => void;
@@ -110,7 +112,7 @@ export function Settings({ onBack }: Props) {
 
         <div className={`flex-1 overflow-hidden ${tab === "libraries" ? "" : "overflow-y-auto px-6 py-4"}`}>
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
-          {tab === "account" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
+          {tab === "account" && <AccountPanel />}
           {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} />}
           {tab === "dev_mode" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
         </div>
@@ -124,6 +126,26 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
   locale: string; setLocale: (l: string) => void; availableLocales: string[];
   localeLabels: Record<string, string>;
 }) {
+  const currentVersion = "0.1.0";
+  const [updateState, setUpdateState] = useState<"idle" | "checking" | "latest" | "available" | "error">("idle");
+  const [latestInfo, setLatestInfo] = useState<{ version: string; title: string; changelog: string; publishedAt: string; downloads: { standard: string; developer: string } } | null>(null);
+  const [updateError, setUpdateError] = useState("");
+
+  const checkUpdate = async () => {
+    setUpdateState("checking");
+    setUpdateError("");
+    try {
+      const res = await fetch(`${getApiBase()}/shell/latest`);
+      if (!res.ok) { setUpdateState("error"); setUpdateError(t("settings.update_check_failed")); return; }
+      const data = await res.json();
+      setLatestInfo(data);
+      setUpdateState(data.version === currentVersion ? "latest" : "available");
+    } catch {
+      setUpdateState("error");
+      setUpdateError(t("settings.update_check_failed"));
+    }
+  };
+
   return (
     <div className="space-y-5">
       <section>
@@ -158,12 +180,45 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
       <section>
         <h3 className="text-sm font-medium mb-3 opacity-60 uppercase tracking-wider">{t("settings.about")}</h3>
         <div className="space-y-2 text-sm opacity-70">
-          <div className="flex justify-between"><span>{t("settings.version")}</span><span>0.1.0</span></div>
+          <div className="flex justify-between"><span>{t("settings.version")}</span><span>{currentVersion}</span></div>
           <div className="flex justify-between"><span>{t("settings.framework")}</span><span>Tauri 2.x + React 19</span></div>
           <div className="flex justify-between">
             <span>{t("settings.website")}</span>
             <a className="text-blue-500 hover:underline" href="https://hiapphub.com" target="_blank" rel="noreferrer">hiapphub.com</a>
           </div>
+        </div>
+      </section>
+      <section>
+        <h3 className="text-sm font-medium mb-3 opacity-60 uppercase tracking-wider">{t("settings.update")}</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">{t("settings.update_check")}</span>
+            <button onClick={checkUpdate} disabled={updateState === "checking"}
+              className="px-3 py-1.5 text-xs rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+              {updateState === "checking" ? t("settings.update_checking") : t("settings.update_check_btn")}
+            </button>
+          </div>
+          {updateState === "latest" && (
+            <div className="text-xs text-green-500 flex items-center gap-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+              {t("settings.update_latest")}
+            </div>
+          )}
+          {updateState === "available" && latestInfo && (
+            <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: "var(--fs-border)" }}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium">{latestInfo.title || `v${latestInfo.version}`}</span>
+                <span className="text-blue-500">v{latestInfo.version}</span>
+              </div>
+              {latestInfo.changelog && <p className="text-[11px] opacity-60 whitespace-pre-wrap max-h-32 overflow-y-auto">{latestInfo.changelog}</p>}
+              {latestInfo.publishedAt && <p className="text-[10px] opacity-40">{new Date(latestInfo.publishedAt).toLocaleDateString()}</p>}
+              {latestInfo.downloads.standard && (
+                <a href={latestInfo.downloads.standard} target="_blank" rel="noreferrer"
+                  className="inline-block text-xs text-blue-500 hover:underline">{t("settings.update_download")} →</a>
+              )}
+            </div>
+          )}
+          {updateState === "error" && <p className="text-xs text-red-500">{updateError}</p>}
         </div>
       </section>
     </div>

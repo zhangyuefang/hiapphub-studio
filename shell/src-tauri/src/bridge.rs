@@ -87,6 +87,40 @@ pub fn hap_lib_usage_stats() -> Result<Value, String> {
 }
 
 #[tauri::command]
+pub fn get_data_dir() -> String {
+    hap_manager::data_dir().to_string_lossy().to_string()
+}
+
+#[tauri::command]
+pub fn store_auth_data(data: String) -> Result<(), String> {
+    let path = hap_manager::data_dir().join("config").join("auth.json");
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
+    }
+    std::fs::write(&path, &data).map_err(|e| format!("写入失败: {e}"))
+}
+
+#[tauri::command]
+pub fn load_auth_data() -> Result<Option<String>, String> {
+    let path = hap_manager::data_dir().join("config").join("auth.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+    std::fs::read_to_string(&path)
+        .map(Some)
+        .map_err(|e| format!("读取失败: {e}"))
+}
+
+#[tauri::command]
+pub fn clear_auth_data() -> Result<(), String> {
+    let path = hap_manager::data_dir().join("config").join("auth.json");
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("删除失败: {e}"))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn hap_install_plugin(hap_path: String) -> Result<Value, String> {
     hap_manager::install_from_hap(&hap_path)
 }
