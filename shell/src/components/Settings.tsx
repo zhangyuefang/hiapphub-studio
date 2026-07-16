@@ -66,10 +66,12 @@ export function Settings({ onBack }: Props) {
     { id: "dev_mode", icon: "🛠️" },
   ];
 
+  const reloadModules = () => {
+    invoke<ModuleDesc[]>("hap_list_modules").then(setModules).catch(() => {});
+  };
+
   useEffect(() => {
-    if (tab === "libraries") {
-      invoke<ModuleDesc[]>("hap_list_modules").then(setModules).catch(() => {});
-    }
+    if (tab === "libraries") { reloadModules(); }
   }, [tab]);
 
   return (
@@ -113,7 +115,7 @@ export function Settings({ onBack }: Props) {
         <div className={`flex-1 overflow-hidden ${tab === "libraries" ? "" : "overflow-y-auto px-6 py-4"}`}>
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
           {tab === "account" && <AccountPanel />}
-          {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} />}
+          {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} onReload={reloadModules} />}
           {tab === "dev_mode" && <div className="text-sm opacity-50 py-8 text-center">{t("settings.coming_soon")}</div>}
         </div>
       </div>
@@ -326,10 +328,20 @@ function SizeInfoButton({ modules, t }: { modules: ModuleDesc[]; t: (k: string) 
   );
 }
 
-function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
-  modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string; locale: string;
+function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onReload }: {
+  modules: ModuleDesc[]; expandedMod: string | null; setExpandedMod: (n: string | null) => void; t: (k: string) => string; locale: string; onReload: () => void;
 }) {
   const [filter, setFilter] = useState("");
+  const [reloading, setReloading] = useState(false);
+
+  const handleReload = async () => {
+    setReloading(true);
+    try {
+      await invoke("hap_reload_modules");
+      onReload();
+    } catch { /* ignore */ }
+    setReloading(false);
+  };
   const [usageStats, setUsageStats] = useState<Record<string, { id: string; name: string }[]>>({});
   const [showUsage, setShowUsage] = useState<string | null>(null);
 
@@ -356,14 +368,25 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale }: {
     <div className="flex h-full">
       {/* 左侧模块列表 */}
       <div className="w-48 shrink-0 border-r flex flex-col" style={{ borderColor: "var(--fs-border)" }}>
-        <div className="px-2 py-2 border-b" style={{ borderColor: "var(--fs-border)" }}>
+        <div className="px-2 py-2 border-b flex gap-1" style={{ borderColor: "var(--fs-border)" }}>
           <input
-            className="text-xs px-2 py-1.5 rounded border outline-none w-full"
+            className="text-xs px-2 py-1.5 rounded border outline-none flex-1 min-w-0"
             style={{ borderColor: "var(--fs-border)", background: "transparent" }}
             placeholder={t("settings.filter_libs")}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
+          <button
+            onClick={handleReload}
+            disabled={reloading}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-40"
+            title={t("settings.refresh_libs")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className={reloading ? "animate-spin" : ""}>
+              <path d="M21 12a9 9 0 11-2.2-5.9" /><path d="M21 3v6h-6" />
+            </svg>
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filtered.map((m) => (

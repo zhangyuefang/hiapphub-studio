@@ -70,6 +70,8 @@ pub struct ReturnDescriptor {
 struct LoadedModule {
     _lib: Library,
     descriptor: Option<ModuleDescriptor>,
+    file_mtime: Option<std::time::SystemTime>,
+    _source_path: String,
 }
 
 static LOADED_MODULES: LazyLock<Mutex<HashMap<String, LoadedModule>>> =
@@ -125,7 +127,9 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                         }
                     };
 
-                    let file_size = std::fs::metadata(&path).ok().map(|m| m.len());
+                    let meta = std::fs::metadata(&path).ok();
+                    let file_size = meta.as_ref().map(|m| m.len());
+                    let file_mtime = meta.and_then(|m| m.modified().ok());
                     let file_path_str = path.to_string_lossy().to_string();
 
                     if let Some(ref mut d) = descriptor {
@@ -142,7 +146,12 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     LOADED_MODULES
                         .lock()
                         .unwrap()
-                        .insert(name, LoadedModule { _lib: lib, descriptor });
+                        .insert(name, LoadedModule {
+                            _lib: lib,
+                            descriptor,
+                            file_mtime,
+                            _source_path: file_path_str,
+                        });
                 }
                 Err(e) => {
                     eprintln!("[cdylib] 加载模块失败 {:?}: {}", path, e);
@@ -151,6 +160,117 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReloadResult {
+    pub added: Vec<String>,
+    pub updated: Vec<String>,
+    pub removed: Vec<String>,
+}
+
+pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::error::Error>> {
+    let lib_dir = data_dir.join("lib");
+    let mut result = ReloadResult { added: vec![], updated: vec![], removed: vec![] };
+
+    if !lib_dir.exists() {
+        let mut map = LOADED_MODULES.lock().unwrap();
+        result.removed = map.keys().cloned().collect();
+        map.clear();
+        return Ok(result);
+    }
+
+    let mut current_files: HashMap<String, (std::path::PathBuf, Option<std::time::SystemTime>)> = HashMap::new();
+    for entry in std::fs::read_dir(&lib_dir)?.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) == Some("hal") {
+            let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown").to_string();
+            let mtime = std::fs::metadata(&path).ok().and_then(|m| m.modified().ok());
+            current_files.insert(name, (path, mtime));
+        }
+    }
+
+    let mut map = LOADED_MODULES.lock().unwrap();
+
+    let old_keys: Vec<String> = map.keys().cloned().collect();
+    for key in &old_keys {
+        if !current_files.contains_key(key) {
+            map.remove(key);
+            result.removed.push(key.clone());
+            eprintln!("[cdylib] 移除模块: {key}");
+        }
+    }
+
+    for (name, (path, new_mtime)) in &current_files {
+        let needs_load = if let Some(existing) = map.get(name) {
+            match (existing.file_mtime, new_mtime) {
+                (Some(old_t), Some(new_t)) => new_t > &old_t,
+                _ => false,
+            }
+        } else {
+            true
+        };
+
+        if !needs_load { continue; }
+
+        let is_update = map.contains_key(name);
+        if is_update {
+            map.remove(name);
+        }
+
+        match unsafe { Library::new(path) } {
+            Ok(lib) => {
+                let init: Result<Symbol<InitFn>, _> = unsafe { lib.get(b"hap_module_init") };
+                if let Ok(init_fn) = init {
+                    let info = unsafe { init_fn() };
+                    if !info.is_null() {
+                        let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
+                        eprintln!("[cdylib] 已加载模块: {name} → {info_str:?}");
+                    }
+                }
+
+                let mut descriptor = {
+                    let describe: Result<Symbol<DescribeFn>, _> = unsafe { lib.get(b"hap_module_describe") };
+                    if let Ok(describe_fn) = describe {
+                        let desc_ptr = unsafe { describe_fn() };
+                        if !desc_ptr.is_null() {
+                            unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
+                                .to_str().ok()
+                                .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
+                        } else { None }
+                    } else { None }
+                };
+
+                let file_size = std::fs::metadata(path).ok().map(|m| m.len());
+                let file_path_str = path.to_string_lossy().to_string();
+
+                if let Some(ref mut d) = descriptor {
+                    d.file_path = Some(file_path_str.clone());
+                    d.file_size = file_size;
+                }
+
+                map.insert(name.clone(), LoadedModule {
+                    _lib: lib,
+                    descriptor,
+                    file_mtime: *new_mtime,
+                    _source_path: file_path_str,
+                });
+
+                if is_update {
+                    result.updated.push(name.clone());
+                    eprintln!("[cdylib] 热更新模块: {name}");
+                } else {
+                    result.added.push(name.clone());
+                    eprintln!("[cdylib] 新增模块: {name}");
+                }
+            }
+            Err(e) => {
+                eprintln!("[cdylib] 加载模块失败 {path:?}: {e}");
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 pub fn get_all_descriptors() -> Vec<ModuleDescriptor> {
