@@ -14,7 +14,7 @@ interface LoginHistory {
 export function AccountPanel() {
   const { t } = useI18n();
   const { theme } = useAppStore();
-  const { user, isLoggedIn, isLoading, error, logout, clearError, loadFromStorage, fetchProfile } =
+  const { user, isLoggedIn, logout, loadFromStorage, fetchProfile } =
     useAuthStore();
   const [showDeviceFlow, setShowDeviceFlow] = useState(false);
 
