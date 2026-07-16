@@ -197,6 +197,18 @@ function DeviceFlowPanel({ t, theme, onBack }: {
   );
 }
 
+interface MemberLevelInfo {
+  id: string;
+  name: string;
+  code: string;
+  level: number;
+  icon: string | null;
+  color: string | null;
+  description: string | null;
+  discountRate: number | null;
+  benefits: any;
+}
+
 function ProfileView({ user, theme, t, onLogout }: {
   user: UserInfo; theme: string; t: (k: string) => string; onLogout: () => void;
 }) {
@@ -207,12 +219,16 @@ function ProfileView({ user, theme, t, onLogout }: {
   const [deleteMode, setDeleteMode] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [memberLevel, setMemberLevel] = useState<MemberLevelInfo | null>(null);
 
   useEffect(() => {
     apiFetch<{ list: LoginHistory[] }>("/user/login-history")
       .catch(() => ({ list: [] }))
       .then((h) => setLoginHistory(h.list?.slice(0, 5) ?? []))
       .finally(() => setLoading(false));
+    apiFetch<{ level: MemberLevelInfo | null }>("/user/member-level")
+      .then((d) => setMemberLevel(d.level))
+      .catch(() => {});
   }, []);
 
   const handleVerifyEmail = async () => {
@@ -252,6 +268,26 @@ function ProfileView({ user, theme, t, onLogout }: {
           {t("account.logout")}
         </button>
       </div>
+
+      {memberLevel && (
+        <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`} style={{ borderColor: memberLevel.color || undefined }}>
+          <div className="flex items-center gap-3">
+            {memberLevel.icon && <span className="text-2xl">{memberLevel.icon}</span>}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold" style={{ color: memberLevel.color || undefined }}>{memberLevel.name}</span>
+                <span className="text-[10px] opacity-40">Lv.{memberLevel.level}</span>
+              </div>
+              {memberLevel.description && <p className="text-[10px] opacity-50 mt-0.5 truncate">{memberLevel.description}</p>}
+            </div>
+            {memberLevel.discountRate != null && memberLevel.discountRate < 1 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 shrink-0">
+                {Math.round(memberLevel.discountRate * 10)}{t("account.member_discount")}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
         <div className="flex items-center justify-between mb-3">
@@ -304,7 +340,7 @@ function ProfileView({ user, theme, t, onLogout }: {
       )}
 
       {/* 安全设置区 */}
-      <SecuritySection t={t} cardBg={cardBg} cardBorder={cardBorder} />
+      <SecuritySection t={t} theme={theme} cardBg={cardBg} cardBorder={cardBorder} />
 
       {/* API Token 管理 */}
       <ApiTokenSection t={t} theme={theme} cardBg={cardBg} cardBorder={cardBorder} />
@@ -373,38 +409,159 @@ function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
   );
 }
 
-function SecuritySection({ t, cardBg, cardBorder }: {
-  t: (k: string) => string; cardBg: string; cardBorder: string;
+function SecuritySection({ t, theme, cardBg, cardBorder }: {
+  t: (k: string) => string; theme: string; cardBg: string; cardBorder: string;
 }) {
   const [twoFaStatus, setTwoFaStatus] = useState<{ enabled: boolean } | null>(null);
+  const [setupMode, setSetupMode] = useState(false);
+  const [disableMode, setDisableMode] = useState(false);
+  const [setupData, setSetupData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchStatus = useCallback(() => {
     apiFetch<{ enabled: boolean }>("/user/two-factor/status")
       .then(setTwoFaStatus)
       .catch(() => setTwoFaStatus({ enabled: false }));
   }, []);
 
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  const handleSetup = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await apiFetch<{ secret: string; qrCode: string }>("/user/two-factor/setup", { method: "POST" });
+      setSetupData(res);
+      setSetupMode(true);
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const handleVerify = async () => {
+    if (verifyCode.length !== 6) return;
+    setLoading(true); setError("");
+    try {
+      const res = await apiFetch<{ backupCodes: string[] }>("/user/two-factor/verify", {
+        method: "POST", body: JSON.stringify({ code: verifyCode }),
+      });
+      setBackupCodes(res.backupCodes);
+      setSetupMode(false); setSetupData(null); setVerifyCode("");
+      fetchStatus();
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const handleDisable = async () => {
+    if (!disableCode) return;
+    setLoading(true); setError("");
+    try {
+      await apiFetch("/user/two-factor/disable", {
+        method: "POST", body: JSON.stringify({ code: disableCode }),
+      });
+      setDisableMode(false); setDisableCode("");
+      fetchStatus();
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const inputCls = `w-full px-3 py-2 text-sm rounded-lg border outline-none transition-colors focus:border-blue-500 ${
+    theme === "dark" ? "bg-[#2a2a3e] border-[#444] text-white" : "bg-white border-gray-300 text-gray-900"
+  }`;
+
+  if (backupCodes) {
+    return (
+      <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
+        <h4 className="text-xs font-medium text-green-500 mb-2">{t("account.two_factor_success")}</h4>
+        <p className="text-[10px] opacity-50 mb-3">{t("account.two_factor_backup_tip")}</p>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {backupCodes.map((c) => (
+            <code key={c} className="text-[10px] font-mono text-center py-1 rounded bg-black/5 dark:bg-white/5">{c}</code>
+          ))}
+        </div>
+        <button onClick={() => { navigator.clipboard.writeText(backupCodes.join("\n")); }}
+          className="w-full py-2 text-xs rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+          {t("account.two_factor_copy_backup")}
+        </button>
+        <button onClick={() => setBackupCodes(null)}
+          className="w-full py-2 mt-2 text-xs rounded-lg border transition-colors hover:bg-black/5" style={{ borderColor: "var(--fs-border)" }}>
+          {t("account.two_factor_done")}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
       <h4 className="text-xs font-medium opacity-50 mb-3">{t("account.security")}</h4>
-      <div className="space-y-2 text-xs">
-        <div className="flex items-center justify-between">
+      {error && <p className="text-[10px] text-red-500 mb-2">{error}</p>}
+
+      {setupMode && setupData ? (
+        <div className="space-y-3">
+          <p className="text-[10px] opacity-50">{t("account.two_factor_scan_qr")}</p>
+          <div className="flex justify-center">
+            <img src={setupData.qrCode} alt="2FA QR" className="w-40 h-40 rounded-lg" />
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] opacity-40 mb-1">{t("account.two_factor_manual_key")}</p>
+            <code className="text-[10px] font-mono select-all break-all">{setupData.secret}</code>
+          </div>
+          <input className={inputCls} maxLength={6} placeholder={t("account.two_factor_enter_code")}
+            value={verifyCode} onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))} />
+          <div className="flex gap-2">
+            <button onClick={() => { setSetupMode(false); setSetupData(null); setError(""); }}
+              className="flex-1 py-2 text-xs rounded-lg border transition-colors" style={{ borderColor: "var(--fs-border)" }}>
+              {t("account.cancel")}
+            </button>
+            <button onClick={handleVerify} disabled={loading || verifyCode.length !== 6}
+              className="flex-1 py-2 text-xs rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+              {loading ? "..." : t("account.two_factor_verify")}
+            </button>
+          </div>
+        </div>
+      ) : disableMode ? (
+        <div className="space-y-3">
+          <p className="text-[10px] opacity-50">{t("account.two_factor_disable_tip")}</p>
+          <input className={inputCls} placeholder={t("account.two_factor_enter_code")}
+            value={disableCode} onChange={(e) => setDisableCode(e.target.value)} />
+          <div className="flex gap-2">
+            <button onClick={() => { setDisableMode(false); setError(""); }}
+              className="flex-1 py-2 text-xs rounded-lg border transition-colors" style={{ borderColor: "var(--fs-border)" }}>
+              {t("account.cancel")}
+            </button>
+            <button onClick={handleDisable} disabled={loading || !disableCode}
+              className="flex-1 py-2 text-xs rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors">
+              {loading ? "..." : t("account.two_factor_disable_btn")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between text-xs">
           <span>{t("account.two_factor")}</span>
           <div className="flex items-center gap-2">
             {twoFaStatus === null ? (
               <span className="opacity-40">...</span>
             ) : (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                twoFaStatus.enabled ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
-              }`}>
-                {twoFaStatus.enabled ? t("account.two_factor_enabled") : t("account.two_factor_disabled")}
-              </span>
+              <>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                  twoFaStatus.enabled ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+                }`}>
+                  {twoFaStatus.enabled ? t("account.two_factor_enabled") : t("account.two_factor_disabled")}
+                </span>
+                {twoFaStatus.enabled ? (
+                  <button onClick={() => { setDisableMode(true); setError(""); }}
+                    className="text-[10px] text-red-500 hover:underline">{t("account.two_factor_disable_btn")}</button>
+                ) : (
+                  <button onClick={handleSetup} disabled={loading}
+                    className="text-[10px] text-blue-500 hover:underline">{t("account.two_factor_setup")}</button>
+                )}
+              </>
             )}
-            <a href={`${getWebBase()}/account`} target="_blank" rel="noreferrer"
-              className="text-[10px] text-blue-500 hover:underline">{t("account.two_factor_manage")}</a>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
