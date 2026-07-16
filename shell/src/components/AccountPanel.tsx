@@ -206,7 +206,7 @@ function ProfileView({ user, theme, t, onLogout }: {
   const [pwdMode, setPwdMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
-  const [verifyMsg, setVerifyMsg] = useState("");
+  const [verifyMsg, setVerifyMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     apiFetch<{ list: LoginHistory[] }>("/user/login-history")
@@ -216,13 +216,13 @@ function ProfileView({ user, theme, t, onLogout }: {
   }, []);
 
   const handleVerifyEmail = async () => {
-    if (!user.email) { setVerifyMsg(t("account.verify_email_no_email")); return; }
+    if (!user.email) { setVerifyMsg({ text: t("account.verify_email_no_email"), ok: false }); return; }
     setVerifyingEmail(true);
     try {
       await apiFetch("/auth/verify-email", { method: "POST" });
-      setVerifyMsg(t("account.verify_email_sent"));
+      setVerifyMsg({ text: t("account.verify_email_sent"), ok: true });
     } catch (e: any) {
-      setVerifyMsg(e.message || "Error");
+      setVerifyMsg({ text: e.message || "Error", ok: false });
     }
     setVerifyingEmail(false);
   };
@@ -277,7 +277,7 @@ function ProfileView({ user, theme, t, onLogout }: {
               className="text-[10px] text-blue-500 hover:underline disabled:opacity-50">
               {verifyingEmail ? "..." : t("account.verify_email")}
             </button>
-            {verifyMsg && <span className="text-[10px] text-green-500">{verifyMsg}</span>}
+            {verifyMsg && <span className={`text-[10px] ${verifyMsg.ok ? "text-green-500" : "text-red-500"}`}>{verifyMsg.text}</span>}
           </div>
         )}
       </div>
@@ -326,6 +326,7 @@ function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
 }) {
   const { fetchProfile } = useAuthStore();
   const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [unlinkError, setUnlinkError] = useState("");
 
   const providerIcon: Record<string, string> = { google: "🔵", github: "⚫" };
   const providerName: Record<string, string> = { google: "Google", github: "GitHub" };
@@ -333,16 +334,20 @@ function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
   const handleUnlink = async (accountId: string) => {
     if (!confirm(t("account.unlink_confirm"))) return;
     setUnlinking(accountId);
+    setUnlinkError("");
     try {
       await apiFetch(`/user/oauth/${accountId}`, { method: "DELETE" });
       await fetchProfile();
-    } catch { /* error handled by apiFetch */ }
+    } catch (e: any) {
+      setUnlinkError(e.message || "Error");
+    }
     setUnlinking(null);
   };
 
   return (
     <div className={`rounded-lg border p-4 ${cardBg} ${cardBorder}`}>
       <h4 className="text-xs font-medium opacity-50 mb-2">{t("account.linked_accounts")}</h4>
+      {unlinkError && <p className="text-[10px] text-red-500 mb-2">{unlinkError}</p>}
       <div className="space-y-2">
         {accounts.map((a) => (
           <div key={a.id} className="flex items-center justify-between text-xs">
@@ -384,10 +389,10 @@ function ProfileEditForm({ user, theme, t, onBack }: {
       await updateProfile({
         name: name.trim(),
         bio: bio.trim(),
-        avatar: avatar.trim() || undefined,
-        phone: phone.trim() || undefined,
-        website: website.trim() || undefined,
-        githubUsername: githubUsername.trim() || undefined,
+        avatar: avatar.trim(),
+        phone: phone.trim(),
+        website: website.trim(),
+        githubUsername: githubUsername.trim(),
       });
       await fetchProfile();
       setSuccess(true);
