@@ -75,25 +75,38 @@ function DeviceFlowPanel({ t, theme, onBack }: {
   const [userCode, setUserCode] = useState("");
   const [error, setError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const expireRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
   const deviceCodeRef = useRef("");
   const { loginWithTokens } = useAuthStore();
 
   const cleanup = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (expireRef.current) { clearTimeout(expireRef.current); expireRef.current = null; }
   }, []);
 
-  useEffect(() => cleanup, [cleanup]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; cleanup(); };
+  }, [cleanup]);
 
   const startFlow = useCallback(async () => {
     setStep("pending");
     setError("");
     try {
       const res = await apiFetch<{ deviceCode: string; userCode: string; expiresIn: number; interval: number }>("/auth/device/code", { method: "POST" });
+      if (!mountedRef.current) return;
       setUserCode(res.userCode);
       deviceCodeRef.current = res.deviceCode;
       const intervalMs = Math.max(res.interval * 1000, 3000);
 
+      expireRef.current = setTimeout(() => {
+        cleanup();
+        if (mountedRef.current) { setStep("error"); setError(t("account.device_expired")); }
+      }, (res.expiresIn || 600) * 1000);
+
       pollRef.current = setInterval(async () => {
+        if (!mountedRef.current) { cleanup(); return; }
         try {
           const tokenRes = await fetch(`${getApiBase()}/auth/device/token`, {
             method: "POST",
@@ -101,10 +114,11 @@ function DeviceFlowPanel({ t, theme, onBack }: {
             body: JSON.stringify({ deviceCode: deviceCodeRef.current }),
           });
           if (tokenRes.status === 428) return;
-          if (tokenRes.status === 410) { cleanup(); setStep("error"); setError(t("account.device_expired")); return; }
+          if (tokenRes.status === 410) { cleanup(); if (mountedRef.current) { setStep("error"); setError(t("account.device_expired")); } return; }
           if (tokenRes.ok) {
             cleanup();
             const data = await tokenRes.json();
+            if (!mountedRef.current) return;
             setStep("done");
             await loginWithTokens(data.accessToken, data.refreshToken);
             try {
@@ -116,8 +130,7 @@ function DeviceFlowPanel({ t, theme, onBack }: {
         } catch { /* retry next interval */ }
       }, intervalMs);
     } catch (e: any) {
-      setStep("error");
-      setError(e.message || t("account.device_error"));
+      if (mountedRef.current) { setStep("error"); setError(e.message || t("account.device_error")); }
     }
   }, [t, cleanup, loginWithTokens]);
 
