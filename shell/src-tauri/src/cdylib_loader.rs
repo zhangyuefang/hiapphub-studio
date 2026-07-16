@@ -98,29 +98,40 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     let init: Result<Symbol<InitFn>, _> =
                         unsafe { lib.get(b"hap_module_init") };
                     if let Ok(init_fn) = init {
-                        let info = unsafe { init_fn() };
-                        if !info.is_null() {
-                            let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
-                            eprintln!("[cdylib] 已加载模块: {} → {:?}", name, info_str);
+                        let init_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            unsafe { init_fn() }
+                        }));
+                        match init_result {
+                            Ok(info) if !info.is_null() => {
+                                let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
+                                eprintln!("[cdylib] 已加载模块: {} → {:?}", name, info_str);
+                            }
+                            Err(_) => {
+                                eprintln!("[cdylib] 模块初始化 panic: {}", name);
+                                continue;
+                            }
+                            _ => {}
                         }
                     }
 
-                    // 读取模块自描述（类似易语言 .fnr 描述文件）
                     let mut descriptor = {
                         let describe: Result<Symbol<DescribeFn>, _> =
                             unsafe { lib.get(b"hap_module_describe") };
                         if let Ok(describe_fn) = describe {
-                            let desc_ptr = unsafe { describe_fn() };
-                            if !desc_ptr.is_null() {
-                                let desc_str =
+                            let desc_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                unsafe { describe_fn() }
+                            }));
+                            match desc_result {
+                                Ok(desc_ptr) if !desc_ptr.is_null() => {
                                     unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
-                                        .to_str()
-                                        .ok();
-                                desc_str.and_then(|s| {
-                                    serde_json::from_str::<ModuleDescriptor>(s).ok()
-                                })
-                            } else {
-                                None
+                                        .to_str().ok()
+                                        .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
+                                }
+                                Err(_) => {
+                                    eprintln!("[cdylib] 模块描述 panic: {}", name);
+                                    None
+                                }
+                                _ => None,
                             }
                         } else {
                             None
@@ -222,22 +233,40 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
             Ok(lib) => {
                 let init: Result<Symbol<InitFn>, _> = unsafe { lib.get(b"hap_module_init") };
                 if let Ok(init_fn) = init {
-                    let info = unsafe { init_fn() };
-                    if !info.is_null() {
-                        let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
-                        eprintln!("[cdylib] 已加载模块: {name} → {info_str:?}");
+                    let init_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        unsafe { init_fn() }
+                    }));
+                    match init_result {
+                        Ok(info) if !info.is_null() => {
+                            let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
+                            eprintln!("[cdylib] 已加载模块: {name} → {info_str:?}");
+                        }
+                        Err(_) => {
+                            eprintln!("[cdylib] 模块初始化 panic: {name}");
+                            continue;
+                        }
+                        _ => {}
                     }
                 }
 
                 let mut descriptor = {
                     let describe: Result<Symbol<DescribeFn>, _> = unsafe { lib.get(b"hap_module_describe") };
                     if let Ok(describe_fn) = describe {
-                        let desc_ptr = unsafe { describe_fn() };
-                        if !desc_ptr.is_null() {
-                            unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
-                                .to_str().ok()
-                                .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
-                        } else { None }
+                        let desc_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            unsafe { describe_fn() }
+                        }));
+                        match desc_result {
+                            Ok(desc_ptr) if !desc_ptr.is_null() => {
+                                unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
+                                    .to_str().ok()
+                                    .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
+                            }
+                            Err(_) => {
+                                eprintln!("[cdylib] 模块描述 panic: {name}");
+                                None
+                            }
+                            _ => None,
+                        }
                     } else { None }
                 };
 
