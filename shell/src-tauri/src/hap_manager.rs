@@ -4,7 +4,7 @@ use serde_json::Value;
 
 pub fn data_dir() -> PathBuf {
     dirs::home_dir()
-        .expect("无法获取 HOME 目录")
+        .expect("cannot get HOME directory")
         .join(".hiapphub")
 }
 
@@ -32,7 +32,7 @@ pub fn list_installed_plugins() -> Result<Vec<Value>, String> {
 
     let app_dir = data_dir().join("app");
     if app_dir.exists() {
-        let entries = fs::read_dir(&app_dir).map_err(|e| format!("读取 app 目录失败: {e}"))?;
+        let entries = fs::read_dir(&app_dir).map_err(|e| format!("read app dir failed: {e}"))?;
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) == Some("hap") {
@@ -66,7 +66,7 @@ pub fn install_from_hap(hap_path: &str) -> Result<Value, String> {
 
     let hap_file = Path::new(hap_path);
     if !hap_file.exists() {
-        return Err(format!("文件不存在: {hap_path}"));
+        return Err(format!("file not found: {hap_path}"));
     }
 
     let is_hap = hap_format::is_hap_format(hap_file)
@@ -75,18 +75,23 @@ pub fn install_from_hap(hap_path: &str) -> Result<Value, String> {
     if is_hap {
         let mut reader = hap_format::HapReader::open_file(hap_file)
             .map_err(|e| format!("{e}"))?;
+
+        if let Err(e) = hap_format::verify_data_integrity(&mut reader) {
+            return Err(format!("HAP integrity check failed: {e}"));
+        }
+
         let manifest_data = reader.read_file("manifest.json")
             .map_err(|e| format!("{e}"))?;
         let manifest_str = String::from_utf8(manifest_data).map_err(|e| format!("{e}"))?;
         let manifest: Value = serde_json::from_str(&manifest_str)
-            .map_err(|e| format!("manifest 解析失败: {e}"))?;
-        let plugin_id = manifest["id"].as_str().ok_or("manifest 缺少 id 字段")?;
+            .map_err(|e| format!("manifest parse failed: {e}"))?;
+        let plugin_id = manifest["id"].as_str().ok_or("manifest missing id field")?;
 
         let target = data_dir().join("app").join(format!("{plugin_id}.hap"));
-        fs::copy(hap_file, &target).map_err(|e| format!("复制失败: {e}"))?;
+        fs::copy(hap_file, &target).map_err(|e| format!("copy failed: {e}"))?;
         Ok(manifest)
     } else {
-        Err("不支持的文件格式，请使用 HAP 自定义格式的 .hap 文件".into())
+        Err("unsupported file format, please use .hap files in HAP custom format".into())
     }
 }
 
@@ -98,6 +103,24 @@ pub fn get_plugin_version(app_id: &str) -> Option<String> {
 }
 
 #[allow(dead_code)]
+pub fn save_app_key(app_id: &str, key: &[u8; 32]) -> Result<(), String> {
+    let key_path = data_dir().join("config").join(format!("{app_id}.key"));
+    fs::write(&key_path, key).map_err(|e| format!("save key failed: {e}"))
+}
+
+pub fn load_app_key(app_id: &str) -> Result<[u8; 32], String> {
+    let key_path = data_dir().join("config").join(format!("{app_id}.key"));
+    let data = fs::read(&key_path)
+        .map_err(|_| format!("encryption key not found for app '{app_id}'"))?;
+    if data.len() != 32 {
+        return Err("invalid key length".into());
+    }
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&data);
+    Ok(key)
+}
+
+#[allow(dead_code)]
 pub fn compute_sha256(_path: &Path) -> Result<String, String> {
-    Err("sha256 已移至 crypto cdylib 模块".into())
+    Err("sha256 moved to crypto cdylib module".into())
 }

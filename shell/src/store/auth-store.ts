@@ -37,7 +37,7 @@ async function saveAuthToTauri(data: AuthData) {
   try {
     await invoke("store_auth_data", { data: JSON.stringify(data) });
   } catch {
-    // Tauri 不可用时仅用 localStorage
+    // Tauri not available, localStorage only
   }
 }
 
@@ -101,7 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoggedIn: true, isLoading: false });
       await get().fetchProfile();
     } catch (e: any) {
-      set({ isLoading: false, error: e.message || "登录失败" });
+      set({ isLoading: false, error: e.message || "Login failed" });
       throw e;
     }
   },
@@ -146,7 +146,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem("shell_user", JSON.stringify(updated));
       }
     } catch (e: any) {
-      set({ isLoading: false, error: e.message || "更新失败" });
+      set({ isLoading: false, error: e.message || "Update failed" });
       throw e;
     }
   },
@@ -160,7 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       set({ isLoading: false });
     } catch (e: any) {
-      set({ isLoading: false, error: e.message || "修改密码失败" });
+      set({ isLoading: false, error: e.message || "Password change failed" });
       throw e;
     }
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
@@ -15,12 +15,21 @@ type Tab = "settings" | "account" | "libraries" | "dev_mode";
 
 type I18nMap = Record<string, string> | null;
 
+interface ParamDesc {
+  name: string;
+  type: string;
+  desc: string;
+  descs: I18nMap;
+  optional?: boolean;
+  default_value?: string;
+}
+
 interface FnDesc {
   name: string;
   description: string | null;
   descriptions: I18nMap;
   symbol: string;
-  params: { name: string; type: string; desc: string; descs: I18nMap }[];
+  params: ParamDesc[];
   returns: { type: string; desc: string; descs: I18nMap };
   bridge_path: string;
 }
@@ -35,17 +44,20 @@ interface ModuleDesc {
   icon: string | null;
   min_shell_version: string | null;
   category: string;
-  description: string;
+  description: string | null;
   descriptions: I18nMap;
+  overview: string | null;
+  overviews: I18nMap;
   permission: string;
   functions: FnDesc[];
   file_path: string | null;
   file_size: number | null;
 }
 
-function i18nText(defaultText: string, i18nMap: I18nMap, locale: string): string {
+function i18nText(defaultText: string | null, i18nMap: I18nMap, locale: string): string {
   if (i18nMap && i18nMap[locale]) return i18nMap[locale];
-  return defaultText;
+  if (i18nMap && i18nMap["en-US"]) return i18nMap["en-US"];
+  return defaultText ?? "";
 }
 
 export function Settings({ onBack }: Props) {
@@ -252,9 +264,11 @@ function CopyIcon({ text, title }: { text: string; title?: string }) {
 
 function buildModuleText(m: ModuleDesc, t: (k: string) => string, locale: string): string {
   const desc = i18nText(m.description, m.descriptions, locale);
+  const overview = (m.overview || m.overviews) ? i18nText(m.overview ?? "", m.overviews, locale) : "";
   const lines = [
     `${m.name} v${m.version}`,
     desc,
+    overview ? `\n${overview}` : "",
     m.uuid ? `UUID: ${m.uuid}` : "",
     m.author ? `${t("settings.lib_author")}: ${m.author}` : "",
     m.author_email ? `${t("settings.lib_email")}: ${m.author_email}` : "",
@@ -276,10 +290,15 @@ function buildModuleText(m: ModuleDesc, t: (k: string) => string, locale: string
 
 function buildFnText(fn: FnDesc, t: (k: string) => string, locale: string): string {
   const fnDesc = i18nText(fn.description ?? "", fn.descriptions, locale);
+  const paramSig = fn.params.map((p) => {
+    const opt = p.optional ? "?" : "";
+    const def = p.optional && p.default_value != null ? `=${p.default_value}` : "";
+    return `${p.name}${opt}: ${p.type}${def}`;
+  }).join(", ");
   return [
-    `${fn.name}(${fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) → ${fn.returns.type}`,
+    `${fn.name}(${paramSig}) → ${fn.returns.type}`,
     fnDesc,
-    fn.params.length ? `${t("settings.fn_params")}: ${fn.params.map((p) => `${p.name}: ${p.type} (${i18nText(p.desc, p.descs, locale)})`).join(", ")}` : "",
+    fn.params.length ? `${t("settings.fn_params")}: ${fn.params.map((p) => `${p.name}: ${p.type}${p.optional ? ` [${t("settings.fn_optional")}]` : ""} (${i18nText(p.desc, p.descs, locale)})`).join(", ")}` : "",
     `${t("settings.fn_return")}: ${fn.returns.type} (${i18nText(fn.returns.desc, fn.returns.descs, locale)})`,
     `${t("settings.fn_bridge")}: ${fn.bridge_path}`,
   ].filter(Boolean).join("\n");
@@ -294,38 +313,38 @@ function formatSize(bytes: number | null): string {
 
 function SizeInfoButton({ modules, t }: { modules: ModuleDesc[]; t: (k: string) => string; locale: string }) {
   const [show, setShow] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
   const total = modules.reduce((sum, m) => sum + (m.file_size ?? 0), 0);
-
-  useEffect(() => {
-    if (!show) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setShow(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [show]);
+  const sorted = [...modules].sort((a, b) => (b.file_size ?? 0) - (a.file_size ?? 0));
 
   return (
-    <span className="relative" ref={ref}>
-      <button onClick={() => setShow(!show)} className="opacity-60 hover:opacity-100" title={t("settings.lib_size")}>
+    <>
+      <button onClick={() => setShow(true)} className="opacity-60 hover:opacity-100" title={t("settings.lib_size")}>
         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/><text x="8" y="12" textAnchor="middle" fontSize="10" fill="currentColor">i</text></svg>
       </button>
-      {show && (
-        <div className="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-800 border rounded shadow-lg p-2 min-w-[180px] z-50 text-[11px]" style={{ borderColor: "var(--fs-border)" }}>
-          {modules.map((m) => (
-            <div key={m.name} className="flex justify-between py-0.5">
-              <span className="truncate mr-2">{m.name}</span>
-              <span className="shrink-0 opacity-60">{formatSize(m.file_size)}</span>
+      {show && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setShow(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[380px] max-h-[70vh] flex flex-col border" onClick={(e) => e.stopPropagation()} style={{ borderColor: "var(--fs-border)" }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: "var(--fs-border)" }}>
+              <span className="font-medium text-sm">{t("settings.lib_size")}</span>
+              <button onClick={() => setShow(false)} className="opacity-50 hover:opacity-100 text-lg leading-none">&times;</button>
             </div>
-          ))}
-          <div className="border-t mt-1 pt-1 flex justify-between font-medium" style={{ borderColor: "var(--fs-border)" }}>
-            <span>{t("settings.loaded_count")}: {modules.length}</span>
-            <span>{formatSize(total)}</span>
+            <div className="flex-1 overflow-y-auto px-4 py-2 text-xs space-y-0.5">
+              {sorted.map((m) => (
+                <div key={m.name} className="flex justify-between py-1 border-b border-dashed last:border-0" style={{ borderColor: "var(--fs-border)" }}>
+                  <span className="truncate mr-3">{m.icon ?? "📦"} {m.name}</span>
+                  <span className="shrink-0 opacity-60 tabular-nums">{formatSize(m.file_size)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="px-4 py-2 border-t text-xs font-medium flex justify-between" style={{ borderColor: "var(--fs-border)" }}>
+              <span>{t("settings.loaded_count")}: {modules.length}</span>
+              <span>{formatSize(total)}</span>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </span>
+    </>
   );
 }
 
@@ -354,7 +373,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
   const filtered = filter.trim()
     ? modules.filter((m) =>
         m.name.toLowerCase().includes(filter.toLowerCase()) ||
-        m.description.toLowerCase().includes(filter.toLowerCase()) ||
+        (m.description ?? "").toLowerCase().includes(filter.toLowerCase()) ||
         m.category.toLowerCase().includes(filter.toLowerCase())
       )
     : modules;
@@ -451,6 +470,12 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
               </div>
             </div>
 
+            {(selected.overview || selected.overviews) && (
+              <div className="text-xs leading-relaxed opacity-70 px-3 py-2.5 rounded-lg" style={{ background: "var(--fs-border)" }}>
+                {i18nText(selected.overview ?? "", selected.overviews, locale)}
+              </div>
+            )}
+
             {/* 基本信息 */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
               <InfoRow label={t("settings.lib_author")} value={selected.author ?? "-"} />
@@ -489,7 +514,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
                   <div key={fn.symbol} className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--fs-border)" }}>
                     <div className="px-3 py-2 flex items-center justify-between" style={{ background: "var(--fs-border)", opacity: 0.6 }}>
                       <code className="text-xs font-semibold">
-                        {fn.name}(<span className="opacity-70">{fn.params.map((p) => `${p.name}`).join(", ")}</span>)
+                        {fn.name}(<span className="opacity-70">{fn.params.map((p) => p.optional ? `${p.name}?` : p.name).join(", ")}</span>)
                         <span className="opacity-50"> → {fn.returns.type}</span>
                       </code>
                       <div className="flex items-center gap-1 shrink-0">
@@ -511,9 +536,17 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
                           <tbody>
                             {fn.params.map((p) => (
                               <tr key={p.name}>
-                                <td className="pr-4 py-0.5 font-mono text-blue-500">{p.name}</td>
+                                <td className="pr-4 py-0.5 font-mono text-blue-500">
+                                  {p.name}
+                                  {p.optional && <span className="text-[10px] text-orange-400 ml-1">{t("settings.fn_optional")}</span>}
+                                </td>
                                 <td className="pr-4 py-0.5 opacity-60">{p.type}</td>
-                                <td className="py-0.5 opacity-50">{i18nText(p.desc, p.descs, locale)}</td>
+                                <td className="py-0.5 opacity-50">
+                                  {i18nText(p.desc, p.descs, locale)}
+                                  {p.optional && p.default_value != null && (
+                                    <span className="ml-1.5 text-[11px] text-green-600 dark:text-green-400 font-medium">{t("settings.fn_default")}: {p.default_value}</span>
+                                  )}
+                                </td>
                               </tr>
                             ))}
                           </tbody>

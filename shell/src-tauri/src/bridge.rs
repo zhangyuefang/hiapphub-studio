@@ -10,15 +10,15 @@ use crate::cdylib_loader;
 
 #[tauri::command]
 pub fn fs_read_text_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| format!("读取失败: {e}"))
+    fs::read_to_string(&path).map_err(|e| format!("read failed: {e}"))
 }
 
 #[tauri::command]
 pub fn fs_write_text_file(path: String, content: String) -> Result<(), String> {
     if let Some(parent) = std::path::Path::new(&path).parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
+        fs::create_dir_all(parent).map_err(|e| format!("mkdir failed: {e}"))?;
     }
-    fs::write(&path, &content).map_err(|e| format!("写入失败: {e}"))
+    fs::write(&path, &content).map_err(|e| format!("write failed: {e}"))
 }
 
 #[tauri::command]
@@ -28,23 +28,23 @@ pub fn fs_exists(path: String) -> bool {
 
 #[tauri::command]
 pub fn clipboard_read_text() -> Result<String, String> {
-    Err("剪贴板 cdylib 模块未加载".into())
+    Err("clipboard cdylib module not loaded".into())
 }
 
 #[tauri::command]
 pub fn clipboard_write_text(_text: String) -> Result<(), String> {
-    Err("剪贴板 cdylib 模块未加载".into())
+    Err("clipboard cdylib module not loaded".into())
 }
 
 #[tauri::command]
 pub fn crypto_hash(_algorithm: String, _data: String) -> Result<String, String> {
-    Err("加密 cdylib 模块未加载".into())
+    Err("crypto cdylib module not loaded".into())
 }
 
 #[tauri::command]
 pub fn crypto_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     let mut buf = vec![0u8; length];
-    getrandom::fill(&mut buf).map_err(|e| format!("生成随机字节失败: {e}"))?;
+    getrandom::fill(&mut buf).map_err(|e| format!("random bytes generation failed: {e}"))?;
     Ok(buf)
 }
 
@@ -65,7 +65,7 @@ pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symb
         let module_perm = cdylib_loader::get_module_permission(&module_name);
         if let Some(perm) = module_perm {
             if !perm.is_empty() && !app_has_permission(app_id, &perm) {
-                return Err(format!("应用 '{app_id}' 没有 '{perm}' 权限，无法调用模块 '{module_name}'"));
+                return Err(format!("app '{app_id}' lacks '{perm}' permission to call module '{module_name}'"));
             }
         }
     }
@@ -90,7 +90,7 @@ fn app_has_permission(app_id: &str, required: &str) -> bool {
 #[tauri::command]
 pub fn hap_reload_modules() -> Result<cdylib_loader::ReloadResult, String> {
     let data_dir = hap_manager::data_dir();
-    cdylib_loader::reload_modules(&data_dir).map_err(|e| format!("重载失败: {e}"))
+    cdylib_loader::reload_modules(&data_dir).map_err(|e| format!("reload failed: {e}"))
 }
 
 #[tauri::command]
@@ -136,9 +136,9 @@ pub fn get_data_dir() -> String {
 pub fn store_auth_data(data: String) -> Result<(), String> {
     let path = hap_manager::data_dir().join("config").join("auth.json");
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
+        std::fs::create_dir_all(parent).map_err(|e| format!("mkdir failed: {e}"))?;
     }
-    std::fs::write(&path, &data).map_err(|e| format!("写入失败: {e}"))
+    std::fs::write(&path, &data).map_err(|e| format!("write failed: {e}"))
 }
 
 #[tauri::command]
@@ -149,14 +149,14 @@ pub fn load_auth_data() -> Result<Option<String>, String> {
     }
     std::fs::read_to_string(&path)
         .map(Some)
-        .map_err(|e| format!("读取失败: {e}"))
+        .map_err(|e| format!("read failed: {e}"))
 }
 
 #[tauri::command]
 pub fn clear_auth_data() -> Result<(), String> {
     let path = hap_manager::data_dir().join("config").join("auth.json");
     if path.exists() {
-        std::fs::remove_file(&path).map_err(|e| format!("删除失败: {e}"))?;
+        std::fs::remove_file(&path).map_err(|e| format!("delete failed: {e}"))?;
     }
     Ok(())
 }
@@ -200,7 +200,7 @@ pub fn hap_open_plugin_window(
         .min_inner_size(400.0, 300.0)
         .center()
         .build()
-        .map_err(|e| format!("创建窗口失败: {e}"))?;
+        .map_err(|e| format!("window creation failed: {e}"))?;
 
     Ok(())
 }
@@ -240,7 +240,7 @@ pub fn hap_create_sub_window(
     .min_inner_size(320.0, 240.0)
     .center()
     .build()
-    .map_err(|e| format!("创建子窗口失败: {e}"))?;
+    .map_err(|e| format!("sub-window creation failed: {e}"))?;
 
     Ok(())
 }
@@ -262,7 +262,7 @@ pub fn hap_close_sub_window(
 pub fn hap_reveal_in_folder(path: String) -> Result<(), String> {
     let p = std::path::Path::new(&path);
     if !p.exists() {
-        return Err(format!("路径不存在: {path}"));
+        return Err(format!("path not found: {path}"));
     }
     #[cfg(target_os = "macos")]
     {
@@ -296,7 +296,7 @@ pub fn hap_load_plugin_html(install_path: String) -> Result<String, String> {
     let base = Path::new(&install_path);
     let html_path = base.join("index.html");
     let html = fs::read_to_string(&html_path)
-        .map_err(|e| format!("读取 index.html 失败: {e}"))?;
+        .map_err(|e| format!("read index.html failed: {e}"))?;
 
     let js_path = base.join("index.js");
     let css_path = base.join("style.css");

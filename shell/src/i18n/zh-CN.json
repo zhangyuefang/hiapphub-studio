@@ -193,5 +193,9 @@
   "account.token_revoke": "撤销",
   "account.token_revoke_confirm": "确定撤销此 Token？撤销后无法恢复。",
   "account.token_none": "暂无 Token",
-  "account.token_create_error": "创建失败"
+  "account.token_create_error": "创建失败",
+
+  "settings.fn_optional": "可选",
+  "settings.fn_default": "默认",
+  "settings.lib_overview": "模块总说明"
 }

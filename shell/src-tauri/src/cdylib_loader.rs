@@ -6,7 +6,30 @@ use std::sync::LazyLock;
 use serde::{Deserialize, Serialize};
 
 type CCharPtr = *const std::os::raw::c_char;
-type InitFn = unsafe extern "C" fn() -> CCharPtr;
+type CCharMutPtr = *mut std::os::raw::c_char;
+type FreeFn = unsafe extern "C" fn(CCharMutPtr);
+
+#[repr(C)]
+pub struct HapContext {
+    pub emit_callback: extern "C" fn(CCharPtr, CCharPtr),
+    pub shell_version: CCharPtr,
+}
+
+extern "C" fn noop_emit(_callback_id: CCharPtr, _event_json: CCharPtr) {}
+
+static SHELL_VERSION: &std::ffi::CStr = unsafe {
+    std::ffi::CStr::from_bytes_with_nul_unchecked(b"0.2.0\0")
+};
+
+static HAP_CONTEXT: HapContext = HapContext {
+    emit_callback: noop_emit,
+    shell_version: SHELL_VERSION.as_ptr(),
+};
+
+// SAFETY: HAP_CONTEXT 中的 shell_version 指向 'static CStr，emit_callback 是 fn 指针，均线程安全
+unsafe impl Sync for HapContext {}
+
+type InitFn = unsafe extern "C" fn(*const HapContext) -> CCharPtr;
 type DescribeFn = unsafe extern "C" fn() -> CCharPtr;
 
 /// 借鉴易语言支持库 .fnr 自描述机制：
@@ -23,9 +46,14 @@ pub struct ModuleDescriptor {
     pub icon: Option<String>,
     pub min_shell_version: Option<String>,
     pub category: String,
-    pub description: String,
+    #[serde(default)]
+    pub description: Option<String>,
     #[serde(default)]
     pub descriptions: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub overview: Option<String>,
+    #[serde(default)]
+    pub overviews: Option<HashMap<String, String>>,
     pub permission: String,
     #[serde(default)]
     pub functions: Vec<FunctionDescriptor>,
@@ -43,8 +71,11 @@ pub struct FunctionDescriptor {
     #[serde(default)]
     pub descriptions: Option<HashMap<String, String>>,
     pub symbol: String,
+    #[serde(default)]
     pub params: Vec<ParamDescriptor>,
+    #[serde(default = "ReturnDescriptor::default_value")]
     pub returns: ReturnDescriptor,
+    #[serde(default)]
     pub bridge_path: String,
 }
 
@@ -53,25 +84,63 @@ pub struct ParamDescriptor {
     pub name: String,
     #[serde(rename = "type")]
     pub param_type: String,
-    pub desc: String,
+    #[serde(default)]
+    pub desc: Option<String>,
     #[serde(default)]
     pub descs: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub optional: Option<bool>,
+    #[serde(default)]
+    pub default_value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReturnDescriptor {
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default)]
     pub return_type: String,
-    pub desc: String,
+    #[serde(default)]
+    pub desc: Option<String>,
     #[serde(default)]
     pub descs: Option<HashMap<String, String>>,
 }
+
+impl ReturnDescriptor {
+    fn default_value() -> Self {
+        Self { return_type: String::new(), desc: None, descs: None }
+    }
+}
+
+fn i18n_fallback(field: &mut Option<String>, map: &Option<HashMap<String, String>>) {
+    if field.is_none() {
+        if let Some(m) = map {
+            if let Some(v) = m.get("en-US").or_else(|| m.get("zh-CN")) {
+                *field = Some(v.clone());
+            }
+        }
+    }
+}
+
+fn fill_fallback_fields(d: &mut ModuleDescriptor) {
+    i18n_fallback(&mut d.description, &d.descriptions);
+    i18n_fallback(&mut d.overview, &d.overviews);
+    for f in &mut d.functions {
+        i18n_fallback(&mut f.description, &f.descriptions);
+        for p in &mut f.params {
+            i18n_fallback(&mut p.desc, &p.descs);
+        }
+        i18n_fallback(&mut f.returns.desc, &f.returns.descs);
+    }
+}
+
+type CleanupFn = unsafe extern "C" fn(CCharPtr);
 
 struct LoadedModule {
     _lib: Library,
     descriptor: Option<ModuleDescriptor>,
     file_mtime: Option<std::time::SystemTime>,
     _source_path: String,
+    free_fn: Option<FreeFn>,
+    cleanup_fn: Option<CleanupFn>,
 }
 
 static LOADED_MODULES: LazyLock<Mutex<HashMap<String, LoadedModule>>> =
@@ -95,16 +164,22 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
             match unsafe { Library::new(&path) } {
                 Ok(lib) => {
+                    let free_fn: Option<FreeFn> = unsafe { lib.get::<FreeFn>(b"hap_free_string") }.ok().map(|s| *s);
+                    let cleanup_fn: Option<CleanupFn> = unsafe { lib.get::<CleanupFn>(b"hap_module_cleanup") }.ok().map(|s| *s);
+
                     let init: Result<Symbol<InitFn>, _> =
                         unsafe { lib.get(b"hap_module_init") };
                     if let Ok(init_fn) = init {
                         let init_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            unsafe { init_fn() }
+                            unsafe { init_fn(&HAP_CONTEXT) }
                         }));
                         match init_result {
                             Ok(info) if !info.is_null() => {
                                 let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
                                 eprintln!("[cdylib] 已加载模块: {} → {:?}", name, info_str);
+                                if let Some(free) = free_fn {
+                                    unsafe { free(info as CCharMutPtr) };
+                                }
                             }
                             Err(_) => {
                                 eprintln!("[cdylib] 模块初始化 panic: {}", name);
@@ -123,9 +198,13 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                             }));
                             match desc_result {
                                 Ok(desc_ptr) if !desc_ptr.is_null() => {
-                                    unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
+                                    let parsed = unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
                                         .to_str().ok()
-                                        .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
+                                        .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok());
+                                    if let Some(free) = free_fn {
+                                        unsafe { free(desc_ptr as CCharMutPtr) };
+                                    }
+                                    parsed
                                 }
                                 Err(_) => {
                                     eprintln!("[cdylib] 模块描述 panic: {}", name);
@@ -146,6 +225,7 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(ref mut d) = descriptor {
                         d.file_path = Some(file_path_str.clone());
                         d.file_size = file_size;
+                        fill_fallback_fields(d);
                         eprintln!(
                             "[cdylib] 模块描述: {} v{} — {} 个API",
                             d.name,
@@ -162,6 +242,8 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                             descriptor,
                             file_mtime,
                             _source_path: file_path_str,
+                            free_fn,
+                            cleanup_fn,
                         });
                 }
                 Err(e) => {
@@ -231,15 +313,21 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
 
         match unsafe { Library::new(path) } {
             Ok(lib) => {
+                let free_fn: Option<FreeFn> = unsafe { lib.get::<FreeFn>(b"hap_free_string") }.ok().map(|s| *s);
+                let cleanup_fn: Option<CleanupFn> = unsafe { lib.get::<CleanupFn>(b"hap_module_cleanup") }.ok().map(|s| *s);
+
                 let init: Result<Symbol<InitFn>, _> = unsafe { lib.get(b"hap_module_init") };
                 if let Ok(init_fn) = init {
                     let init_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        unsafe { init_fn() }
+                        unsafe { init_fn(&HAP_CONTEXT) }
                     }));
                     match init_result {
                         Ok(info) if !info.is_null() => {
                             let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
                             eprintln!("[cdylib] 已加载模块: {name} → {info_str:?}");
+                            if let Some(free) = free_fn {
+                                unsafe { free(info as CCharMutPtr) };
+                            }
                         }
                         Err(_) => {
                             eprintln!("[cdylib] 模块初始化 panic: {name}");
@@ -257,9 +345,13 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
                         }));
                         match desc_result {
                             Ok(desc_ptr) if !desc_ptr.is_null() => {
-                                unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
+                                let parsed = unsafe { std::ffi::CStr::from_ptr(desc_ptr) }
                                     .to_str().ok()
-                                    .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok())
+                                    .and_then(|s| serde_json::from_str::<ModuleDescriptor>(s).ok());
+                                if let Some(free) = free_fn {
+                                    unsafe { free(desc_ptr as CCharMutPtr) };
+                                }
+                                parsed
                             }
                             Err(_) => {
                                 eprintln!("[cdylib] 模块描述 panic: {name}");
@@ -276,6 +368,7 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
                 if let Some(ref mut d) = descriptor {
                     d.file_path = Some(file_path_str.clone());
                     d.file_size = file_size;
+                    fill_fallback_fields(d);
                 }
 
                 map.insert(name.clone(), LoadedModule {
@@ -283,6 +376,8 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
                     descriptor,
                     file_mtime: *new_mtime,
                     _source_path: file_path_str,
+                    free_fn,
+                    cleanup_fn,
                 });
 
                 if is_update {
@@ -336,21 +431,23 @@ type HalCallFn = unsafe extern "C" fn(CCharPtr) -> CCharPtr;
 pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) -> Result<String, String> {
     let map = LOADED_MODULES.lock().unwrap();
     let loaded = map.get(module_name)
-        .ok_or_else(|| format!("模块 '{module_name}' 未加载"))?;
+        .ok_or_else(|| format!("module '{module_name}' not loaded"))?;
 
     let desc = loaded.descriptor.as_ref()
-        .ok_or_else(|| format!("模块 '{module_name}' 无描述信息"))?;
+        .ok_or_else(|| format!("module '{module_name}' has no descriptor"))?;
 
     let _fn_desc = desc.functions.iter()
         .find(|f| f.symbol == symbol_name)
-        .ok_or_else(|| format!("模块 '{module_name}' 中未找到函数 '{symbol_name}'"))?;
+        .ok_or_else(|| format!("function '{symbol_name}' not found in module '{module_name}'"))?;
 
     let func: Symbol<HalCallFn> = unsafe {
         loaded._lib.get(symbol_name.as_bytes())
-    }.map_err(|e| format!("查找符号 '{symbol_name}' 失败: {e}"))?;
+    }.map_err(|e| format!("symbol '{symbol_name}' lookup failed: {e}"))?;
+
+    let free_fn = loaded.free_fn;
 
     let c_params = std::ffi::CString::new(params_json)
-        .map_err(|e| format!("参数编码失败: {e}"))?;
+        .map_err(|e| format!("param encoding failed: {e}"))?;
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         unsafe { func(c_params.as_ptr()) }
@@ -359,11 +456,34 @@ pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) ->
     match result {
         Ok(ptr) if !ptr.is_null() => {
             let c_str = unsafe { std::ffi::CStr::from_ptr(ptr) };
-            c_str.to_str()
+            let ret = c_str.to_str()
                 .map(|s| s.to_string())
-                .map_err(|e| format!("返回值 UTF-8 解码失败: {e}"))
+                .map_err(|e| format!("return value UTF-8 decode failed: {e}"));
+            if let Some(free) = free_fn {
+                unsafe { free(ptr as CCharMutPtr) };
+            }
+            ret
         }
         Ok(_) => Ok("null".to_string()),
-        Err(_) => Err(format!("函数 '{symbol_name}' 执行时发生 panic")),
+        Err(_) => Err(format!("function '{symbol_name}' panicked during execution")),
+    }
+}
+
+/// 应用退出时通知所有模块清理该应用持有的资源
+pub fn cleanup_app_resources(app_id: &str) {
+    let map = LOADED_MODULES.lock().unwrap();
+    let c_app_id = match std::ffi::CString::new(app_id) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    for (name, module) in map.iter() {
+        if let Some(cleanup) = module.cleanup_fn {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                unsafe { cleanup(c_app_id.as_ptr()) }
+            }));
+            if result.is_err() {
+                eprintln!("[cdylib] 模块 {name} cleanup panic for app {app_id}");
+            }
+        }
     }
 }

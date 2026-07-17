@@ -32,6 +32,12 @@ pub fn handle_request(
         }
     };
 
+    if app_id.contains("..") || app_id.contains('/') || app_id.contains('\\')
+        || file_path.contains("..") {
+        respond_404(responder);
+        return;
+    }
+
     let cache_key = format!("{app_id}/{file_path}");
 
     if let Ok(cache) = FILE_CACHE.lock() {
@@ -71,7 +77,18 @@ pub fn handle_request(
 fn read_from_hap(hap_path: &PathBuf, file_path: &str) -> Result<Vec<u8>, String> {
     let mut reader = hap_format::HapReader::open_file(hap_path)
         .map_err(|e| format!("{e}"))?;
-    reader.read_file(file_path).map_err(|e| format!("{e}"))
+
+    if reader.is_encrypted() {
+        let app_id = hap_path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown");
+        let key = hap_manager::load_app_key(app_id)
+            .map_err(|e| format!("load encryption key: {e}"))?;
+        reader.read_file_with_key(file_path, Some(&key))
+            .map_err(|e| format!("{e}"))
+    } else {
+        reader.read_file(file_path).map_err(|e| format!("{e}"))
+    }
 }
 
 fn guess_mime(path: &str) -> &'static str {
@@ -90,6 +107,15 @@ fn guess_mime(path: &str) -> &'static str {
         Some("woff2") => "font/woff2",
         Some("woff") => "font/woff",
         Some("ttf") => "font/ttf",
+        Some("otf") => "font/otf",
+        Some("mp3") => "audio/mpeg",
+        Some("mp4") => "video/mp4",
+        Some("webm") => "video/webm",
+        Some("ogg") => "audio/ogg",
+        Some("xml") => "application/xml",
+        Some("txt") => "text/plain",
+        Some("pdf") => "application/pdf",
+        Some("zip") => "application/zip",
         _ => "application/octet-stream",
     }
 }

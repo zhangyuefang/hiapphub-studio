@@ -15,7 +15,7 @@ type FnFree = unsafe extern "C" fn(*mut c_char);
 
 fn call_one(sym_name: &[u8], arg: &str) -> Result<String, String> {
     let guard = DB_LIB.lock().unwrap();
-    let lib = guard.as_ref().ok_or("db 模块未加载")?;
+    let lib = guard.as_ref().ok_or("db module not loaded")?;
     let c_arg = CString::new(arg).unwrap();
     unsafe {
         let func: Symbol<FnOneStr> = lib.get(sym_name).map_err(|e| format!("{e}"))?;
@@ -29,7 +29,7 @@ fn call_one(sym_name: &[u8], arg: &str) -> Result<String, String> {
 
 fn call_three(sym_name: &[u8], a: &str, b: &str, c: &str) -> Result<String, String> {
     let guard = DB_LIB.lock().unwrap();
-    let lib = guard.as_ref().ok_or("db 模块未加载")?;
+    let lib = guard.as_ref().ok_or("db module not loaded")?;
     let ca = CString::new(a).unwrap();
     let cb = CString::new(b).unwrap();
     let cc = CString::new(c).unwrap();
@@ -45,7 +45,7 @@ fn call_three(sym_name: &[u8], a: &str, b: &str, c: &str) -> Result<String, Stri
 
 fn call_two(sym_name: &[u8], a: &str, b: &str) -> Result<String, String> {
     let guard = DB_LIB.lock().unwrap();
-    let lib = guard.as_ref().ok_or("db 模块未加载")?;
+    let lib = guard.as_ref().ok_or("db module not loaded")?;
     let ca = CString::new(a).unwrap();
     let cb = CString::new(b).unwrap();
     unsafe {
@@ -62,7 +62,7 @@ pub fn init(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let lib_dir = data_dir.join("lib");
     let lib_path = lib_dir.join("hap-mod-sqlite.hal");
     if !lib_path.exists() {
-        eprintln!("⚠ db cdylib 不存在: {}, 跳过数据库初始化", lib_path.display());
+        eprintln!("⚠ db cdylib not found: {}, skipping db init", lib_path.display());
         return Ok(());
     }
 
@@ -75,7 +75,7 @@ pub fn init(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     let result = call_one(b"hap_sqlite_open", &db_path_str)?;
     if result.starts_with("error") {
-        return Err(format!("打开数据库失败: {result}").into());
+        return Err(format!("open database failed: {result}").into());
     }
 
     let schema_sql = "CREATE TABLE IF NOT EXISTS plugins (
@@ -96,7 +96,7 @@ pub fn init(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         plugin_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (plugin_id, key));";
     let result = call_three(b"hap_sqlite_execute", &db_path_str, schema_sql, "[]")?;
     if result.contains("error") {
-        return Err(format!("初始化表结构失败: {result}").into());
+        return Err(format!("init schema failed: {result}").into());
     }
 
     Ok(())
@@ -104,7 +104,7 @@ pub fn init(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn plugin_kv_get(plugin_id: &str, key: &str) -> Result<Option<String>, String> {
     let db_path = DB_PATH.lock().unwrap().clone();
-    if db_path.is_empty() { return Err("数据库未初始化".into()); }
+    if db_path.is_empty() { return Err("database not initialized".into()); }
     let composite_key = format!("{plugin_id}:{key}");
     let result = call_two(b"hap_sqlite_kv_get", &db_path, &composite_key)?;
     if result.is_empty() { Ok(None) } else { Ok(Some(result)) }
@@ -112,7 +112,7 @@ pub fn plugin_kv_get(plugin_id: &str, key: &str) -> Result<Option<String>, Strin
 
 pub fn plugin_kv_set(plugin_id: &str, key: &str, value: &str) -> Result<(), String> {
     let db_path = DB_PATH.lock().unwrap().clone();
-    if db_path.is_empty() { return Err("数据库未初始化".into()); }
+    if db_path.is_empty() { return Err("database not initialized".into()); }
     let composite_key = format!("{plugin_id}:{key}");
     let result = call_three(b"hap_sqlite_kv_set", &db_path, &composite_key, value)?;
     if result.starts_with("error") { Err(result) } else { Ok(()) }

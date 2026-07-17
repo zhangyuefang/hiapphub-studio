@@ -6,9 +6,9 @@ use serde::{Serialize, Deserialize};
 const HAP_MAGIC: u32 = 0x48415001; // "HAP\x01" LE
 const FORMAT_VERSION: u16 = 1;
 const FLAG_ENCRYPTED: u16 = 0x0001;
-#[allow(dead_code)]
 const FLAG_SIGNED: u16 = 0x0002;
 const HEADER_SIZE: u64 = 64;
+const SIG_MAGIC: u32 = 0x53494731; // "SIG1" LE
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Compression {
@@ -73,7 +73,7 @@ impl<R: Read + Seek> HapReader<R> {
 
         let magic = u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]]);
         if magic != HAP_MAGIC {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "不是有效的 HAP 文件"));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "not a valid HAP file"));
         }
 
         let format_version = u16::from_le_bytes([buf[4], buf[5]]);
@@ -133,18 +133,25 @@ impl<R: Read + Seek> HapReader<R> {
     }
 
     pub fn read_entry(&mut self, entry: &HapEntry) -> io::Result<Vec<u8>> {
+        self.read_entry_with_key(entry, None)
+    }
+
+    pub fn read_entry_with_key(&mut self, entry: &HapEntry, decryption_key: Option<&[u8; 32]>) -> io::Result<Vec<u8>> {
         self.reader.seek(SeekFrom::Start(
             self.header.data_offset as u64 + entry.offset,
         ))?;
-        let mut compressed = vec![0u8; entry.compressed_size as usize];
-        self.reader.read_exact(&mut compressed)?;
+        let mut raw = vec![0u8; entry.compressed_size as usize];
+        self.reader.read_exact(&mut raw)?;
 
-        if entry.encrypted {
-            return Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                "加密文件需要解密凭证（暂未实现）",
-            ));
-        }
+        let compressed = if entry.encrypted {
+            let key = decryption_key.ok_or_else(|| io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "encrypted file requires decryption key",
+            ))?;
+            decrypt_aes_gcm(key, &raw)?
+        } else {
+            raw
+        };
 
         let data = match entry.compression {
             Compression::None => compressed,
@@ -163,23 +170,82 @@ impl<R: Read + Seek> HapReader<R> {
         if actual_crc != entry.crc32 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("CRC-32 校验失败: 期望 {:#010X}, 实际 {:#010X}", entry.crc32, actual_crc),
+                format!("CRC-32 check failed: expected {:#010X}, got {:#010X}", entry.crc32, actual_crc),
             ));
         }
 
         Ok(data)
     }
 
+    pub fn verify_integrity(&mut self) -> io::Result<()> {
+        let data_offset = self.header.data_offset as u64;
+        let data_size = self.header.data_size;
+        self.reader.seek(SeekFrom::Start(data_offset))?;
+        let mut data_buf = vec![0u8; data_size as usize];
+        self.reader.read_exact(&mut data_buf)?;
+        let actual = compute_sha256_bytes(&data_buf);
+        if actual != self.header.sha256 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "SHA-256 integrity check failed: data section has been modified",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn read_file(&mut self, path: &str) -> io::Result<Vec<u8>> {
         let entry = self.find_entry(path)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, format!("文件未找到: {path}")))?
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, format!("file not found: {path}")))?
             .clone();
         self.read_entry(&entry)
+    }
+
+    pub fn read_file_with_key(&mut self, path: &str, key: Option<&[u8; 32]>) -> io::Result<Vec<u8>> {
+        let entry = self.find_entry(path)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, format!("file not found: {path}")))?
+            .clone();
+        self.read_entry_with_key(&entry, key)
     }
 
     #[allow(dead_code)]
     pub fn is_encrypted(&self) -> bool {
         self.header.flags & FLAG_ENCRYPTED != 0
+    }
+
+    #[allow(dead_code)]
+    pub fn is_signed(&self) -> bool {
+        self.header.flags & FLAG_SIGNED != 0
+    }
+
+    #[allow(dead_code)]
+    pub fn verify_signature(&mut self, public_key: &[u8; 32]) -> io::Result<bool> {
+        if !self.is_signed() {
+            return Ok(false);
+        }
+        let file_end = self.reader.seek(SeekFrom::End(0))?;
+        if file_end < 68 {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "file too small for signature"));
+        }
+
+        self.reader.seek(SeekFrom::End(-68))?;
+        let mut sig_buf = [0u8; 68];
+        self.reader.read_exact(&mut sig_buf)?;
+        let sig_magic = u32::from_le_bytes([sig_buf[0], sig_buf[1], sig_buf[2], sig_buf[3]]);
+        if sig_magic != SIG_MAGIC {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "signature magic mismatch"));
+        }
+
+        let signed_len = file_end - 68;
+        self.reader.seek(SeekFrom::Start(0))?;
+        let mut signed_data = vec![0u8; signed_len as usize];
+        self.reader.read_exact(&mut signed_data)?;
+
+        use ed25519_dalek::{VerifyingKey, Signature, Verifier};
+        let vk = VerifyingKey::from_bytes(public_key)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("invalid public key: {e}")))?;
+        let sig = Signature::from_bytes(&sig_buf[4..68].try_into()
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid signature bytes"))?);
+        Ok(vk.verify(&signed_data, &sig).is_ok())
     }
 }
 
@@ -201,6 +267,8 @@ struct BuildEntry {
 pub struct HapBuilder {
     entries: Vec<BuildEntry>,
     encrypted: bool,
+    encryption_key: Option<[u8; 32]>,
+    signing_key: Option<[u8; 64]>,
 }
 
 #[allow(dead_code)]
@@ -209,12 +277,20 @@ impl HapBuilder {
         Self {
             entries: Vec::new(),
             encrypted: false,
+            encryption_key: None,
+            signing_key: None,
         }
     }
 
     #[allow(dead_code)]
-    pub fn set_encrypted(&mut self, encrypted: bool) {
+    pub fn set_encrypted(&mut self, encrypted: bool, key: Option<[u8; 32]>) {
         self.encrypted = encrypted;
+        self.encryption_key = key;
+    }
+
+    #[allow(dead_code)]
+    pub fn set_signing_key(&mut self, key: [u8; 64]) {
+        self.signing_key = Some(key);
     }
 
     pub fn add_file(&mut self, path: &str, data: Vec<u8>) {
@@ -281,17 +357,26 @@ impl HapBuilder {
                 (be.data.clone(), Compression::None)
             };
 
+            let final_data = if be.encrypted {
+                let key = self.encryption_key.as_ref().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "encryption key required for encrypted entries")
+                })?;
+                encrypt_aes_gcm(key, &compressed)?
+            } else {
+                compressed
+            };
+
             let entry = HapEntry {
                 path: be.path.clone(),
                 offset: data_offset_cursor,
-                compressed_size: compressed.len() as u64,
+                compressed_size: final_data.len() as u64,
                 original_size: be.data.len() as u64,
                 compression,
                 encrypted: be.encrypted,
                 crc32: crc,
             };
-            data_offset_cursor += compressed.len() as u64;
-            compressed_entries.push((entry, compressed));
+            data_offset_cursor += final_data.len() as u64;
+            compressed_entries.push((entry, final_data));
         }
 
         let dir_offset = HEADER_SIZE as u32;
@@ -312,16 +397,19 @@ impl HapBuilder {
         let data_start = dir_offset + dir_size;
 
         let mut data_buf = Vec::new();
-        for (_, compressed) in &compressed_entries {
-            data_buf.extend_from_slice(compressed);
+        for (_, final_data) in &compressed_entries {
+            data_buf.extend_from_slice(final_data);
         }
 
         let sha256 = compute_sha256_bytes(&data_buf);
 
+        let mut flags: u16 = 0;
+        if self.encrypted { flags |= FLAG_ENCRYPTED; }
+        if self.signing_key.is_some() { flags |= FLAG_SIGNED; }
+
         let mut header = [0u8; 64];
         header[0..4].copy_from_slice(&HAP_MAGIC.to_le_bytes());
         header[4..6].copy_from_slice(&FORMAT_VERSION.to_le_bytes());
-        let flags: u16 = if self.encrypted { FLAG_ENCRYPTED } else { 0 };
         header[6..8].copy_from_slice(&flags.to_le_bytes());
         header[8..12].copy_from_slice(&(compressed_entries.len() as u32).to_le_bytes());
         header[12..16].copy_from_slice(&dir_offset.to_le_bytes());
@@ -335,6 +423,19 @@ impl HapBuilder {
         w.write_all(&dir_buf)?;
         w.write_all(&data_buf)?;
 
+        if let Some(ref sk_bytes) = self.signing_key {
+            use ed25519_dalek::{SigningKey, Signer};
+            let signing_key = SigningKey::from_keypair_bytes(sk_bytes)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("invalid signing key: {e}")))?;
+            let mut signed_data = Vec::new();
+            signed_data.extend_from_slice(&header);
+            signed_data.extend_from_slice(&dir_buf);
+            signed_data.extend_from_slice(&data_buf);
+            let signature = signing_key.sign(&signed_data);
+            w.write_all(&SIG_MAGIC.to_le_bytes())?;
+            w.write_all(&signature.to_bytes())?;
+        }
+
         Ok(())
     }
 
@@ -345,19 +446,68 @@ impl HapBuilder {
     }
 }
 
-#[allow(dead_code)]
+fn decrypt_aes_gcm(key: &[u8; 32], data: &[u8]) -> io::Result<Vec<u8>> {
+    use aes_gcm::{Aes256Gcm, Key, Nonce};
+    use aes_gcm::aead::{Aead, KeyInit};
+
+    if data.len() < 28 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "encrypted data too short (need nonce + tag)"));
+    }
+    let nonce_bytes = &data[..12];
+    let tag_start = data.len() - 16;
+    let ciphertext = &data[12..tag_start];
+    let tag = &data[tag_start..];
+
+    let cipher_key = Key::<Aes256Gcm>::from_slice(key);
+    let cipher = Aes256Gcm::new(cipher_key);
+    let nonce = Nonce::from_slice(nonce_bytes);
+
+    let mut ct_with_tag = Vec::with_capacity(ciphertext.len() + 16);
+    ct_with_tag.extend_from_slice(ciphertext);
+    ct_with_tag.extend_from_slice(tag);
+
+    cipher.decrypt(nonce, ct_with_tag.as_ref())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "AES-256-GCM decryption failed"))
+}
+
+fn encrypt_aes_gcm(key: &[u8; 32], data: &[u8]) -> io::Result<Vec<u8>> {
+    use aes_gcm::{Aes256Gcm, Key, Nonce};
+    use aes_gcm::aead::{Aead, KeyInit};
+
+    let cipher_key = Key::<Aes256Gcm>::from_slice(key);
+    let cipher = Aes256Gcm::new(cipher_key);
+    let mut nonce_bytes = [0u8; 12];
+    getrandom::fill(&mut nonce_bytes)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("rng failed: {e}")))?;
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let ct_with_tag = cipher.encrypt(nonce, data)
+        .map_err(|_| io::Error::new(io::ErrorKind::Other, "AES-256-GCM encryption failed"))?;
+
+    let tag_start = ct_with_tag.len() - 16;
+    let ciphertext = &ct_with_tag[..tag_start];
+    let tag = &ct_with_tag[tag_start..];
+
+    let mut result = Vec::with_capacity(12 + ciphertext.len() + 16);
+    result.extend_from_slice(&nonce_bytes);
+    result.extend_from_slice(ciphertext);
+    result.extend_from_slice(tag);
+    Ok(result)
+}
+
 fn compute_sha256_bytes(data: &[u8]) -> [u8; 32] {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut result = [0u8; 32];
-    let mut hasher = DefaultHasher::new();
-    data.hash(&mut hasher);
-    let h = hasher.finish();
-    result[0..8].copy_from_slice(&h.to_le_bytes());
-    result[8..16].copy_from_slice(&h.to_le_bytes());
-    result[16..24].copy_from_slice(&h.to_le_bytes());
-    result[24..32].copy_from_slice(&h.to_le_bytes());
-    result
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    let mut out = [0u8; 32];
+    out.copy_from_slice(&result);
+    out
+}
+
+/// Placeholder — integrity checking is done via HapReader method
+pub fn verify_data_integrity<R: Read + Seek>(reader: &mut HapReader<R>) -> io::Result<()> {
+    reader.verify_integrity()
 }
 
 #[allow(dead_code)]
@@ -425,5 +575,56 @@ mod tests {
 
         let data = reader.read_file("big.txt").unwrap();
         assert_eq!(data.len(), 1000);
+    }
+
+    #[test]
+    fn encrypted_roundtrip() {
+        let key: [u8; 32] = [0x42u8; 32];
+        let mut builder = HapBuilder::new();
+        builder.set_encrypted(true, Some(key));
+        builder.add_file("manifest.json", br#"{"id":"enc"}"#.to_vec());
+        builder.add_file("index.html", b"<h1>Secret</h1>".to_vec());
+        builder.add_file("secret.js", b"var x = 42;".to_vec());
+
+        let mut buf = Cursor::new(Vec::new());
+        builder.build(&mut buf).unwrap();
+
+        buf.seek(SeekFrom::Start(0)).unwrap();
+        let mut reader = HapReader::open(buf).unwrap();
+        assert!(reader.is_encrypted());
+
+        let manifest = reader.read_file("manifest.json").unwrap();
+        assert_eq!(manifest, br#"{"id":"enc"}"#);
+
+        let html = reader.read_file_with_key("index.html", Some(&key)).unwrap();
+        assert_eq!(html, b"<h1>Secret</h1>");
+
+        let js = reader.read_file_with_key("secret.js", Some(&key)).unwrap();
+        assert_eq!(js, b"var x = 42;");
+
+        assert!(reader.read_file("index.html").is_err());
+    }
+
+    #[test]
+    fn signed_roundtrip() {
+        use ed25519_dalek::SigningKey;
+        let sk = SigningKey::generate(&mut rand_core::OsRng);
+        let pk_bytes = sk.verifying_key().to_bytes();
+        let kp_bytes = sk.to_keypair_bytes();
+
+        let mut builder = HapBuilder::new();
+        builder.set_signing_key(kp_bytes);
+        builder.add_file("manifest.json", br#"{"id":"sig"}"#.to_vec());
+
+        let mut buf = Cursor::new(Vec::new());
+        builder.build(&mut buf).unwrap();
+
+        buf.seek(SeekFrom::Start(0)).unwrap();
+        let mut reader = HapReader::open(buf).unwrap();
+        assert!(reader.is_signed());
+        assert!(reader.verify_signature(&pk_bytes).unwrap());
+
+        let manifest = reader.read_file("manifest.json").unwrap();
+        assert_eq!(manifest, br#"{"id":"sig"}"#);
     }
 }

@@ -44,7 +44,7 @@ export default function App() {
       list = list.filter(
         (p) => p.manifest.name.toLowerCase().includes(q) ||
           Object.values(p.manifest.names ?? {}).some((n) => n.toLowerCase().includes(q)) ||
-          p.manifest.description.toLowerCase().includes(q) ||
+          (p.manifest.description ?? "").toLowerCase().includes(q) ||
           Object.values(p.manifest.descriptions ?? {}).some((d) => d.toLowerCase().includes(q)) ||
           p.manifest.tags.some((tag) => tag.toLowerCase().includes(q)),
       );
