@@ -695,9 +695,43 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
                       )}
                       <div className="text-xs flex items-center gap-2">
                         <span className="opacity-40">{t("settings.fn_return")}:</span>
-                        <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: "var(--fs-border)" }}>
-                          {fn.returns.type}
-                        </code>
+                        {(() => {
+                          const typeDef = selected?.types?.find((td) => td.name === fn.returns.type);
+                          if (typeDef) {
+                            return (
+                              <TooltipPrimitive.Provider delayDuration={200}>
+                                <TooltipPrimitive.Root>
+                                  <TooltipPrimitive.Trigger asChild>
+                                    <code className="px-1.5 py-0.5 rounded text-[11px] cursor-help underline decoration-dashed" style={{ background: "var(--fs-border)" }}>
+                                      {fn.returns.type}
+                                    </code>
+                                  </TooltipPrimitive.Trigger>
+                                  <TooltipPrimitive.Portal>
+                                    <TooltipPrimitive.Content side="top" align="start" sideOffset={4} className="z-[99999] rounded-lg border px-3 py-2 text-xs shadow-lg bg-white dark:bg-gray-800 max-w-[320px]" style={{ borderColor: "var(--fs-border)" }}>
+                                      <div className="font-medium mb-1">{typeDef.name} <span className="opacity-50 font-normal">{i18nText(null, typeDef.descriptions, locale)}</span></div>
+                                      <table className="w-full text-[10px]">
+                                        <tbody>
+                                          {typeDef.fields.map((f) => (
+                                            <tr key={f.name} className="border-b border-dashed last:border-0" style={{ borderColor: "var(--fs-border)" }}>
+                                              <td className="py-0.5 pr-2 font-mono">{f.name}</td>
+                                              <td className="py-0.5 pr-2 opacity-60">{f.type}</td>
+                                              <td className="py-0.5 opacity-50">{i18nText(f.desc ?? null, f.descs, locale)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </TooltipPrimitive.Content>
+                                  </TooltipPrimitive.Portal>
+                                </TooltipPrimitive.Root>
+                              </TooltipPrimitive.Provider>
+                            );
+                          }
+                          return (
+                            <code className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: "var(--fs-border)" }}>
+                              {fn.returns.type}
+                            </code>
+                          );
+                        })()}
                         <span className="opacity-50">{i18nText(fn.returns.desc, fn.returns.descs, locale)}</span>
                       </div>
                     </div>
