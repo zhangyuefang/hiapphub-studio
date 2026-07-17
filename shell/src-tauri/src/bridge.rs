@@ -50,7 +50,15 @@ pub fn crypto_random_bytes(length: usize) -> Result<Vec<u8>, String> {
 
 #[tauri::command]
 pub fn hap_list_modules() -> Result<Vec<cdylib_loader::ModuleDescriptor>, String> {
-    Ok(cdylib_loader::get_all_descriptors())
+    let modules = cdylib_loader::get_all_descriptors();
+    if let Some(http) = modules.iter().find(|m| m.name == "http") {
+        if let Some(req) = http.functions.iter().find(|f| f.name == "request") {
+            eprintln!("[DEBUG] http.request returns.type = {:?}", req.returns.return_type);
+        }
+        eprintln!("[DEBUG] http types count = {:?}", http.types.as_ref().map(|t| t.len()));
+        eprintln!("[DEBUG] http constants count = {:?}", http.constants.as_ref().map(|c| c.len()));
+    }
+    Ok(modules)
 }
 
 #[tauri::command]

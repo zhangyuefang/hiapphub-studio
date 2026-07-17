@@ -57,6 +57,12 @@ pub struct ModuleDescriptor {
     pub permission: String,
     #[serde(default)]
     pub functions: Vec<FunctionDescriptor>,
+    #[serde(default)]
+    pub types: Option<Vec<TypeDescriptor>>,
+    #[serde(default)]
+    pub constants: Option<Vec<ConstantDescriptor>>,
+    #[serde(default)]
+    pub events: Option<Vec<EventDescriptor>>,
     #[serde(skip_deserializing)]
     pub file_path: Option<String>,
     #[serde(skip_deserializing)]
@@ -77,6 +83,42 @@ pub struct FunctionDescriptor {
     pub returns: ReturnDescriptor,
     #[serde(default)]
     pub bridge_path: String,
+    #[serde(default)]
+    pub group: Option<String>,
+    #[serde(default, rename = "async")]
+    pub is_async: Option<bool>,
+    #[serde(default)]
+    pub platform: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeDescriptor {
+    pub name: String,
+    #[serde(default)]
+    pub descriptions: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub fields: Vec<ParamDescriptor>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstantDescriptor {
+    pub name: String,
+    pub value: serde_json::Value,
+    #[serde(rename = "type")]
+    pub value_type: String,
+    #[serde(default)]
+    pub group: Option<String>,
+    #[serde(default)]
+    pub descs: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventDescriptor {
+    pub name: String,
+    #[serde(default)]
+    pub descriptions: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub payload: Vec<ParamDescriptor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
