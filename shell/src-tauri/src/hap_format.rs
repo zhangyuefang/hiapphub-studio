@@ -627,4 +627,16 @@ mod tests {
         let manifest = reader.read_file("manifest.json").unwrap();
         assert_eq!(manifest, br#"{"id":"sig"}"#);
     }
+
+    #[test]
+    fn test_read_devtools_hap() {
+        let path = std::path::Path::new("/Users/mac/.hiapphub/app/hiapphub-devtools.hap");
+        if !path.exists() { return; }
+        let mut reader = HapReader::open_file(path).expect("should open devtools hap");
+        let data = reader.read_file("manifest.json").expect("should read manifest");
+        let content = String::from_utf8(data).expect("should be utf8");
+        let v: serde_json::Value = serde_json::from_str(&content).expect("should parse json");
+        eprintln!("DevTools manifest: id={}, name={}", v["id"], v["name"]);
+        assert_eq!(v["id"].as_str().unwrap(), "hiapphub-devtools");
+    }
 }
