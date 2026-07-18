@@ -114,7 +114,7 @@ export function Settings({ onBack }: Props) {
 
   useEffect(() => {
     if (tab === "libraries") { reloadModules(); }
-  }, [tab]);
+  }, [tab, locale]);
 
   return (
     <div className="flex flex-col h-full">
@@ -379,8 +379,7 @@ function SizeInfoButton({ modules, t, locale }: { modules: ModuleDesc[]; t: (k: 
   const sorted = [...modules].sort((a, b) => (b.file_size ?? 0) - (a.file_size ?? 0));
 
   const getOverview = (m: ModuleDesc) => {
-    if (m.overviews) return (locale === "zh-CN" ? m.overviews["zh-CN"] : m.overviews["en-US"]) || "";
-    return m.overview || "";
+    return i18nText(m.overview ?? "", m.overviews, locale);
   };
 
   return (

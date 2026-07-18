@@ -50,9 +50,12 @@ const lazyLocaleLoaders: Record<string, () => Promise<{ default: Translations }>
 
 const dynamicLocales: Record<string, Translations> = {};
 
+const savedLocale = localStorage.getItem("shell_locale") || "zh-CN";
+const savedTranslations = builtinLocales[savedLocale] ?? zhCN;
+
 export const useI18n = create<I18nState>((set, get) => ({
-  locale: "zh-CN",
-  translations: zhCN,
+  locale: savedLocale,
+  translations: savedTranslations,
   availableLocales: SHELL_LANGS.map(l => l.code),
 
   setLocale: async (locale: string) => {
@@ -66,6 +69,7 @@ export const useI18n = create<I18nState>((set, get) => ({
     }
     if (data) {
       set({ locale, translations: data });
+      localStorage.setItem("shell_locale", locale);
       document.documentElement.lang = locale;
       const cfg = SHELL_LANGS.find(l => l.code === locale);
       document.documentElement.dir = cfg?.dir === "rtl" ? "rtl" : "ltr";

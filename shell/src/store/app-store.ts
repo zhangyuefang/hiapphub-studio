@@ -15,12 +15,15 @@ interface AppState {
   toggleTheme: () => void;
 }
 
+const savedTheme = (localStorage.getItem("shell_theme") as Theme) || "light";
+document.documentElement.setAttribute("data-theme", savedTheme);
+
 export const useAppStore = create<AppState>((set) => ({
   plugins: [],
   search: "",
   category: "all",
   activePlugin: null,
-  theme: "light",
+  theme: savedTheme,
   setPlugins: (plugins) => set({ plugins }),
   setSearch: (search) => set({ search }),
   setCategory: (category) => set({ category }),
@@ -30,6 +33,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => {
       const next = s.theme === "light" ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("shell_theme", next);
       return { theme: next };
     }),
 }));

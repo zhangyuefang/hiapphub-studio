@@ -248,5 +248,6 @@
   "window.minimize": "تصغير",
   "window.maximize": "تكبير",
   "window.restore": "استعادة",
-  "window.close": "إغلاق"
+  "window.close": "إغلاق",
+  "account.error": "خطأ"
 }

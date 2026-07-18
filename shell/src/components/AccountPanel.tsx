@@ -238,7 +238,7 @@ function ProfileView({ user, theme, t, onLogout }: {
       await apiFetch("/auth/verify-email", { method: "POST" });
       setVerifyMsg({ text: t("account.verify_email_sent"), ok: true });
     } catch (e: any) {
-      setVerifyMsg({ text: e.message || "Error", ok: false });
+      setVerifyMsg({ text: e.message || t("account.error"), ok: false });
     }
     setVerifyingEmail(false);
   };
@@ -381,7 +381,7 @@ function OAuthAccountsCard({ accounts, t, cardBg, cardBorder }: {
       await apiFetch(`/user/oauth/${accountId}`, { method: "DELETE" });
       await fetchProfile();
     } catch (e: any) {
-      setUnlinkError(e.message || "Error");
+      setUnlinkError(e.message || t("account.error"));
     }
     setUnlinking(null);
   };
@@ -813,7 +813,7 @@ function DeleteAccountForm({ theme, t, onBack }: {
       await apiFetch("/user/account", { method: "DELETE", body: JSON.stringify({ password: pwd }) });
       logout();
     } catch (e: any) {
-      setError(e.message || "Error");
+      setError(e.message || t("account.error"));
     }
     setLoading(false);
   };

@@ -248,5 +248,6 @@
   "window.minimize": "छोटा करें",
   "window.maximize": "बड़ा करें",
   "window.restore": "पुनर्स्थापित करें",
-  "window.close": "बंद करें"
+  "window.close": "बंद करें",
+  "account.error": "त्रुटि"
 }

@@ -176,6 +176,12 @@ static USER_LOCALE: std::sync::Mutex<String> = std::sync::Mutex::new(String::new
 
 pub fn set_user_locale(locale: &str) {
     *USER_LOCALE.lock().unwrap() = locale.to_string();
+    let mut map = LOADED_MODULES.lock().unwrap();
+    for module in map.values_mut() {
+        if let Some(ref mut d) = module.descriptor {
+            fill_fallback_fields(d);
+        }
+    }
 }
 
 fn i18n_fallback(field: &mut Option<String>, map: &Option<HashMap<String, String>>) {
@@ -481,7 +487,6 @@ pub fn get_module_permission(module_name: &str) -> Option<String> {
     let map = LOADED_MODULES.lock().unwrap();
     map.get(module_name)
         .or_else(|| map.get(&format!("hap-mod-{module_name}")))
-        .or_else(|| map.get(&format!("libhap_mod_{module_name}")))
         .and_then(|m| m.descriptor.as_ref())
         .map(|d| d.permission.clone())
 }
@@ -503,7 +508,6 @@ pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) ->
     let map = LOADED_MODULES.lock().unwrap();
     let loaded = map.get(module_name)
         .or_else(|| map.get(&format!("hap-mod-{module_name}")))
-        .or_else(|| map.get(&format!("libhap_mod_{module_name}")))
         .ok_or_else(|| format!("module '{module_name}' not loaded"))?;
 
     let desc = loaded.descriptor.as_ref()

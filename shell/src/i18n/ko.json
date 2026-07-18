@@ -248,5 +248,6 @@
   "window.minimize": "최소화",
   "window.maximize": "최대화",
   "window.restore": "복원",
-  "window.close": "닫기"
+  "window.close": "닫기",
+  "account.error": "오류"
 }

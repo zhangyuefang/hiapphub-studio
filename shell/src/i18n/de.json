@@ -248,5 +248,6 @@
   "window.minimize": "Minimieren",
   "window.maximize": "Maximieren",
   "window.restore": "Wiederherstellen",
-  "window.close": "Schließen"
+  "window.close": "Schließen",
+  "account.error": "Fehler"
 }

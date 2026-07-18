@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "@/store/app-store";
-import { useI18n } from "@/i18n";
+import { useI18n, loadExternalLocales } from "@/i18n";
 import { ToolGrid } from "@/components/ToolGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { Toast } from "@/components/Toast";
@@ -42,6 +42,11 @@ export default function App() {
       if (!navigator.userAgent.includes("Mac")) {
         await appWindow.setDecorations(false);
       }
+      const saved = localStorage.getItem("shell_locale");
+      if (saved && saved !== locale) {
+        setLocale(saved);
+      }
+      await loadExternalLocales();
     };
     init();
     const unlisten = appWindow.onResized(async () => {

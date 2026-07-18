@@ -248,5 +248,6 @@
   "window.minimize": "Свернуть",
   "window.maximize": "Развернуть",
   "window.restore": "Восстановить",
-  "window.close": "Закрыть"
+  "window.close": "Закрыть",
+  "account.error": "Ошибка"
 }

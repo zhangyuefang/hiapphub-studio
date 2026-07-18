@@ -248,5 +248,6 @@
   "window.minimize": "Minimizar",
   "window.maximize": "Maximizar",
   "window.restore": "Restaurar",
-  "window.close": "Fechar"
+  "window.close": "Fechar",
+  "account.error": "Erro"
 }
