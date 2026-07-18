@@ -121,7 +121,7 @@ export default function App() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
               </svg>
-              <span>{LOCALE_LABELS[locale]?.slice(0, 2) ?? locale.slice(0, 2)}</span>
+              <span>{LOCALE_LABELS[locale] ?? locale}</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${langDropOpen ? "rotate-180" : ""}`}>
                 <path d="M6 9l6 6 6-6"/>
               </svg>
