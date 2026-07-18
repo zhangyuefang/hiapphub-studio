@@ -5,6 +5,8 @@ mod hap_format;
 mod hap_manager;
 mod hap_protocol;
 mod db;
+mod ipc_server;
+mod process_manager;
 
 use tauri::{Emitter, Listener, Manager};
 
@@ -65,6 +67,7 @@ pub fn run() {
             bridge::hap_reveal_in_folder,
             bridge::hap_load_plugin_html,
             bridge::hap_open_plugin_window,
+            bridge::hap_launch_independent_app,
             bridge::hap_create_sub_window,
             bridge::hap_close_sub_window,
             bridge::hap_js_log,
@@ -81,6 +84,8 @@ pub fn run() {
 fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let data_dir = hap_manager::ensure_data_dir()?;
 
+    cdylib_loader::set_app_handle(app.handle().clone());
+
     if let Err(e) = db::init(&data_dir) {
         eprintln!("[setup] db init failed (non-fatal): {e}");
     }
@@ -88,6 +93,23 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     if let Err(e) = cdylib_loader::load_modules(&data_dir) {
         eprintln!("[setup] module loading failed (non-fatal): {e}");
     }
+
+    let ipc = std::sync::Arc::new(ipc_server::IpcServer::new());
+    if let Err(e) = ipc.start() {
+        eprintln!("[setup] IPC server start failed (non-fatal): {e}");
+    } else {
+        eprintln!("[setup] IPC server listening on {}", ipc.socket_path().display());
+    }
+
+    let pm = std::sync::Arc::new(process_manager::ProcessManager::new());
+    let recovered = pm.recover_from_pid_files();
+    if !recovered.is_empty() {
+        eprintln!("[setup] recovered {} app process(es) from pid files", recovered.len());
+    }
+    pm.start_monitor(ipc.clone());
+
+    app.manage(ipc);
+    app.manage(pm);
 
     let handle = app.handle().clone();
     app.listen("deep-link://new-url", move |event: tauri::Event| {

@@ -9,6 +9,8 @@ use crate::bridge_inject;
 use crate::db;
 use crate::hap_manager;
 use crate::cdylib_loader;
+use crate::ipc_server::IpcServer;
+use crate::process_manager::ProcessManager;
 
 #[derive(serde::Serialize, Clone)]
 pub struct HalCallLog {
@@ -91,8 +93,19 @@ pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symb
         app_id_str = "shell".to_string();
     }
 
+    let enriched_params = {
+        if let Ok(mut obj) = serde_json::from_str::<serde_json::Value>(&params_json) {
+            if let Some(map) = obj.as_object_mut() {
+                map.insert("_caller".to_string(), serde_json::Value::String(label.to_string()));
+            }
+            serde_json::to_string(&obj).unwrap_or_else(|_| params_json.clone())
+        } else {
+            params_json.clone()
+        }
+    };
+
     let start = std::time::Instant::now();
-    let result = cdylib_loader::call_function(&module_name, &symbol_name, &params_json);
+    let result = cdylib_loader::call_function(&module_name, &symbol_name, &enriched_params);
 
     let skip_log = app_id_str == "hiapphub-devtools" && module_name == "webserver";
     if !skip_log {
@@ -258,6 +271,37 @@ fn cleanup_plugin_trays(_plugin_id: &str) {
 }
 
 #[tauri::command]
+pub fn hap_launch_independent_app(
+    app: tauri::AppHandle,
+    plugin_id: String,
+) -> Result<(), String> {
+    let hap_path = hap_manager::data_dir().join("app").join(format!("{plugin_id}.hap"));
+    if !hap_path.exists() {
+        return Err(format!("app '{plugin_id}' not installed"));
+    }
+
+    let manifest = {
+        let mut reader = crate::hap_format::HapReader::open_file(&hap_path)
+            .map_err(|e| format!("{e}"))?;
+        let data = reader.read_file("manifest.json")
+            .map_err(|e| format!("{e}"))?;
+        let content = String::from_utf8(data).map_err(|e| format!("{e}"))?;
+        serde_json::from_str::<serde_json::Value>(&content)
+            .map_err(|e| format!("manifest parse: {e}"))?
+    };
+
+    let ipc = app.state::<std::sync::Arc<IpcServer>>();
+    let pm = app.state::<std::sync::Arc<ProcessManager>>();
+
+    pm.launch_app(
+        &plugin_id,
+        &hap_path.to_string_lossy(),
+        &manifest,
+        &ipc,
+    )
+}
+
+#[tauri::command]
 pub fn hap_open_plugin_window(
     app: tauri::AppHandle,
     plugin_id: String,
@@ -267,29 +311,48 @@ pub fn hap_open_plugin_window(
 ) -> Result<(), String> {
     crate::hap_protocol::invalidate_cache(&plugin_id);
     let url = format!("hap://localhost/{plugin_id}/index.html");
-    let label = format!("plugin-{plugin_id}");
-
-    if let Some(existing) = app.get_webview_window(&label) {
-        if existing.is_minimized().unwrap_or(false) {
-            let _ = existing.unminimize();
-        }
-        if !existing.is_visible().unwrap_or(true) {
-            let _ = existing.show();
-        }
-        let _: () = existing.set_focus().map_err(|e| format!("{e}"))?;
-        return Ok(());
-    }
 
     let hap_path = hap_manager::data_dir().join("app").join(format!("{plugin_id}.hap"));
-    let win_cfg = if hap_path.exists() {
+    let manifest_json = if hap_path.exists() {
         crate::hap_format::HapReader::open_file(&hap_path).ok()
             .and_then(|mut r| r.read_file("manifest.json").ok())
             .and_then(|d| String::from_utf8(d).ok())
             .and_then(|s| serde_json::from_str::<Value>(&s).ok())
-            .and_then(|m| m["windows"].as_array().and_then(|arr| arr.first().cloned()))
     } else {
         None
     };
+
+    let multi_instance = manifest_json.as_ref()
+        .and_then(|m| m["multi_instance"].as_bool())
+        .unwrap_or(false);
+
+    let label = if multi_instance {
+        let base = format!("plugin-{plugin_id}");
+        let mut n = 1u32;
+        loop {
+            let candidate = format!("{base}-{n}");
+            if app.get_webview_window(&candidate).is_none() {
+                break candidate;
+            }
+            n += 1;
+        }
+    } else {
+        let lbl = format!("plugin-{plugin_id}");
+        if let Some(existing) = app.get_webview_window(&lbl) {
+            if existing.is_minimized().unwrap_or(false) {
+                let _ = existing.unminimize();
+            }
+            if !existing.is_visible().unwrap_or(true) {
+                let _ = existing.show();
+            }
+            let _: () = existing.set_focus().map_err(|e| format!("{e}"))?;
+            return Ok(());
+        }
+        lbl
+    };
+
+    let win_cfg = manifest_json.as_ref()
+        .and_then(|m| m["windows"].as_array().and_then(|arr| arr.first().cloned()));
 
     let w = win_cfg.as_ref().and_then(|c| c["width"].as_f64()).or(width).unwrap_or(900.0);
     let h = win_cfg.as_ref().and_then(|c| c["height"].as_f64()).or(height).unwrap_or(640.0);

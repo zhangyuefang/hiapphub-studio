@@ -1,9 +1,11 @@
 use std::path::Path;
+use std::sync::OnceLock;
 use libloading::{Library, Symbol};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::LazyLock;
 use serde::{Deserialize, Serialize};
+use tauri::Emitter;
 
 type CCharPtr = *const std::os::raw::c_char;
 type CCharMutPtr = *mut std::os::raw::c_char;
@@ -15,14 +17,32 @@ pub struct HapContext {
     pub shell_version: CCharPtr,
 }
 
-extern "C" fn noop_emit(_callback_id: CCharPtr, _event_json: CCharPtr) {}
+static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
+
+extern "C" fn real_emit(callback_id: CCharPtr, event_json: CCharPtr) {
+    if callback_id.is_null() || event_json.is_null() { return; }
+    let Some(handle) = APP_HANDLE.get() else { return; };
+    let id = unsafe { std::ffi::CStr::from_ptr(callback_id) }.to_str().unwrap_or("");
+    let json = unsafe { std::ffi::CStr::from_ptr(event_json) }.to_str().unwrap_or("");
+    if let Some((event_part, target)) = id.split_once('@') {
+        let event_name = format!("hap:{}", event_part);
+        let _ = handle.emit_to(target, &event_name, json.to_string());
+    } else {
+        let event_name = format!("hap:{}", id);
+        let _ = handle.emit(&event_name, json.to_string());
+    }
+}
+
+pub fn set_app_handle(handle: tauri::AppHandle) {
+    let _ = APP_HANDLE.set(handle);
+}
 
 static SHELL_VERSION: &std::ffi::CStr = unsafe {
     std::ffi::CStr::from_bytes_with_nul_unchecked(b"0.2.0\0")
 };
 
 static HAP_CONTEXT: HapContext = HapContext {
-    emit_callback: noop_emit,
+    emit_callback: real_emit,
     shell_version: SHELL_VERSION.as_ptr(),
 };
 
