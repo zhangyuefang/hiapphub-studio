@@ -271,6 +271,20 @@ fn cleanup_plugin_trays(_plugin_id: &str) {
 }
 
 #[tauri::command]
+pub fn hap_open_app(
+    app: tauri::AppHandle,
+    plugin_id: String,
+    plugin_name: String,
+) -> Result<(), String> {
+    let pm = app.state::<std::sync::Arc<ProcessManager>>();
+    if pm.is_host_available() {
+        hap_launch_independent_app(app, plugin_id)
+    } else {
+        hap_open_plugin_window(app, plugin_id, plugin_name, None, None)
+    }
+}
+
+#[tauri::command]
 pub fn hap_launch_independent_app(
     app: tauri::AppHandle,
     plugin_id: String,

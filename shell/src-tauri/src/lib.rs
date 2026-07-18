@@ -66,6 +66,7 @@ pub fn run() {
             bridge::db_plugin_set,
             bridge::hap_reveal_in_folder,
             bridge::hap_load_plugin_html,
+            bridge::hap_open_app,
             bridge::hap_open_plugin_window,
             bridge::hap_launch_independent_app,
             bridge::hap_create_sub_window,

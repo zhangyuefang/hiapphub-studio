@@ -84,7 +84,7 @@ export default function App() {
     const rec = plugins.find((p) => p.manifest.id === id);
     if (!rec) return;
     try {
-      await invoke("hap_open_plugin_window", {
+      await invoke("hap_open_app", {
         pluginId: rec.manifest.id,
         pluginName: rec.manifest.names?.[locale] ?? rec.manifest.name,
       });

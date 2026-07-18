@@ -66,6 +66,10 @@ impl ProcessManager {
         PathBuf::from("hiapphub-host")
     }
 
+    pub fn is_host_available(&self) -> bool {
+        self.host_binary.exists()
+    }
+
     pub fn launch_app(
         &self,
         app_id: &str,
