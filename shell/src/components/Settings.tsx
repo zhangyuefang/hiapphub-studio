@@ -95,8 +95,10 @@ export function Settings({ onBack }: Props) {
   const [expandedMod, setExpandedMod] = useState<string | null>(null);
 
   const LOCALE_LABELS: Record<string, string> = {
-    "zh-CN": "简体中文",
-    "en-US": "English",
+    "zh-CN": "简体中文", "en-US": "English", "zh-TW": "繁體中文",
+    ja: "日本語", ko: "한국어", es: "Español", fr: "Français",
+    de: "Deutsch", "pt-BR": "Português (BR)", ru: "Русский",
+    ar: "العربية", hi: "हिन्दी",
   };
 
   const MENU: { id: Tab; icon: string }[] = [

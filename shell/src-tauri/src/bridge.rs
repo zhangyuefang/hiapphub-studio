@@ -537,3 +537,8 @@ pub fn hap_load_plugin_html(install_path: String) -> Result<String, String> {
 
     Ok(inlined)
 }
+
+#[tauri::command]
+pub fn set_locale(locale: String) {
+    cdylib_loader::set_user_locale(&locale);
+}

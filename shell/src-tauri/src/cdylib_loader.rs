@@ -172,12 +172,21 @@ impl ReturnDescriptor {
     }
 }
 
+static USER_LOCALE: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+pub fn set_user_locale(locale: &str) {
+    *USER_LOCALE.lock().unwrap() = locale.to_string();
+}
+
 fn i18n_fallback(field: &mut Option<String>, map: &Option<HashMap<String, String>>) {
-    if field.is_none() {
-        if let Some(m) = map {
-            if let Some(v) = m.get("en-US").or_else(|| m.get("zh-CN")) {
-                *field = Some(v.clone());
-            }
+    if let Some(m) = map {
+        let user_locale = USER_LOCALE.lock().unwrap().clone();
+        let resolved = if !user_locale.is_empty() { m.get(&user_locale) } else { None }
+            .or_else(|| m.get("en-US"))
+            .or_else(|| m.get("zh-CN"))
+            .or_else(|| m.values().next());
+        if let Some(v) = resolved {
+            *field = Some(v.clone());
         }
     }
 }

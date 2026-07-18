@@ -76,6 +76,7 @@ pub fn run() {
             bridge::store_auth_data,
             bridge::load_auth_data,
             bridge::clear_auth_data,
+            bridge::set_locale,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start HiAppHub Shell");
