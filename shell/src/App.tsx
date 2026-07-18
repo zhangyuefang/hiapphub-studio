@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "@/store/app-store";
@@ -17,6 +17,23 @@ export default function App() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [langDropOpen, setLangDropOpen] = useState(false);
+  const langDropRef = useRef<HTMLDivElement>(null);
+
+  const LOCALE_LABELS: Record<string, string> = {
+    "zh-CN": "简体中文", "en-US": "English", "zh-TW": "繁體中文",
+    ja: "日本語", ko: "한국어", es: "Español", fr: "Français",
+    de: "Deutsch", "pt-BR": "Português (BR)", ru: "Русский",
+    ar: "العربية", hi: "हिन्दी",
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langDropRef.current && !langDropRef.current.contains(e.target as Node)) setLangDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -95,16 +112,39 @@ export default function App() {
         {/* 右侧控制区 */}
         <div className="flex items-center gap-0.5">
           {/* 语言切换 */}
-          <button
-            className="px-1.5 h-6 text-[11px] rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
-            onClick={() => {
-              const idx = availableLocales.indexOf(locale);
-              setLocale(availableLocales[(idx + 1) % availableLocales.length]);
-            }}
-            title={t("settings.language")}
-          >
-            {locale === "zh-CN" ? "中" : "EN"}
-          </button>
+          <div ref={langDropRef} className="relative">
+            <button
+              className="flex items-center gap-1 px-1.5 h-6 text-[11px] rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
+              onClick={() => setLangDropOpen(!langDropOpen)}
+              title={t("settings.language")}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+              </svg>
+              <span>{LOCALE_LABELS[locale]?.slice(0, 2) ?? locale.slice(0, 2)}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${langDropOpen ? "rotate-180" : ""}`}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+            {langDropOpen && (
+              <div className="absolute right-0 top-full mt-1 w-40 max-h-72 overflow-y-auto rounded-xl border shadow-lg z-[9999] py-1"
+                style={{ borderColor: "var(--fs-border)", background: theme === "dark" ? "#1e1e2e" : "#fff" }}>
+                {availableLocales.map((loc) => (
+                  <button
+                    key={loc}
+                    onClick={() => { setLocale(loc); setLangDropOpen(false); }}
+                    className={`block w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                      locale === loc
+                        ? "font-medium text-blue-500"
+                        : "opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    {LOCALE_LABELS[loc] ?? loc}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 主题切换 */}
           <button

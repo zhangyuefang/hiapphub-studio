@@ -174,6 +174,16 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
   const [updateState, setUpdateState] = useState<"idle" | "checking" | "latest" | "available" | "error">("idle");
   const [latestInfo, setLatestInfo] = useState<{ version: string; title: string; changelog: string; publishedAt: string; downloads: { standard: string; developer: string } } | null>(null);
   const [updateError, setUpdateError] = useState("");
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const checkUpdate = async () => {
     setUpdateState("checking");
@@ -208,16 +218,39 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">{t("settings.language")}</span>
-            <select
-              className="text-sm px-3 py-1.5 rounded-lg border outline-none"
-              style={{ borderColor: "var(--fs-border)", background: theme === "dark" ? "#2a2a3e" : "#fff", color: theme === "dark" ? "#e0e0e0" : "#333" }}
-              value={locale}
-              onChange={(e) => setLocale(e.target.value)}
-            >
-              {availableLocales.map((loc) => (
-                <option key={loc} value={loc}>{localeLabels[loc] ?? loc}</option>
-              ))}
-            </select>
+            <div ref={langRef} className="relative">
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors hover:border-blue-400"
+                style={{ borderColor: "var(--fs-border)", background: theme === "dark" ? "#2a2a3e" : "#fff", color: theme === "dark" ? "#e0e0e0" : "#333" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+                  <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
+                <span>{localeLabels[locale] ?? locale}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`opacity-40 transition-transform ${langOpen ? "rotate-180" : ""}`}>
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 max-h-72 overflow-y-auto rounded-xl border shadow-lg z-50 py-1"
+                  style={{ borderColor: "var(--fs-border)", background: theme === "dark" ? "#1e1e2e" : "#fff" }}>
+                  {availableLocales.map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => { setLocale(loc); setLangOpen(false); }}
+                      className={`block w-full text-left px-4 py-2 text-sm transition-colors ${
+                        locale === loc
+                          ? "font-medium text-blue-500"
+                          : "opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                      }`}
+                    >
+                      {localeLabels[loc] ?? loc}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
