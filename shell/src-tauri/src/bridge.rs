@@ -16,6 +16,8 @@ pub struct HalCallLog {
     app_id: String,
     module: String,
     function: String,
+    params: String,
+    result: String,
     elapsed_ms: u64,
     success: bool,
 }
@@ -96,11 +98,22 @@ pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symb
     if !skip_log {
         let fn_name = symbol_name.strip_prefix(&format!("hap_{}_", module_name))
             .unwrap_or(&symbol_name).to_string();
+        let params_preview = if params_json.len() > 200 {
+            format!("{}...", &params_json[..200])
+        } else {
+            params_json.clone()
+        };
+        let result_preview = match &result {
+            Ok(r) => if r.len() > 200 { format!("{}...", &r[..200]) } else { r.clone() },
+            Err(e) => format!("ERR: {}", if e.len() > 150 { &e[..150] } else { e }),
+        };
         let log = HalCallLog {
             time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
             app_id: app_id_str,
             module: module_name.clone(),
             function: fn_name,
+            params: params_preview,
+            result: result_preview,
             elapsed_ms: start.elapsed().as_millis() as u64,
             success: result.is_ok(),
         };
