@@ -310,6 +310,7 @@ pub fn hap_open_plugin_window(
         .min_inner_size(min_w, min_h)
         .decorations(decorations)
         .resizable(resizable)
+        .skip_taskbar(false)
         .center();
 
     if hidden_title {
