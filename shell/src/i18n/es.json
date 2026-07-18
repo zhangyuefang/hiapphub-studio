@@ -108,7 +108,7 @@
   "settings.update_download": "Descargar actualización",
   "account.device_title": "Autorización de dispositivo",
   "account.device_desc": "Autoriza este dispositivo desde un navegador",
-  "account.device_enter_code": "Enter this code on the website:",
+  "account.device_enter_code": "Ingresa este codigo en el sitio web:",
   "account.device_instructions": "Open HiAppHub website and enter the code above on the device authorization page",
   "account.device_open_web": "Open Authorization Page",
   "account.device_waiting": "Esperando autorización...",
