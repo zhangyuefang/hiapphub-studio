@@ -449,10 +449,9 @@ pub fn get_all_descriptors() -> Vec<ModuleDescriptor> {
 }
 
 pub fn get_module_permission(module_name: &str) -> Option<String> {
-    LOADED_MODULES
-        .lock()
-        .unwrap()
-        .get(module_name)
+    let map = LOADED_MODULES.lock().unwrap();
+    map.get(module_name)
+        .or_else(|| map.get(&format!("hap-mod-{module_name}")))
         .and_then(|m| m.descriptor.as_ref())
         .map(|d| d.permission.clone())
 }
@@ -473,6 +472,7 @@ type HalCallFn = unsafe extern "C" fn(CCharPtr) -> CCharPtr;
 pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) -> Result<String, String> {
     let map = LOADED_MODULES.lock().unwrap();
     let loaded = map.get(module_name)
+        .or_else(|| map.get(&format!("hap-mod-{module_name}")))
         .ok_or_else(|| format!("module '{module_name}' not loaded"))?;
 
     let desc = loaded.descriptor.as_ref()

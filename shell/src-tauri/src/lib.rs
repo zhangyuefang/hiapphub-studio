@@ -60,6 +60,8 @@ pub fn run() {
             bridge::hap_open_plugin_window,
             bridge::hap_create_sub_window,
             bridge::hap_close_sub_window,
+            bridge::hap_js_log,
+            bridge::hap_get_call_logs,
             bridge::get_data_dir,
             bridge::store_auth_data,
             bridge::load_auth_data,

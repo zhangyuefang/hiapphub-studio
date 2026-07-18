@@ -15,6 +15,13 @@ static FILE_CACHE: LazyLock<Mutex<HashMap<String, CacheEntry>>> =
 
 const MAX_CACHE_ENTRIES: usize = 256;
 
+pub fn invalidate_cache(app_id: &str) {
+    if let Ok(mut cache) = FILE_CACHE.lock() {
+        let prefix = format!("{app_id}/");
+        cache.retain(|k, _| !k.starts_with(&prefix));
+    }
+}
+
 pub fn handle_request(
     req: tauri::http::Request<Vec<u8>>,
     responder: tauri::UriSchemeResponder,

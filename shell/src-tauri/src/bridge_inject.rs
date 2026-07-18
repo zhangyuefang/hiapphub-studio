@@ -13,9 +13,9 @@ pub fn generate_bridge_script(app_id: &str) -> String {
 
   function callHal(moduleName, symbolName, params) {{
     return invoke('hap_call_function', {{
-      module_name: moduleName,
-      symbol_name: symbolName,
-      params_json: JSON.stringify(params || {{}})
+      moduleName: moduleName,
+      symbolName: symbolName,
+      paramsJson: JSON.stringify(params || {{}})
     }}).then(function(r) {{
       try {{ return JSON.parse(r); }} catch(_) {{ return r; }}
     }});
@@ -32,10 +32,10 @@ pub fn generate_bridge_script(app_id: &str) -> String {
 
     db: {{
       get: function(key) {{
-        return invoke('db_plugin_get', {{ plugin_id: APP_ID, key: key }});
+        return invoke('db_plugin_get', {{ pluginId: APP_ID, key: key }});
       }},
       set: function(key, value) {{
-        return invoke('db_plugin_set', {{ plugin_id: APP_ID, key: key, value: String(value) }});
+        return invoke('db_plugin_set', {{ pluginId: APP_ID, key: key, value: String(value) }});
       }}
     }},
 
@@ -93,8 +93,8 @@ pub fn generate_bridge_script(app_id: &str) -> String {
       }},
       createSubWindow: function(subId, title, url, opts) {{
         return invoke('hap_create_sub_window', {{
-          plugin_id: APP_ID,
-          sub_id: subId,
+          pluginId: APP_ID,
+          subId: subId,
           title: title,
           url: url,
           width: opts && opts.width,
@@ -102,7 +102,7 @@ pub fn generate_bridge_script(app_id: &str) -> String {
         }});
       }},
       closeSubWindow: function(subId) {{
-        return invoke('hap_close_sub_window', {{ plugin_id: APP_ID, sub_id: subId }});
+        return invoke('hap_close_sub_window', {{ pluginId: APP_ID, subId: subId }});
       }}
     }},
 

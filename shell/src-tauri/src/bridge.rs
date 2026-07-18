@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::Path;
+use std::sync::{LazyLock, Mutex};
+use std::collections::VecDeque;
 use serde_json::Value;
 use tauri::Manager;
 
@@ -7,6 +9,19 @@ use crate::bridge_inject;
 use crate::db;
 use crate::hap_manager;
 use crate::cdylib_loader;
+
+#[derive(serde::Serialize, Clone)]
+pub struct HalCallLog {
+    time: u64,
+    app_id: String,
+    module: String,
+    function: String,
+    elapsed_ms: u64,
+    success: bool,
+}
+
+static CALL_LOGS: LazyLock<Mutex<VecDeque<HalCallLog>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
+const MAX_LOGS: usize = 500;
 
 #[tauri::command]
 pub fn fs_read_text_file(path: String) -> Result<String, String> {
@@ -50,34 +65,51 @@ pub fn crypto_random_bytes(length: usize) -> Result<Vec<u8>, String> {
 
 #[tauri::command]
 pub fn hap_list_modules() -> Result<Vec<cdylib_loader::ModuleDescriptor>, String> {
-    let modules = cdylib_loader::get_all_descriptors();
-    if let Some(http) = modules.iter().find(|m| m.name == "http") {
-        if let Some(req) = http.functions.iter().find(|f| f.name == "request") {
-            eprintln!("[DEBUG] http.request returns.type = {:?}", req.returns.return_type);
-        }
-        eprintln!("[DEBUG] http types count = {:?}", http.types.as_ref().map(|t| t.len()));
-        eprintln!("[DEBUG] http constants count = {:?}", http.constants.as_ref().map(|c| c.len()));
-    }
-    Ok(modules)
+    Ok(cdylib_loader::get_all_descriptors())
 }
 
 #[tauri::command]
 pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symbol_name: String, params_json: String) -> Result<String, String> {
     let label = window.label();
+    let app_id_str;
     if label.starts_with("plugin-") {
-        let app_id = label.strip_prefix("plugin-")
+        app_id_str = label.strip_prefix("plugin-")
             .unwrap_or(label)
             .split("-sub-")
             .next()
-            .unwrap_or(label);
+            .unwrap_or(label)
+            .to_string();
         let module_perm = cdylib_loader::get_module_permission(&module_name);
         if let Some(perm) = module_perm {
-            if !perm.is_empty() && !app_has_permission(app_id, &perm) {
-                return Err(format!("app '{app_id}' lacks '{perm}' permission to call module '{module_name}'"));
+            if !perm.is_empty() && !app_has_permission(&app_id_str, &perm) {
+                return Err(format!("app '{app_id_str}' lacks '{perm}' permission to call module '{module_name}'"));
             }
         }
+    } else {
+        app_id_str = "shell".to_string();
     }
-    cdylib_loader::call_function(&module_name, &symbol_name, &params_json)
+
+    let start = std::time::Instant::now();
+    let result = cdylib_loader::call_function(&module_name, &symbol_name, &params_json);
+
+    let skip_log = app_id_str == "hiapphub-devtools" && module_name == "webserver";
+    if !skip_log {
+        let fn_name = symbol_name.strip_prefix(&format!("hap_{}_", module_name))
+            .unwrap_or(&symbol_name).to_string();
+        let log = HalCallLog {
+            time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+            app_id: app_id_str,
+            module: module_name.clone(),
+            function: fn_name,
+            elapsed_ms: start.elapsed().as_millis() as u64,
+            success: result.is_ok(),
+        };
+        let mut logs = CALL_LOGS.lock().unwrap();
+        if logs.len() >= MAX_LOGS { logs.pop_front(); }
+        logs.push_back(log);
+    }
+
+    result
 }
 
 fn app_has_permission(app_id: &str, required: &str) -> bool {
@@ -93,6 +125,18 @@ fn app_has_permission(app_id: &str, required: &str) -> bool {
         }
     }
     false
+}
+
+#[tauri::command]
+pub fn hap_js_log(msg: String) {
+    eprintln!("[JS] {msg}");
+}
+
+#[tauri::command]
+pub fn hap_get_call_logs(since: Option<u64>) -> Vec<HalCallLog> {
+    let logs = CALL_LOGS.lock().unwrap();
+    let since_ms = since.unwrap_or(0);
+    logs.iter().filter(|l| l.time > since_ms).cloned().collect()
 }
 
 #[tauri::command]
@@ -192,6 +236,7 @@ pub fn hap_open_plugin_window(
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<(), String> {
+    crate::hap_protocol::invalidate_cache(&plugin_id);
     let url = format!("hap://localhost/{plugin_id}/index.html");
     let label = format!("plugin-{plugin_id}");
 
