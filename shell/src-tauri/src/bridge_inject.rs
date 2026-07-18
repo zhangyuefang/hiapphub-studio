@@ -57,26 +57,39 @@ pub fn generate_bridge_script(app_id: &str) -> String {
     }},
 
     window: {{
+      _label: 'plugin-' + APP_ID,
       setSize: function(width, height) {{
-        return invoke('plugin:window|set_size', {{ label: null, value: {{ type: 'Logical', data: {{ width: width, height: height }} }} }});
+        return invoke('plugin:window|set_size', {{ label: this._label, value: {{ type: 'Logical', data: {{ width: width, height: height }} }} }});
       }},
       setTitle: function(title) {{
-        return invoke('plugin:window|set_title', {{ label: null, value: title }});
+        return invoke('plugin:window|set_title', {{ label: this._label, value: title }});
       }},
       center: function() {{
-        return invoke('plugin:window|center', {{ label: null }});
+        return invoke('plugin:window|center', {{ label: this._label }});
       }},
       close: function() {{
-        return invoke('plugin:window|close', {{ label: null }});
+        return invoke('plugin:window|close', {{ label: this._label }});
       }},
       minimize: function() {{
-        return invoke('plugin:window|minimize', {{ label: null }});
+        return invoke('plugin:window|minimize', {{ label: this._label }});
       }},
       maximize: function() {{
-        return invoke('plugin:window|maximize', {{ label: null }});
+        return invoke('plugin:window|maximize', {{ label: this._label }});
+      }},
+      isMaximized: function() {{
+        return invoke('plugin:window|is_maximized', {{ label: this._label }});
+      }},
+      isFullscreen: function() {{
+        return invoke('plugin:window|is_fullscreen', {{ label: this._label }});
       }},
       setFullscreen: function(fullscreen) {{
-        return invoke('plugin:window|set_fullscreen', {{ label: null, value: fullscreen }});
+        return invoke('plugin:window|set_fullscreen', {{ label: this._label, value: fullscreen }});
+      }},
+      onResized: function(handler) {{
+        if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.listen) {{
+          return window.__TAURI_INTERNALS__.listen('tauri://resize', handler);
+        }}
+        return Promise.resolve(function() {{}});
       }},
       createSubWindow: function(subId, title, url, opts) {{
         return invoke('hap_create_sub_window', {{

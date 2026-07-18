@@ -196,19 +196,87 @@ pub fn hap_open_plugin_window(
     let label = format!("plugin-{plugin_id}");
 
     if let Some(existing) = app.get_webview_window(&label) {
+        if existing.is_minimized().unwrap_or(false) {
+            let _ = existing.unminimize();
+        }
+        if !existing.is_visible().unwrap_or(true) {
+            let _ = existing.show();
+        }
         let _: () = existing.set_focus().map_err(|e| format!("{e}"))?;
         return Ok(());
     }
 
+    let hap_path = hap_manager::data_dir().join("app").join(format!("{plugin_id}.hap"));
+    let win_cfg = if hap_path.exists() {
+        crate::hap_format::HapReader::open_file(&hap_path).ok()
+            .and_then(|mut r| r.read_file("manifest.json").ok())
+            .and_then(|d| String::from_utf8(d).ok())
+            .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+            .and_then(|m| m["windows"].as_array().and_then(|arr| arr.first().cloned()))
+    } else {
+        None
+    };
+
+    let w = win_cfg.as_ref().and_then(|c| c["width"].as_f64()).or(width).unwrap_or(900.0);
+    let h = win_cfg.as_ref().and_then(|c| c["height"].as_f64()).or(height).unwrap_or(640.0);
+    let min_w = win_cfg.as_ref().and_then(|c| c["minWidth"].as_f64()).unwrap_or(400.0);
+    let min_h = win_cfg.as_ref().and_then(|c| c["minHeight"].as_f64()).unwrap_or(300.0);
+    let decorations = win_cfg.as_ref().and_then(|c| c["decorations"].as_bool()).unwrap_or(true);
+    let resizable = win_cfg.as_ref().and_then(|c| c["resizable"].as_bool()).unwrap_or(true);
+    let title = win_cfg.as_ref().and_then(|c| c["title"].as_str().map(String::from)).unwrap_or(plugin_name);
+
+    let title_bar_style = win_cfg.as_ref().and_then(|c| c["titleBarStyle"].as_str()).unwrap_or("default");
+    let hidden_title = win_cfg.as_ref().and_then(|c| c["hiddenTitle"].as_bool()).unwrap_or(false);
+
     let bridge_script = bridge_inject::generate_bridge_script(&plugin_id);
-    tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(url.parse().unwrap()))
-        .title(&plugin_name)
+    let mut builder = tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(url.parse().unwrap()))
+        .title(&title)
         .initialization_script(&bridge_script)
-        .inner_size(width.unwrap_or(900.0), height.unwrap_or(640.0))
-        .min_inner_size(400.0, 300.0)
-        .center()
-        .build()
+        .inner_size(w, h)
+        .min_inner_size(min_w, min_h)
+        .decorations(decorations)
+        .resizable(resizable)
+        .center();
+
+    if hidden_title {
+        builder = builder.hidden_title(true);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::TitleBarStyle;
+        let style = match title_bar_style.to_lowercase().as_str() {
+            "overlay" => TitleBarStyle::Overlay,
+            "transparent" => TitleBarStyle::Transparent,
+            _ => TitleBarStyle::Visible,
+        };
+        builder = builder.title_bar_style(style);
+
+        if let Some(pos) = win_cfg.as_ref().and_then(|c| c.get("trafficLightPosition")) {
+            let x = pos["x"].as_f64().unwrap_or(13.0) as f32;
+            let y = pos["y"].as_f64().unwrap_or(24.0) as f32;
+            builder = builder.traffic_light_position(tauri::LogicalPosition::new(x, y));
+        }
+    }
+
+    let win = builder.build()
         .map_err(|e| format!("window creation failed: {e}"))?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let win_clone = win.clone();
+        win.on_window_event(move |event| {
+            if let tauri::WindowEvent::Resized(_) = event {
+                let is_fs = win_clone.is_fullscreen().unwrap_or(false);
+                let is_max = win_clone.is_maximized().unwrap_or(false);
+                let js = format!(
+                    "window.__hapWindowState={{isFullscreen:{},isMaximized:{}}};window.dispatchEvent(new Event('hap-window-state'))",
+                    is_fs, is_max
+                );
+                let _ = win_clone.eval(&js);
+            }
+        });
+    }
 
     Ok(())
 }
