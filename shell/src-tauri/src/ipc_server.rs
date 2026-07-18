@@ -321,10 +321,7 @@ fn handle_request(
 
         "app.requestModules" => {
             let modules = params["modules"].as_array();
-            let lib_dir = dirs::data_dir()
-                .unwrap_or_default()
-                .join("HiAppHub")
-                .join("lib");
+            let lib_dir = crate::hap_manager::data_dir().join("lib");
 
             let mut result = serde_json::Map::new();
             if let Some(mods) = modules {
