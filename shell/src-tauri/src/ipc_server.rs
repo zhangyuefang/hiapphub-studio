@@ -41,6 +41,7 @@ pub struct JsonRpcError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ConnectedApp {
     pub app_id: String,
     pub authenticated: bool,
@@ -173,6 +174,7 @@ impl IpcServer {
             .map_err(|e| format!("send failed: {e}"))
     }
 
+    #[allow(dead_code)]
     pub fn terminate_app(&self, app_id: &str) -> Result<(), String> {
         self.send_to_app(app_id, "lifecycle.terminate", serde_json::json!({}))
     }
@@ -181,14 +183,17 @@ impl IpcServer {
         self.send_to_app(app_id, "window.activate", serde_json::json!({}))
     }
 
+    #[allow(dead_code)]
     pub fn disable_app_tray(&self, app_id: &str) -> Result<(), String> {
         self.send_to_app(app_id, "tray.disable", serde_json::json!({}))
     }
 
+    #[allow(dead_code)]
     pub fn enable_app_tray(&self, app_id: &str) -> Result<(), String> {
         self.send_to_app(app_id, "tray.enable", serde_json::json!({}))
     }
 
+    #[allow(dead_code)]
     pub fn push_event(&self, app_id: &str, event: &str, payload: serde_json::Value) -> Result<(), String> {
         self.send_to_app(app_id, "event.push", serde_json::json!({
             "event": event,
@@ -200,6 +205,7 @@ impl IpcServer {
         self.connections.lock().unwrap().contains_key(app_id)
     }
 
+    #[allow(dead_code)]
     pub fn list_connected_apps(&self) -> Vec<ConnectedApp> {
         self.apps.lock().unwrap().values().cloned().collect()
     }

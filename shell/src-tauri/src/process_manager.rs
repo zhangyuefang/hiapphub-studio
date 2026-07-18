@@ -12,6 +12,7 @@ const MAX_RESTART_ATTEMPTS: u32 = 3;
 const RESTART_WINDOW_SECS: u64 = 60;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct AppProcess {
     app_id: String,
     child: Child,
@@ -171,6 +172,7 @@ impl ProcessManager {
         serde_json::to_string(&Value::Object(cfg)).unwrap_or_else(|_| "{}".into())
     }
 
+    #[allow(dead_code)]
     pub fn terminate_app(&self, app_id: &str, ipc_server: &IpcServer) -> Result<(), String> {
         let _ = ipc_server.terminate_app(app_id);
 
@@ -357,14 +359,17 @@ impl ProcessManager {
         recovered
     }
 
+    #[allow(dead_code)]
     pub fn is_app_managed(&self, app_id: &str) -> bool {
         self.processes.lock().unwrap().contains_key(app_id)
     }
 
+    #[allow(dead_code)]
     pub fn list_managed_apps(&self) -> Vec<String> {
         self.processes.lock().unwrap().keys().cloned().collect()
     }
 
+    #[allow(dead_code)]
     pub fn cleanup_all(&self) {
         let mut procs = self.processes.lock().unwrap();
         for (key, proc) in procs.iter_mut() {
