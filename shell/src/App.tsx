@@ -173,7 +173,7 @@ export default function App() {
                 className="w-11 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 style={{ height: 44 }}
                 onClick={() => appWindow.minimize()}
-                title="Minimize"
+                title={t("window.minimize")}
               >
                 <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
               </button>
@@ -181,7 +181,7 @@ export default function App() {
                 className="w-11 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 style={{ height: 44 }}
                 onClick={() => isMaximized ? appWindow.unmaximize() : appWindow.maximize()}
-                title={isMaximized ? "Restore" : "Maximize"}
+                title={isMaximized ? t("window.restore") : t("window.maximize")}
               >
                 {isMaximized ? (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
@@ -198,7 +198,7 @@ export default function App() {
                 className="w-11 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
                 style={{ height: 44 }}
                 onClick={() => appWindow.close()}
-                title="Close"
+                title={t("window.close")}
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.2">
                   <line x1="0" y1="0" x2="10" y2="10"/><line x1="10" y1="0" x2="0" y2="10"/>

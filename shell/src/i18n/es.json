@@ -240,5 +240,13 @@
   "settings.fn_group_security": "Seguridad",
   "settings.fn_group_navigate": "Navegar",
   "settings.fn_group_form": "Formulario",
-  "settings.fn_group_annotate": "Anotar"
+  "settings.fn_group_annotate": "Anotar",
+  "settings.fn_unit": "funciones",
+  "settings.type_unit": "tipos",
+  "settings.event_unit": "eventos",
+  "settings.const_unit": "constantes",
+  "window.minimize": "Minimizar",
+  "window.maximize": "Maximizar",
+  "window.restore": "Restaurar",
+  "window.close": "Cerrar"
 }

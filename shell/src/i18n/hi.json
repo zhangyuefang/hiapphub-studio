@@ -240,5 +240,13 @@
   "settings.fn_group_security": "सुरक्षा",
   "settings.fn_group_navigate": "नेविगेट",
   "settings.fn_group_form": "फ़ॉर्म",
-  "settings.fn_group_annotate": "टिप्पणी"
+  "settings.fn_group_annotate": "टिप्पणी",
+  "settings.fn_unit": "फ़ंक्शन",
+  "settings.type_unit": "प्रकार",
+  "settings.event_unit": "इवेंट",
+  "settings.const_unit": "कॉन्स्टेंट",
+  "window.minimize": "छोटा करें",
+  "window.maximize": "बड़ा करें",
+  "window.restore": "पुनर्स्थापित करें",
+  "window.close": "बंद करें"
 }

@@ -410,10 +410,10 @@ function SizeInfoButton({ modules, t, locale }: { modules: ModuleDesc[]; t: (k: 
                         <span className="opacity-40 text-[10px] truncate">{getOverview(m)}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 opacity-70">
-                        {m.functions.length > 0 && <span>ƒ{m.functions.length}</span>}
-                        {(m.events?.length ?? 0) > 0 && <span>⚡{m.events!.length}</span>}
-                        {(m.types?.length ?? 0) > 0 && <span>▣{m.types!.length}</span>}
-                        {(m.constants?.length ?? 0) > 0 && <span>◈{m.constants!.length}</span>}
+                        {m.functions.length > 0 && <span>ƒ {m.functions.length}</span>}
+                        {(m.events?.length ?? 0) > 0 && <span>⚡ {m.events!.length}</span>}
+                        {(m.types?.length ?? 0) > 0 && <span>▣ {m.types!.length}</span>}
+                        {(m.constants?.length ?? 0) > 0 && <span>◈ {m.constants!.length}</span>}
                       </div>
                       <span className="shrink-0 opacity-50 tabular-nums ml-2">{formatSize(m.file_size)}</span>
                     </div>
@@ -423,10 +423,10 @@ function SizeInfoButton({ modules, t, locale }: { modules: ModuleDesc[]; t: (k: 
                       <div className="font-medium mb-1">{m.icon ?? "📦"} {m.name} <span className="opacity-50 font-normal">{i18nText(m.description, m.descriptions, locale)}</span></div>
                       <div className="opacity-70 mb-1.5 leading-relaxed">{getOverview(m)}</div>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 opacity-60">
-                        <span>ƒ {m.functions.length} 函数</span>
-                        {(m.types?.length ?? 0) > 0 && <span>▣ {m.types!.length} 类型</span>}
-                        {(m.events?.length ?? 0) > 0 && <span>⚡ {m.events!.length} 事件</span>}
-                        {(m.constants?.length ?? 0) > 0 && <span>◈ {m.constants!.length} 常量</span>}
+                        <span>ƒ {m.functions.length} {t("settings.fn_unit")}</span>
+                        {(m.types?.length ?? 0) > 0 && <span>▣ {m.types!.length} {t("settings.type_unit")}</span>}
+                        {(m.events?.length ?? 0) > 0 && <span>⚡ {m.events!.length} {t("settings.event_unit")}</span>}
+                        {(m.constants?.length ?? 0) > 0 && <span>◈ {m.constants!.length} {t("settings.const_unit")}</span>}
                         <span>📦 {formatSize(m.file_size)}</span>
                         <span>v{m.version}</span>
                       </div>

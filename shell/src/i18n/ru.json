@@ -240,5 +240,13 @@
   "settings.fn_group_security": "Безопасность",
   "settings.fn_group_navigate": "Навигация",
   "settings.fn_group_form": "Форма",
-  "settings.fn_group_annotate": "Аннотация"
+  "settings.fn_group_annotate": "Аннотация",
+  "settings.fn_unit": "функций",
+  "settings.type_unit": "типов",
+  "settings.event_unit": "событий",
+  "settings.const_unit": "констант",
+  "window.minimize": "Свернуть",
+  "window.maximize": "Развернуть",
+  "window.restore": "Восстановить",
+  "window.close": "Закрыть"
 }

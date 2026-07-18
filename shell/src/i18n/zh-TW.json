@@ -240,5 +240,13 @@
   "settings.fn_group_security": "安全",
   "settings.fn_group_navigate": "導航",
   "settings.fn_group_form": "表單",
-  "settings.fn_group_annotate": "批註"
+  "settings.fn_group_annotate": "批註",
+  "settings.fn_unit": "函式",
+  "settings.type_unit": "類型",
+  "settings.event_unit": "事件",
+  "settings.const_unit": "常量",
+  "window.minimize": "最小化",
+  "window.maximize": "最大化",
+  "window.restore": "還原",
+  "window.close": "關閉"
 }

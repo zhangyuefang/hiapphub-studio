@@ -240,5 +240,13 @@
   "settings.fn_group_security": "امان",
   "settings.fn_group_navigate": "تنقل",
   "settings.fn_group_form": "نموذج",
-  "settings.fn_group_annotate": "تعليق توضيحي"
+  "settings.fn_group_annotate": "تعليق توضيحي",
+  "settings.fn_unit": "دوال",
+  "settings.type_unit": "أنواع",
+  "settings.event_unit": "أحداث",
+  "settings.const_unit": "ثوابت",
+  "window.minimize": "تصغير",
+  "window.maximize": "تكبير",
+  "window.restore": "استعادة",
+  "window.close": "إغلاق"
 }

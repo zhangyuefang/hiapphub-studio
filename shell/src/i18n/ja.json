@@ -240,5 +240,13 @@
   "settings.fn_group_security": "セキュリティ",
   "settings.fn_group_navigate": "ナビゲート",
   "settings.fn_group_form": "フォーム",
-  "settings.fn_group_annotate": "注釈"
+  "settings.fn_group_annotate": "注釈",
+  "settings.fn_unit": "関数",
+  "settings.type_unit": "型",
+  "settings.event_unit": "イベント",
+  "settings.const_unit": "定数",
+  "window.minimize": "最小化",
+  "window.maximize": "最大化",
+  "window.restore": "元に戻す",
+  "window.close": "閉じる"
 }

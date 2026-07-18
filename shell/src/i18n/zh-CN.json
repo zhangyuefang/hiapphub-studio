@@ -77,7 +77,6 @@
   "category.productivity": "生产力",
   "category.developer": "开发者工具",
   "category.data": "数据处理",
-
   "account.login_title": "登录账号",
   "account.login_desc": "登录 HiAppHub 账号以同步数据",
   "account.login_btn": "登录",
@@ -100,7 +99,6 @@
   "account.status_suspended": "已冻结",
   "account.status_deleted": "已注销",
   "account.status_banned": "已封禁",
-
   "settings.update": "更新",
   "settings.update_check": "检查更新",
   "settings.update_check_btn": "检查",
@@ -108,7 +106,6 @@
   "settings.update_latest": "当前已是最新版本",
   "settings.update_check_failed": "检查更新失败，请稍后重试",
   "settings.update_download": "下载更新",
-
   "account.device_title": "设备授权登录",
   "account.device_desc": "在已登录的浏览器中授权此设备",
   "account.device_enter_code": "请在网页端输入以下授权码：",
@@ -118,7 +115,6 @@
   "account.device_expired": "授权码已过期，请重新获取",
   "account.device_retry": "重新获取",
   "account.device_error": "获取授权码失败，请检查网络",
-
   "account.edit_profile": "编辑资料",
   "account.change_pwd": "修改密码",
   "account.field_name": "昵称",
@@ -146,19 +142,16 @@
   "account.delete_need_pwd": "请输入密码以确认注销",
   "account.delete_success": "账号已注销",
   "account.security": "安全设置",
-
   "settings.hal_execute": "执行",
   "settings.hal_success": "成功",
   "settings.hal_error": "失败",
   "settings.hal_history": "历史记录",
-
   "devtools.need_login": "请先登录后使用开发模式",
   "devtools.need_login_desc": "开发模式需要登录后才能使用",
   "devtools.title": "开发模式",
   "devtools.desc": "连接本地 Vite 开发服务器，实时调试 HAP 应用和 HAL 支持库。",
   "devtools.hap_app_desc": "开发模式以独立 HAP 应用形式运行，可连接本地 Vite 开发服务器，实时调试 HAP 应用和 HAL 支持库。",
   "devtools.hap_app_hint": "请在应用商店安装「HAP DevTools」应用后使用。",
-
   "account.member_discount": "折",
   "account.cancel": "取消",
   "account.two_factor": "两步验证",
@@ -195,7 +188,6 @@
   "account.token_revoke_confirm": "确定撤销此 Token？撤销后无法恢复。",
   "account.token_none": "暂无 Token",
   "account.token_create_error": "创建失败",
-
   "settings.fn_optional": "可选",
   "settings.fn_default": "默认",
   "settings.lib_overview": "模块总说明",
@@ -248,5 +240,13 @@
   "settings.fn_group_security": "安全",
   "settings.fn_group_navigate": "导航",
   "settings.fn_group_form": "表单",
-  "settings.fn_group_annotate": "批注"
+  "settings.fn_group_annotate": "批注",
+  "settings.fn_unit": "函数",
+  "settings.type_unit": "类型",
+  "settings.event_unit": "事件",
+  "settings.const_unit": "常量",
+  "window.minimize": "最小化",
+  "window.maximize": "最大化",
+  "window.restore": "还原",
+  "window.close": "关闭"
 }
