@@ -241,6 +241,22 @@ pub fn db_plugin_set(plugin_id: String, key: String, value: String) -> Result<()
     db::plugin_kv_set(&plugin_id, &key, &value)
 }
 
+fn cleanup_plugin_trays(_plugin_id: &str) {
+    use crate::cdylib_loader;
+    if let Ok(result) = cdylib_loader::call_function("tray", "hap_tray_list", "{}") {
+        if let Ok(list) = serde_json::from_str::<serde_json::Value>(&result) {
+            if let Some(arr) = list.as_array() {
+                for item in arr {
+                    if let Some(tid) = item["tray_id"].as_str() {
+                        let arg = format!("{{\"tray_id\":\"{}\"}}", tid);
+                        let _ = cdylib_loader::call_function("tray", "hap_tray_destroy", &arg);
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub fn hap_open_plugin_window(
     app: tauri::AppHandle,
@@ -320,18 +336,25 @@ pub fn hap_open_plugin_window(
     let win = builder.build()
         .map_err(|e| format!("window creation failed: {e}"))?;
 
-    #[cfg(target_os = "macos")]
     {
         let win_clone = win.clone();
+        let plugin_id_clone = plugin_id.to_string();
         win.on_window_event(move |event| {
-            if let tauri::WindowEvent::Resized(_) = event {
-                let is_fs = win_clone.is_fullscreen().unwrap_or(false);
-                let is_max = win_clone.is_maximized().unwrap_or(false);
-                let js = format!(
-                    "window.__hapWindowState={{isFullscreen:{},isMaximized:{}}};window.dispatchEvent(new Event('hap-window-state'))",
-                    is_fs, is_max
-                );
-                let _ = win_clone.eval(&js);
+            match event {
+                #[cfg(target_os = "macos")]
+                tauri::WindowEvent::Resized(_) => {
+                    let is_fs = win_clone.is_fullscreen().unwrap_or(false);
+                    let is_max = win_clone.is_maximized().unwrap_or(false);
+                    let js = format!(
+                        "window.__hapWindowState={{isFullscreen:{},isMaximized:{}}};window.dispatchEvent(new Event('hap-window-state'))",
+                        is_fs, is_max
+                    );
+                    let _ = win_clone.eval(&js);
+                }
+                tauri::WindowEvent::Destroyed => {
+                    cleanup_plugin_trays(&plugin_id_clone);
+                }
+                _ => {}
             }
         });
     }
