@@ -70,28 +70,36 @@ impl ProcessManager {
         self.host_binary.exists()
     }
 
-    fn get_named_binary(&self, manifest: &Value) -> PathBuf {
-        #[cfg(target_os = "macos")]
-        {
-            let name = manifest["name"].as_str().unwrap_or("");
-            if !name.is_empty() {
-                if let Some(path) = self.create_app_bundle(name, manifest) {
-                    return path;
-                }
+    fn resolve_localized_name(manifest: &Value) -> String {
+        if let Some(obj) = manifest["names"].as_object() {
+            if let Some(v) = obj.get("en-US").and_then(|v| v.as_str()) {
+                return v.to_string();
             }
         }
-        let _ = manifest;
+        manifest["name"].as_str().unwrap_or("").to_string()
+    }
+
+    fn get_named_binary(&self, manifest: &Value, app_id: &str) -> PathBuf {
+        #[cfg(target_os = "macos")]
+        {
+            let display_name = Self::resolve_localized_name(manifest);
+            if let Some(path) = self.create_app_bundle(app_id, &display_name) {
+                return path;
+            }
+        }
+        let _ = (manifest, app_id);
         self.host_binary.clone()
     }
 
     #[cfg(target_os = "macos")]
-    fn create_app_bundle(&self, name: &str, manifest: &Value) -> Option<PathBuf> {
-        let bundle_dir = self.pid_dir.join(format!("{name}.app"));
+    fn create_app_bundle(&self, app_id: &str, display_name: &str) -> Option<PathBuf> {
+        let bundle_dir = self.pid_dir.join(format!("{app_id}.app"));
         let contents = bundle_dir.join("Contents");
         let macos_dir = contents.join("MacOS");
         let _ = std::fs::create_dir_all(&macos_dir);
 
-        let exec_path = macos_dir.join(name);
+        let exec_name = app_id;
+        let exec_path = macos_dir.join(exec_name);
         let _ = std::fs::remove_file(&exec_path);
         if std::fs::hard_link(&self.host_binary, &exec_path).is_err() {
             if std::fs::copy(&self.host_binary, &exec_path).is_err() {
@@ -99,7 +107,8 @@ impl ProcessManager {
             }
         }
 
-        let icon_name = manifest["icon"].as_str().unwrap_or("");
+        let safe_id = app_id.replace(' ', "-").to_lowercase();
+        let name = if display_name.is_empty() { app_id } else { display_name };
         let plist = format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -110,39 +119,21 @@ impl ProcessManager {
     <key>CFBundleDisplayName</key>
     <string>{name}</string>
     <key>CFBundleExecutable</key>
-    <string>{name}</string>
+    <string>{exec_name}</string>
     <key>CFBundleIdentifier</key>
     <string>com.hiapphub.app.{safe_id}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
 </dict>
 </plist>"#,
-            name = name,
-            safe_id = name.replace(' ', "-").to_lowercase(),
         );
-        let _ = icon_name;
-        std::fs::write(contents.join("Info.plist"), plist).ok()?;
+        std::fs::write(contents.join("Info.plist"), &plist).ok()?;
 
         Some(exec_path)
-    }
-
-    #[cfg(target_os = "macos")]
-    fn set_dock_name(pid: u32, name: &str) {
-        let name = name.to_string();
-        let pid = pid;
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(500));
-            let _ = std::process::Command::new("/usr/bin/lsappinfo")
-                .arg("setinfo")
-                .arg(pid.to_string())
-                .arg("--name")
-                .arg(&name)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status();
-        });
     }
 
     pub fn launch_app(
@@ -178,7 +169,7 @@ impl ProcessManager {
 
         let window_config_json = Self::build_window_config(manifest);
 
-        let launch_binary = self.get_named_binary(manifest);
+        let launch_binary = self.get_named_binary(manifest, app_id);
 
         let mut cmd = Command::new(&launch_binary);
         cmd.arg("--app-id").arg(app_id)
@@ -188,17 +179,11 @@ impl ProcessManager {
             .arg("--lib-dir").arg(&self.lib_dir)
             .arg("--window-config").arg(&window_config_json)
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::inherit());
 
         let child = cmd.spawn().map_err(|e| format!("spawn {app_id} failed: {e}"))?;
         let pid = child.id();
         eprintln!("[pm] launched {app_id} pid={pid} key={process_key}");
-
-        #[cfg(target_os = "macos")]
-        {
-            let app_name = manifest["name"].as_str().unwrap_or(app_id);
-            Self::set_dock_name(pid, app_name);
-        }
 
         self.write_pid_file(app_id, pid);
 
@@ -246,8 +231,9 @@ impl ProcessManager {
         }
 
         if !cfg.contains_key("title") {
-            if let Some(name) = manifest["name"].as_str() {
-                cfg.insert("title".into(), Value::String(name.to_string()));
+            let localized = Self::resolve_localized_name(manifest);
+            if !localized.is_empty() {
+                cfg.insert("title".into(), Value::String(localized));
             }
         }
 
