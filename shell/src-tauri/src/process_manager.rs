@@ -70,6 +70,81 @@ impl ProcessManager {
         self.host_binary.exists()
     }
 
+    fn get_named_binary(&self, manifest: &Value) -> PathBuf {
+        #[cfg(target_os = "macos")]
+        {
+            let name = manifest["name"].as_str().unwrap_or("");
+            if !name.is_empty() {
+                if let Some(path) = self.create_app_bundle(name, manifest) {
+                    return path;
+                }
+            }
+        }
+        let _ = manifest;
+        self.host_binary.clone()
+    }
+
+    #[cfg(target_os = "macos")]
+    fn create_app_bundle(&self, name: &str, manifest: &Value) -> Option<PathBuf> {
+        let bundle_dir = self.pid_dir.join(format!("{name}.app"));
+        let contents = bundle_dir.join("Contents");
+        let macos_dir = contents.join("MacOS");
+        let _ = std::fs::create_dir_all(&macos_dir);
+
+        let exec_path = macos_dir.join(name);
+        let _ = std::fs::remove_file(&exec_path);
+        if std::fs::hard_link(&self.host_binary, &exec_path).is_err() {
+            if std::fs::copy(&self.host_binary, &exec_path).is_err() {
+                return None;
+            }
+        }
+
+        let icon_name = manifest["icon"].as_str().unwrap_or("");
+        let plist = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>{name}</string>
+    <key>CFBundleDisplayName</key>
+    <string>{name}</string>
+    <key>CFBundleExecutable</key>
+    <string>{name}</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.hiapphub.app.{safe_id}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>"#,
+            name = name,
+            safe_id = name.replace(' ', "-").to_lowercase(),
+        );
+        let _ = icon_name;
+        std::fs::write(contents.join("Info.plist"), plist).ok()?;
+
+        Some(exec_path)
+    }
+
+    #[cfg(target_os = "macos")]
+    fn set_dock_name(pid: u32, name: &str) {
+        let name = name.to_string();
+        let pid = pid;
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(500));
+            let _ = std::process::Command::new("/usr/bin/lsappinfo")
+                .arg("setinfo")
+                .arg(pid.to_string())
+                .arg("--name")
+                .arg(&name)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        });
+    }
+
     pub fn launch_app(
         &self,
         app_id: &str,
@@ -103,7 +178,9 @@ impl ProcessManager {
 
         let window_config_json = Self::build_window_config(manifest);
 
-        let mut cmd = Command::new(&self.host_binary);
+        let launch_binary = self.get_named_binary(manifest);
+
+        let mut cmd = Command::new(&launch_binary);
         cmd.arg("--app-id").arg(app_id)
             .arg("--hap-path").arg(hap_path)
             .arg("--ipc-endpoint").arg(&socket_path)
@@ -113,14 +190,15 @@ impl ProcessManager {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        #[cfg(target_os = "macos")]
-        {
-            cmd.env("LSUIElement", "1");
-        }
-
         let child = cmd.spawn().map_err(|e| format!("spawn {app_id} failed: {e}"))?;
         let pid = child.id();
         eprintln!("[pm] launched {app_id} pid={pid} key={process_key}");
+
+        #[cfg(target_os = "macos")]
+        {
+            let app_name = manifest["name"].as_str().unwrap_or(app_id);
+            Self::set_dock_name(pid, app_name);
+        }
 
         self.write_pid_file(app_id, pid);
 
@@ -171,6 +249,10 @@ impl ProcessManager {
             if let Some(name) = manifest["name"].as_str() {
                 cfg.insert("title".into(), Value::String(name.to_string()));
             }
+        }
+
+        if let Some(icon) = manifest["icon"].as_str() {
+            cfg.insert("icon".into(), Value::String(icon.to_string()));
         }
 
         serde_json::to_string(&Value::Object(cfg)).unwrap_or_else(|_| "{}".into())
