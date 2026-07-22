@@ -449,6 +449,7 @@ pub fn hap_create_sub_window(
     url: String,
     width: Option<f64>,
     height: Option<f64>,
+    app_id_override: Option<String>,
 ) -> Result<(), String> {
     let label = format!("plugin-{plugin_id}-sub-{sub_id}");
 
@@ -463,7 +464,8 @@ pub fn hap_create_sub_window(
         format!("hap://localhost/{plugin_id}/{url}")
     };
 
-    let bridge_script = bridge_inject::generate_bridge_script(&plugin_id);
+    let bridge_app_id = app_id_override.as_deref().unwrap_or(&plugin_id);
+    let bridge_script = bridge_inject::generate_bridge_script(bridge_app_id);
     tauri::WebviewWindowBuilder::new(
         &app,
         &label,

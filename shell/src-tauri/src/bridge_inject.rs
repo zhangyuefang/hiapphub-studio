@@ -98,7 +98,8 @@ pub fn generate_bridge_script(app_id: &str) -> String {
           title: title,
           url: url,
           width: opts && opts.width,
-          height: opts && opts.height
+          height: opts && opts.height,
+          appIdOverride: opts && opts.appId
         }});
       }},
       closeSubWindow: function(subId) {{
