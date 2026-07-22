@@ -505,29 +505,32 @@ type HalCallFn = unsafe extern "C" fn(CCharPtr) -> CCharPtr;
 /// 通用 HAL 函数调用：通过 symbol 名称动态查找并调用模块导出函数。
 /// HAL 函数统一签名：`extern "C" fn(params_json: *const c_char) -> *const c_char`
 pub fn call_function(module_name: &str, symbol_name: &str, params_json: &str) -> Result<String, String> {
-    let map = LOADED_MODULES.lock().unwrap();
-    let loaded = map.get(module_name)
-        .or_else(|| map.get(&format!("hap-mod-{module_name}")))
-        .ok_or_else(|| format!("module '{module_name}' not loaded"))?;
+    let (func_ptr, free_fn) = {
+        let map = LOADED_MODULES.lock().unwrap();
+        let loaded = map.get(module_name)
+            .or_else(|| map.get(&format!("hap-mod-{module_name}")))
+            .ok_or_else(|| format!("module '{module_name}' not loaded"))?;
 
-    let desc = loaded.descriptor.as_ref()
-        .ok_or_else(|| format!("module '{module_name}' has no descriptor"))?;
+        let desc = loaded.descriptor.as_ref()
+            .ok_or_else(|| format!("module '{module_name}' has no descriptor"))?;
 
-    let _fn_desc = desc.functions.iter()
-        .find(|f| f.symbol == symbol_name)
-        .ok_or_else(|| format!("function '{symbol_name}' not found in module '{module_name}'"))?;
+        let _fn_desc = desc.functions.iter()
+            .find(|f| f.symbol == symbol_name)
+            .ok_or_else(|| format!("function '{symbol_name}' not found in module '{module_name}'"))?;
 
-    let func: Symbol<HalCallFn> = unsafe {
-        loaded._lib.get(symbol_name.as_bytes())
-    }.map_err(|e| format!("symbol '{symbol_name}' lookup failed: {e}"))?;
+        let func: Symbol<HalCallFn> = unsafe {
+            loaded._lib.get(symbol_name.as_bytes())
+        }.map_err(|e| format!("symbol '{symbol_name}' lookup failed: {e}"))?;
 
-    let free_fn = loaded.free_fn;
+        let fn_ptr: HalCallFn = *func;
+        (fn_ptr, loaded.free_fn)
+    };
 
     let c_params = std::ffi::CString::new(params_json)
         .map_err(|e| format!("param encoding failed: {e}"))?;
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        unsafe { func(c_params.as_ptr()) }
+        unsafe { func_ptr(c_params.as_ptr()) }
     }));
 
     match result {

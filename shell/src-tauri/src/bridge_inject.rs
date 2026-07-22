@@ -104,6 +104,24 @@ pub fn generate_bridge_script(app_id: &str) -> String {
       }},
       closeSubWindow: function(subId) {{
         return invoke('hap_close_sub_window', {{ pluginId: APP_ID, subId: subId }});
+      }},
+      postMessage: function(label, data) {{
+        return invoke('plugin:event|emit', {{ event: 'hap:msg:' + label, payload: data }});
+      }},
+      onMessage: function(handler) {{
+        var evName = 'hap:msg:plugin-' + APP_ID;
+        if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.listen) {{
+          window.__TAURI_INTERNALS__.listen(evName, function(e) {{ handler(e.payload); }});
+        }}
+        return evName;
+      }},
+      onResize: function(handler) {{
+        if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.listen) {{
+          window.__TAURI_INTERNALS__.listen('tauri://resize', function(e) {{
+            handler({{ width: e.payload.width, height: e.payload.height }});
+          }});
+        }}
+        return 'tauri://resize';
       }}
     }},
 

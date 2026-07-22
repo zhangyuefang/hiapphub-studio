@@ -18,6 +18,7 @@ struct AppProcess {
     child: Child,
     hap_path: String,
     window_config_json: String,
+    launch_binary: PathBuf,
     restart_count: u32,
     first_start_at: Instant,
     last_start_at: Instant,
@@ -201,6 +202,7 @@ impl ProcessManager {
                 child,
                 hap_path: hap_path.to_string(),
                 window_config_json,
+                launch_binary,
                 restart_count: 0,
                 first_start_at: now,
                 last_start_at: now,
@@ -285,6 +287,7 @@ impl ProcessManager {
                                         proc.app_id.clone(),
                                         proc.hap_path.clone(),
                                         proc.window_config_json.clone(),
+                                        proc.launch_binary.clone(),
                                         proc.restart_count + 1,
                                     ))
                                 } else {
@@ -293,6 +296,7 @@ impl ProcessManager {
                                         proc.app_id.clone(),
                                         proc.hap_path.clone(),
                                         proc.window_config_json.clone(),
+                                        proc.launch_binary.clone(),
                                         1,
                                     ))
                                 }
@@ -316,13 +320,13 @@ impl ProcessManager {
                 }
             };
 
-            if let Some((app_id, hap_path, window_config_json, count)) = should_restart {
+            if let Some((app_id, hap_path, window_config_json, launch_binary, count)) = should_restart {
                 eprintln!("[pm] restarting {app_id} (attempt {count}/{MAX_RESTART_ATTEMPTS})");
 
                 let token = ipc_server.generate_token(&key);
                 let socket_path = ipc_server.socket_path().to_string_lossy().to_string();
 
-                let mut cmd = Command::new(&self.host_binary);
+                let mut cmd = Command::new(&launch_binary);
                 cmd.arg("--app-id").arg(&app_id)
                     .arg("--hap-path").arg(&hap_path)
                     .arg("--ipc-endpoint").arg(&socket_path)
@@ -356,6 +360,7 @@ impl ProcessManager {
                                     child,
                                     hap_path,
                                     window_config_json,
+                                    launch_binary,
                                     restart_count: count,
                                     first_start_at: Instant::now(),
                                     last_start_at: Instant::now(),
@@ -455,11 +460,26 @@ impl ProcessManager {
 }
 
 fn is_process_alive(pid: u32) -> bool {
-    let output = std::process::Command::new("kill")
-        .arg("-0")
-        .arg(pid.to_string())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-    output.map(|s| s.success()).unwrap_or(false)
+    #[cfg(unix)]
+    {
+        let output = std::process::Command::new("kill")
+            .arg("-0")
+            .arg(pid.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        output.map(|s| s.success()).unwrap_or(false)
+    }
+    #[cfg(windows)]
+    {
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/NH"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output();
+        match output {
+            Ok(o) => String::from_utf8_lossy(&o.stdout).contains(&pid.to_string()),
+            Err(_) => false,
+        }
+    }
 }

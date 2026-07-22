@@ -12,15 +12,23 @@ type FnOneStr = unsafe extern "C" fn(*const c_char) -> *mut c_char;
 type FnFree = unsafe extern "C" fn(*mut c_char);
 
 fn call(sym_name: &[u8], json_arg: &str) -> Result<String, String> {
-    let guard = DB_LIB.lock().unwrap();
-    let lib = guard.as_ref().ok_or("db module not loaded")?;
+    let (func_ptr, free_ptr) = {
+        let guard = DB_LIB.lock().unwrap();
+        let lib = guard.as_ref().ok_or("db module not loaded")?;
+        unsafe {
+            let func: Symbol<FnOneStr> = lib.get(sym_name).map_err(|e| format!("{e}"))?;
+            let free: Symbol<FnFree> = lib.get(b"hap_free_string").map_err(|e| format!("{e}"))?;
+            (*func as FnOneStr, *free as FnFree)
+        }
+    };
     let c_arg = CString::new(json_arg).unwrap();
     unsafe {
-        let func: Symbol<FnOneStr> = lib.get(sym_name).map_err(|e| format!("{e}"))?;
-        let ptr = func(c_arg.as_ptr());
+        let ptr = func_ptr(c_arg.as_ptr());
+        if ptr.is_null() {
+            return Err("FFI returned null".to_string());
+        }
         let result = CStr::from_ptr(ptr).to_str().unwrap_or("").to_string();
-        let free: Symbol<FnFree> = lib.get(b"hap_free_string").map_err(|e| format!("{e}"))?;
-        free(ptr);
+        free_ptr(ptr);
         Ok(result)
     }
 }
