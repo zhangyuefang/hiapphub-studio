@@ -112,13 +112,14 @@ pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symb
         let fn_name = symbol_name.strip_prefix(&format!("hap_{}_", module_name))
             .unwrap_or(&symbol_name).to_string();
         let params_preview = if params_json.len() > 200 {
-            format!("{}...", &params_json[..200])
+            let end = params_json.floor_char_boundary(200);
+            format!("{}...", &params_json[..end])
         } else {
             params_json.clone()
         };
         let result_preview = match &result {
-            Ok(r) => if r.len() > 200 { format!("{}...", &r[..200]) } else { r.clone() },
-            Err(e) => format!("ERR: {}", if e.len() > 150 { &e[..150] } else { e }),
+            Ok(r) => if r.len() > 200 { let end = r.floor_char_boundary(200); format!("{}...", &r[..end]) } else { r.clone() },
+            Err(e) => format!("ERR: {}", if e.len() > 150 { let end = e.floor_char_boundary(150); &e[..end] } else { e }),
         };
         let log = HalCallLog {
             time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
