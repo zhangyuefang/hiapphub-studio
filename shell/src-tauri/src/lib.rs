@@ -69,6 +69,7 @@ pub fn run() {
             bridge::hap_open_app,
             bridge::hap_open_plugin_window,
             bridge::hap_launch_independent_app,
+            bridge::hap_create_child_window,
             bridge::hap_create_sub_window,
             bridge::hap_close_sub_window,
             bridge::hap_js_log,
@@ -97,6 +98,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let ipc = std::sync::Arc::new(ipc_server::IpcServer::new());
+    let open_app_rx = ipc.setup_open_app_channel();
     if let Err(e) = ipc.start() {
         eprintln!("[setup] IPC server start failed (non-fatal): {e}");
     } else {
@@ -109,6 +111,39 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("[setup] recovered {} app process(es) from pid files", recovered.len());
     }
     pm.start_monitor(ipc.clone());
+
+    {
+        let pm_for_open = pm.clone();
+        let ipc_for_open = ipc.clone();
+        std::thread::spawn(move || {
+            while let Ok(app_id) = open_app_rx.recv() {
+                eprintln!("[open-app-worker] launching: {app_id}");
+                let hap_path = hap_manager::data_dir().join("app").join(format!("{app_id}.hap"));
+                if !hap_path.exists() {
+                    eprintln!("[open-app-worker] app '{app_id}' not installed");
+                    continue;
+                }
+                let manifest = match crate::hap_format::HapReader::open_file(&hap_path) {
+                    Ok(mut reader) => match reader.read_file("manifest.json") {
+                        Ok(data) => {
+                            let content = String::from_utf8_lossy(&data);
+                            serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default()
+                        }
+                        Err(e) => { eprintln!("[open-app-worker] read manifest: {e}"); continue; }
+                    },
+                    Err(e) => { eprintln!("[open-app-worker] open hap: {e}"); continue; }
+                };
+                if let Err(e) = pm_for_open.launch_app(
+                    &app_id,
+                    &hap_path.to_string_lossy(),
+                    &manifest,
+                    &ipc_for_open,
+                ) {
+                    eprintln!("[open-app-worker] launch failed: {e}");
+                }
+            }
+        });
+    }
 
     app.manage(ipc);
     app.manage(pm);

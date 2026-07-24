@@ -53,6 +53,16 @@ pub fn generate_bridge_script(app_id: &str) -> String {
         return invoke('hap_list_plugins').then(function() {{
           return {{ version: '1.0.0' }};
         }});
+      }},
+      openApp: function(appId, params) {{
+        var paramsJson = null;
+        if (params && typeof params === 'object') {{
+          paramsJson = JSON.stringify(params);
+        }}
+        return invoke('hap_open_app', {{ pluginId: appId, pluginName: (typeof params === 'string' ? params : appId), paramsJson: paramsJson }});
+      }},
+      openPluginWindow: function(appId, appName) {{
+        return invoke('hap_open_plugin_window', {{ pluginId: appId, pluginName: appName || appId }});
       }}
     }},
 
@@ -100,6 +110,23 @@ pub fn generate_bridge_script(app_id: &str) -> String {
           width: opts && opts.width,
           height: opts && opts.height,
           appIdOverride: opts && opts.appId
+        }});
+      }},
+      create: function(opts) {{
+        var o = opts || {{}};
+        return invoke('hap_create_child_window', {{
+          pluginId: APP_ID,
+          label: o.label || 'child',
+          route: o.route,
+          title: o.title,
+          width: o.width,
+          height: o.height,
+          decorations: o.decorations,
+          resizable: o.resizable,
+          transparent: o.transparent,
+          hiddenTitle: o.hiddenTitle,
+          titleBarStyle: o.titleBarStyle,
+          anchorRight: o.anchorRight
         }});
       }},
       closeSubWindow: function(subId) {{

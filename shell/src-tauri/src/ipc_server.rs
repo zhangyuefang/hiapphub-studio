@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use serde::{Deserialize, Serialize};
 
 #[cfg(unix)]
@@ -53,6 +54,7 @@ pub struct IpcServer {
     tokens: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, Arc<Mutex<StreamType>>>>>,
     apps: Arc<Mutex<HashMap<String, ConnectedApp>>>,
+    open_app_tx: Arc<Mutex<Option<mpsc::Sender<String>>>>,
 }
 
 impl IpcServer {
@@ -67,6 +69,7 @@ impl IpcServer {
             tokens: Arc::new(Mutex::new(HashMap::new())),
             connections: Arc::new(Mutex::new(HashMap::new())),
             apps: Arc::new(Mutex::new(HashMap::new())),
+            open_app_tx: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -101,6 +104,7 @@ impl IpcServer {
         let tokens = self.tokens.clone();
         let connections = self.connections.clone();
         let apps = self.apps.clone();
+        let open_app_tx = self.open_app_tx.clone();
 
         std::thread::spawn(move || {
             for stream in listener.incoming() {
@@ -109,8 +113,9 @@ impl IpcServer {
                         let tokens = tokens.clone();
                         let connections = connections.clone();
                         let apps = apps.clone();
+                        let open_app_tx = open_app_tx.clone();
                         std::thread::spawn(move || {
-                            handle_connection(stream, tokens, connections, apps);
+                            handle_connection(stream, tokens, connections, apps, open_app_tx);
                         });
                     }
                     Err(e) => eprintln!("[ipc-server] accept error: {e}"),
@@ -134,6 +139,7 @@ impl IpcServer {
         let tokens = self.tokens.clone();
         let connections = self.connections.clone();
         let apps = self.apps.clone();
+        let open_app_tx = self.open_app_tx.clone();
 
         std::thread::spawn(move || {
             for stream in listener.incoming() {
@@ -142,8 +148,9 @@ impl IpcServer {
                         let tokens = tokens.clone();
                         let connections = connections.clone();
                         let apps = apps.clone();
+                        let open_app_tx = open_app_tx.clone();
                         std::thread::spawn(move || {
-                            handle_connection(stream, tokens, connections, apps);
+                            handle_connection(stream, tokens, connections, apps, open_app_tx);
                         });
                     }
                     Err(e) => eprintln!("[ipc-server] accept error: {e}"),
@@ -205,6 +212,12 @@ impl IpcServer {
         self.connections.lock().unwrap().contains_key(app_id)
     }
 
+    pub fn setup_open_app_channel(&self) -> mpsc::Receiver<String> {
+        let (tx, rx) = mpsc::channel();
+        *self.open_app_tx.lock().unwrap() = Some(tx);
+        rx
+    }
+
     #[allow(dead_code)]
     pub fn list_connected_apps(&self) -> Vec<ConnectedApp> {
         self.apps.lock().unwrap().values().cloned().collect()
@@ -216,6 +229,7 @@ fn handle_connection(
     tokens: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, Arc<Mutex<StreamType>>>>>,
     apps: Arc<Mutex<HashMap<String, ConnectedApp>>>,
+    open_app_tx: Arc<Mutex<Option<mpsc::Sender<String>>>>,
 ) {
     let writer = Arc::new(Mutex::new(
         stream.try_clone().expect("clone stream"),
@@ -247,7 +261,7 @@ fn handle_connection(
                 id: req.id.clone(),
             }
         } else {
-            handle_request(&req, &mut authenticated_app_id, &tokens, &connections, &apps, &writer)
+            handle_request(&req, &mut authenticated_app_id, &tokens, &connections, &apps, &writer, &open_app_tx)
         };
 
         if let Some(ref _id) = req.id {
@@ -271,6 +285,7 @@ fn handle_request(
     connections: &Arc<Mutex<HashMap<String, Arc<Mutex<StreamType>>>>>,
     apps: &Arc<Mutex<HashMap<String, ConnectedApp>>>,
     writer: &Arc<Mutex<StreamType>>,
+    open_app_tx: &Arc<Mutex<Option<mpsc::Sender<String>>>>,
 ) -> JsonRpcResponse {
     let params = req.params.as_ref().cloned().unwrap_or(serde_json::Value::Null);
 
@@ -346,6 +361,11 @@ fn handle_request(
         "app.openApp" => {
             let target_app = params["appId"].as_str().unwrap_or("");
             eprintln!("[ipc-server] app.openApp requested: {target_app}");
+            if !target_app.is_empty() {
+                if let Some(tx) = open_app_tx.lock().unwrap().as_ref() {
+                    let _ = tx.send(target_app.to_string());
+                }
+            }
             Ok(serde_json::json!({ "queued": true, "appId": target_app }))
         }
 

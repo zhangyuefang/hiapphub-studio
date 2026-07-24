@@ -8,6 +8,15 @@ use serde_json::Value;
 
 use crate::ipc_server::IpcServer;
 
+#[derive(Default, Debug)]
+pub struct LaunchOverrides {
+    pub url: Option<String>,
+    pub app_id_override: Option<String>,
+    pub dev_port: Option<u16>,
+    pub name: Option<String>,
+    pub window_config: Option<String>,
+}
+
 const MAX_RESTART_ATTEMPTS: u32 = 3;
 const RESTART_WINDOW_SECS: u64 = 60;
 
@@ -19,6 +28,7 @@ struct AppProcess {
     hap_path: String,
     window_config_json: String,
     launch_binary: PathBuf,
+    entry: Option<String>,
     restart_count: u32,
     first_start_at: Instant,
     last_start_at: Instant,
@@ -81,14 +91,19 @@ impl ProcessManager {
     }
 
     fn get_named_binary(&self, manifest: &Value, app_id: &str) -> PathBuf {
+        self.get_named_binary_with_name(manifest, app_id, None)
+    }
+
+    fn get_named_binary_with_name(&self, manifest: &Value, app_id: &str, custom_name: Option<&str>) -> PathBuf {
         #[cfg(target_os = "macos")]
         {
-            let display_name = Self::resolve_localized_name(manifest);
+            let display_name = custom_name.map(|s| s.to_string())
+                .unwrap_or_else(|| Self::resolve_localized_name(manifest));
             if let Some(path) = self.create_app_bundle(app_id, &display_name) {
                 return path;
             }
         }
-        let _ = (manifest, app_id);
+        let _ = (manifest, app_id, custom_name);
         self.host_binary.clone()
     }
 
@@ -133,6 +148,11 @@ impl ProcessManager {
 </plist>"#,
         );
         std::fs::write(contents.join("Info.plist"), &plist).ok()?;
+
+        let _ = std::process::Command::new("codesign")
+            .args(["--sign", "-", "--force", "--deep"])
+            .arg(&bundle_dir)
+            .output();
 
         Some(exec_path)
     }
@@ -182,6 +202,10 @@ impl ProcessManager {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
 
+        if let Some(entry) = manifest["entry"].as_str() {
+            cmd.arg("--entry").arg(entry);
+        }
+
         let child = cmd.spawn().map_err(|e| format!("spawn {app_id} failed: {e}"))?;
         let pid = child.id();
         eprintln!("[pm] launched {app_id} pid={pid} key={process_key}");
@@ -203,6 +227,99 @@ impl ProcessManager {
                 hap_path: hap_path.to_string(),
                 window_config_json,
                 launch_binary,
+                entry: manifest["entry"].as_str().map(|s| s.to_string()),
+                restart_count: 0,
+                first_start_at: now,
+                last_start_at: now,
+                multi_instance,
+                instance_index,
+            },
+        );
+
+        Ok(())
+    }
+
+    pub fn launch_app_with_overrides(
+        &self,
+        app_id: &str,
+        hap_path: &str,
+        manifest: &Value,
+        ipc_server: &IpcServer,
+        overrides: &LaunchOverrides,
+    ) -> Result<(), String> {
+        let effective_app_id = overrides.app_id_override.as_deref().unwrap_or(app_id);
+        let multi_instance = manifest["multi_instance"].as_bool().unwrap_or(false);
+
+        let process_key = if multi_instance {
+            let procs = self.processes.lock().unwrap();
+            let mut idx = 1u32;
+            loop {
+                let key = format!("{effective_app_id}-{idx}");
+                if !procs.contains_key(&key) {
+                    break key;
+                }
+                idx += 1;
+            }
+        } else {
+            if ipc_server.is_app_running(effective_app_id) {
+                eprintln!("[pm] {effective_app_id} already running, activating window");
+                return ipc_server.activate_app_window(effective_app_id);
+            }
+            effective_app_id.to_string()
+        };
+
+        let ipc_id = &process_key;
+        let token = ipc_server.generate_token(ipc_id);
+        let socket_path = ipc_server.socket_path().to_string_lossy().to_string();
+
+        let window_config_json = overrides.window_config.clone()
+            .unwrap_or_else(|| Self::build_window_config(manifest));
+
+        let bundle_name = overrides.name.as_deref();
+        let launch_binary = self.get_named_binary_with_name(manifest, app_id, bundle_name);
+
+        let mut cmd = Command::new(&launch_binary);
+        cmd.arg("--app-id").arg(effective_app_id)
+            .arg("--hap-path").arg(hap_path)
+            .arg("--ipc-endpoint").arg(&socket_path)
+            .arg("--ipc-token").arg(&token)
+            .arg("--lib-dir").arg(&self.lib_dir)
+            .arg("--window-config").arg(&window_config_json)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit());
+
+        if let Some(ref url) = overrides.url {
+            cmd.arg("--url").arg(url);
+        } else if let Some(entry) = manifest["entry"].as_str() {
+            cmd.arg("--entry").arg(entry);
+        }
+
+        if let Some(port) = overrides.dev_port {
+            cmd.arg("--dev-port").arg(port.to_string());
+        }
+
+        let child = cmd.spawn().map_err(|e| format!("spawn {effective_app_id} failed: {e}"))?;
+        let pid = child.id();
+        eprintln!("[pm] launched {effective_app_id} pid={pid} key={process_key}");
+
+        self.write_pid_file(effective_app_id, pid);
+
+        let now = Instant::now();
+        let instance_index = if multi_instance {
+            process_key.rsplit('-').next().and_then(|s| s.parse().ok()).unwrap_or(1)
+        } else {
+            0
+        };
+
+        self.processes.lock().unwrap().insert(
+            process_key,
+            AppProcess {
+                app_id: effective_app_id.to_string(),
+                child,
+                hap_path: hap_path.to_string(),
+                window_config_json,
+                launch_binary,
+                entry: manifest["entry"].as_str().map(|s| s.to_string()),
                 restart_count: 0,
                 first_start_at: now,
                 last_start_at: now,
@@ -217,7 +334,8 @@ impl ProcessManager {
     fn build_window_config(manifest: &Value) -> String {
         let win = manifest["windows"]
             .as_array()
-            .and_then(|arr| arr.first());
+            .and_then(|arr| arr.first())
+            .or_else(|| manifest.get("window"));
 
         let mut cfg = serde_json::Map::new();
         if let Some(w) = win {
@@ -228,6 +346,29 @@ impl ProcessManager {
             ] {
                 if let Some(v) = w.get(*key) {
                     cfg.insert(key.to_string(), v.clone());
+                }
+            }
+            let snake_to_camel: &[(&str, &str)] = &[
+                ("min_width", "minWidth"),
+                ("min_height", "minHeight"),
+                ("title_bar_style", "titleBarStyle"),
+                ("hidden_title", "hiddenTitle"),
+            ];
+            for (snake, camel) in snake_to_camel {
+                if !cfg.contains_key(*camel) {
+                    if let Some(v) = w.get(*snake) {
+                        cfg.insert(camel.to_string(), v.clone());
+                    }
+                }
+            }
+            if !cfg.contains_key("trafficLightPosition") {
+                let tx = w.get("traffic_light_x");
+                let ty = w.get("traffic_light_y");
+                if tx.is_some() || ty.is_some() {
+                    let mut pos = serde_json::Map::new();
+                    if let Some(x) = tx { pos.insert("x".into(), x.clone()); }
+                    if let Some(y) = ty { pos.insert("y".into(), y.clone()); }
+                    cfg.insert("trafficLightPosition".into(), Value::Object(pos));
                 }
             }
         }
@@ -288,6 +429,7 @@ impl ProcessManager {
                                         proc.hap_path.clone(),
                                         proc.window_config_json.clone(),
                                         proc.launch_binary.clone(),
+                                        proc.entry.clone(),
                                         proc.restart_count + 1,
                                     ))
                                 } else {
@@ -297,6 +439,7 @@ impl ProcessManager {
                                         proc.hap_path.clone(),
                                         proc.window_config_json.clone(),
                                         proc.launch_binary.clone(),
+                                        proc.entry.clone(),
                                         1,
                                     ))
                                 }
@@ -320,7 +463,7 @@ impl ProcessManager {
                 }
             };
 
-            if let Some((app_id, hap_path, window_config_json, launch_binary, count)) = should_restart {
+            if let Some((app_id, hap_path, window_config_json, launch_binary, entry, count)) = should_restart {
                 eprintln!("[pm] restarting {app_id} (attempt {count}/{MAX_RESTART_ATTEMPTS})");
 
                 let token = ipc_server.generate_token(&key);
@@ -335,6 +478,10 @@ impl ProcessManager {
                     .arg("--window-config").arg(&window_config_json)
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped());
+
+                if let Some(ref e) = entry {
+                    cmd.arg("--entry").arg(e);
+                }
 
                 #[cfg(target_os = "macos")]
                 {
@@ -361,6 +508,7 @@ impl ProcessManager {
                                     hap_path,
                                     window_config_json,
                                     launch_binary,
+                                    entry,
                                     restart_count: count,
                                     first_start_at: Instant::now(),
                                     last_start_at: Instant::now(),

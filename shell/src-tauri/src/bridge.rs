@@ -276,13 +276,66 @@ pub fn hap_open_app(
     app: tauri::AppHandle,
     plugin_id: String,
     plugin_name: String,
+    params_json: Option<String>,
 ) -> Result<(), String> {
     let pm = app.state::<std::sync::Arc<ProcessManager>>();
     if pm.is_host_available() {
-        hap_launch_independent_app(app, plugin_id)
+        hap_launch_independent_app_with_params(app, plugin_id, params_json)
     } else {
         hap_open_plugin_window(app, plugin_id, plugin_name, None, None)
     }
+}
+
+fn hap_launch_independent_app_with_params(
+    app: tauri::AppHandle,
+    plugin_id: String,
+    params_json: Option<String>,
+) -> Result<(), String> {
+    let hap_path = hap_manager::data_dir().join("app").join(format!("{plugin_id}.hap"));
+    if !hap_path.exists() {
+        return Err(format!("app '{plugin_id}' not installed"));
+    }
+
+    let manifest = {
+        let mut reader = crate::hap_format::HapReader::open_file(&hap_path)
+            .map_err(|e| format!("{e}"))?;
+        let data = reader.read_file("manifest.json")
+            .map_err(|e| format!("{e}"))?;
+        let content = String::from_utf8(data).map_err(|e| format!("{e}"))?;
+        serde_json::from_str::<serde_json::Value>(&content)
+            .map_err(|e| format!("manifest parse: {e}"))?
+    };
+
+    let ipc = app.state::<std::sync::Arc<IpcServer>>();
+    let pm = app.state::<std::sync::Arc<ProcessManager>>();
+
+    if let Some(ref json_str) = params_json {
+        if let Ok(params) = serde_json::from_str::<serde_json::Value>(json_str) {
+            if params.get("entry").is_some() {
+                let overrides = crate::process_manager::LaunchOverrides {
+                    url: params["entry"].as_str().map(|s| s.to_string()),
+                    app_id_override: params["appId"].as_str().map(|s| s.to_string()),
+                    dev_port: params["devPort"].as_u64().map(|p| p as u16),
+                    name: params["name"].as_str().map(|s| s.to_string()),
+                    window_config: params.get("windowConfig").map(|v| v.to_string()),
+                };
+                return pm.launch_app_with_overrides(
+                    &plugin_id,
+                    &hap_path.to_string_lossy(),
+                    &manifest,
+                    &ipc,
+                    &overrides,
+                );
+            }
+        }
+    }
+
+    pm.launch_app(
+        &plugin_id,
+        &hap_path.to_string_lossy(),
+        &manifest,
+        &ipc,
+    )
 }
 
 #[tauri::command]
@@ -442,6 +495,86 @@ pub fn hap_open_plugin_window(
 }
 
 #[tauri::command]
+pub fn hap_create_child_window(
+    app: tauri::AppHandle,
+    plugin_id: String,
+    label: String,
+    route: Option<String>,
+    title: Option<String>,
+    width: Option<f64>,
+    height: Option<f64>,
+    decorations: Option<bool>,
+    resizable: Option<bool>,
+    #[allow(unused)]
+    transparent: Option<bool>,
+    hidden_title: Option<bool>,
+    title_bar_style: Option<String>,
+    anchor_right: Option<f64>,
+) -> Result<(), String> {
+    let safe_label = label.replace('.', "_");
+    let win_label = format!("plugin-{plugin_id}-{safe_label}");
+
+    if let Some(existing) = app.get_webview_window(&win_label) {
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let route_path = route.unwrap_or_default();
+    let route_clean = route_path.trim_start_matches('/');
+    let url = if route_clean.is_empty() {
+        format!("hap://localhost/{plugin_id}/index.html")
+    } else {
+        format!("hap://localhost/{plugin_id}/index.html#{route_clean}")
+    };
+
+    let bridge_script = bridge_inject::generate_bridge_script(&plugin_id);
+    let w = width.unwrap_or(600.0);
+    let h = height.unwrap_or(400.0);
+
+    let mut builder = tauri::WebviewWindowBuilder::new(
+        &app,
+        &win_label,
+        tauri::WebviewUrl::External(url.parse().unwrap()),
+    )
+    .title(title.as_deref().unwrap_or(""))
+    .initialization_script(&bridge_script)
+    .inner_size(w, h)
+    .decorations(decorations.unwrap_or(true))
+    .resizable(resizable.unwrap_or(true))
+    .skip_taskbar(true);
+
+    if hidden_title.unwrap_or(false) {
+        builder = builder.hidden_title(true);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::TitleBarStyle;
+        if let Some(ref tbs) = title_bar_style {
+            let style = match tbs.to_lowercase().as_str() {
+                "overlay" => TitleBarStyle::Overlay,
+                "transparent" => TitleBarStyle::Transparent,
+                _ => TitleBarStyle::Visible,
+            };
+            builder = builder.title_bar_style(style);
+        }
+    }
+
+    if let Some(right) = anchor_right {
+        if let Some(monitor) = app.primary_monitor().ok().flatten() {
+            let screen_w = monitor.size().width as f64 / monitor.scale_factor();
+            let x = screen_w - w - right;
+            builder = builder.position(x, 80.0);
+        }
+    } else {
+        builder = builder.center();
+    }
+
+    builder.build().map_err(|e| format!("child window creation failed: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn hap_create_sub_window(
     app: tauri::AppHandle,
     plugin_id: String,
@@ -452,7 +585,8 @@ pub fn hap_create_sub_window(
     height: Option<f64>,
     app_id_override: Option<String>,
 ) -> Result<(), String> {
-    let label = format!("plugin-{plugin_id}-sub-{sub_id}");
+    let safe_sub = sub_id.replace('.', "_");
+    let label = format!("plugin-{plugin_id}-sub-{safe_sub}");
 
     if let Some(existing) = app.get_webview_window(&label) {
         let _: () = existing.set_focus().map_err(|e| format!("{e}"))?;
@@ -489,7 +623,8 @@ pub fn hap_close_sub_window(
     plugin_id: String,
     sub_id: String,
 ) -> Result<(), String> {
-    let label = format!("plugin-{plugin_id}-sub-{sub_id}");
+    let safe_sub = sub_id.replace('.', "_");
+    let label = format!("plugin-{plugin_id}-sub-{safe_sub}");
     if let Some(win) = app.get_webview_window(&label) {
         win.close().map_err(|e| format!("{e}"))?;
     }
