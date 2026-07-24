@@ -233,7 +233,7 @@ export default function App() {
                 </button>
                 {categories.map(([cat, count]) => (
                   <button
-                    key={cat}
+                    key={cat || `cat-${count}`}
                     className={`px-3 py-1 rounded-full whitespace-nowrap ${category === cat ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-gray-800"}`}
                     onClick={() => setCategory(cat)}
                   >

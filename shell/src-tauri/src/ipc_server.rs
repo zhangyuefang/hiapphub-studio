@@ -360,10 +360,16 @@ fn handle_request(
 
         "app.openApp" => {
             let target_app = params["appId"].as_str().unwrap_or("");
-            eprintln!("[ipc-server] app.openApp requested: {target_app}");
+            let params_json = params["paramsJson"].as_str().unwrap_or("");
+            eprintln!("[ipc-server] app.openApp requested: {target_app} params={params_json}");
             if !target_app.is_empty() {
                 if let Some(tx) = open_app_tx.lock().unwrap().as_ref() {
-                    let _ = tx.send(target_app.to_string());
+                    let payload = if params_json.is_empty() {
+                        target_app.to_string()
+                    } else {
+                        format!("{}|{}", target_app, params_json)
+                    };
+                    let _ = tx.send(payload);
                 }
             }
             Ok(serde_json::json!({ "queued": true, "appId": target_app }))

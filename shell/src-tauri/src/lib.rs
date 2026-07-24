@@ -116,7 +116,12 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         let pm_for_open = pm.clone();
         let ipc_for_open = ipc.clone();
         std::thread::spawn(move || {
-            while let Ok(app_id) = open_app_rx.recv() {
+            while let Ok(payload) = open_app_rx.recv() {
+                let (app_id, params_json) = if let Some(idx) = payload.find('|') {
+                    (payload[..idx].to_string(), Some(payload[idx+1..].to_string()))
+                } else {
+                    (payload, None)
+                };
                 eprintln!("[open-app-worker] launching: {app_id}");
                 let hap_path = hap_manager::data_dir().join("app").join(format!("{app_id}.hap"));
                 if !hap_path.exists() {
@@ -133,6 +138,31 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     },
                     Err(e) => { eprintln!("[open-app-worker] open hap: {e}"); continue; }
                 };
+
+                if let Some(ref json_str) = params_json {
+                    if let Ok(params) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        if params.get("entry").is_some() {
+                            let overrides = crate::process_manager::LaunchOverrides {
+                                url: params["entry"].as_str().map(|s| s.to_string()),
+                                app_id_override: params["appId"].as_str().map(|s| s.to_string()),
+                                dev_port: params["devPort"].as_u64().map(|p| p as u16),
+                                name: params["name"].as_str().map(|s| s.to_string()),
+                                window_config: params.get("windowConfig").map(|v| v.to_string()),
+                            };
+                            if let Err(e) = pm_for_open.launch_app_with_overrides(
+                                &app_id,
+                                &hap_path.to_string_lossy(),
+                                &manifest,
+                                &ipc_for_open,
+                                &overrides,
+                            ) {
+                                eprintln!("[open-app-worker] launch with overrides failed: {e}");
+                            }
+                            continue;
+                        }
+                    }
+                }
+
                 if let Err(e) = pm_for_open.launch_app(
                     &app_id,
                     &hap_path.to_string_lossy(),
