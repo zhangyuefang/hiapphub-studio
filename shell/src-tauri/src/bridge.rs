@@ -145,7 +145,7 @@ fn app_has_permission(app_id: &str, required: &str) -> bool {
         if p["id"].as_str() == Some(app_id) {
             if let Some(perms) = p["permissions"].as_array() {
                 return perms.iter().any(|v| {
-                    v.as_str().map_or(false, |s| s == required || s.starts_with(&format!("{required}:")))
+                    v.as_str().is_some_and(|s| s == required || s.starts_with(&format!("{required}:")))
                 });
             }
             return false;
@@ -187,12 +187,12 @@ pub fn hap_lib_usage_stats() -> Result<Value, String> {
         let mut apps = Vec::new();
         for p in &plugins {
             let perms = p["permissions"].as_array();
-            let has_perm = perms.map_or(false, |arr| {
-                arr.iter().any(|v| v.as_str().map_or(false, |s| s == m.permission || s.starts_with(&format!("{}:", m.permission))))
+            let has_perm = perms.is_some_and(|arr| {
+                arr.iter().any(|v| v.as_str().is_some_and(|s| s == m.permission || s.starts_with(&format!("{}:", m.permission))))
             });
-            let has_dep = p["dependencies"]["hal"].as_array().map_or(false, |deps| {
+            let has_dep = p["dependencies"]["hal"].as_array().is_some_and(|deps| {
                 deps.iter().any(|d| {
-                    (m.uuid.is_some() && d["uuid"].as_str() == m.uuid.as_deref()) || d["id"].as_str().map_or(false, |id| id == format!("hap-mod-{}", m.name))
+                    (m.uuid.is_some() && d["uuid"].as_str() == m.uuid.as_deref()) || d["id"].as_str().is_some_and(|id| id == format!("hap-mod-{}", m.name))
                 })
             });
             if has_perm || has_dep {

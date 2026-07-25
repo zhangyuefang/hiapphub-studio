@@ -117,11 +117,10 @@ impl ProcessManager {
         let exec_name = app_id;
         let exec_path = macos_dir.join(exec_name);
         let _ = std::fs::remove_file(&exec_path);
-        if std::fs::hard_link(&self.host_binary, &exec_path).is_err() {
-            if std::fs::copy(&self.host_binary, &exec_path).is_err() {
+        if std::fs::hard_link(&self.host_binary, &exec_path).is_err()
+            && std::fs::copy(&self.host_binary, &exec_path).is_err() {
                 return None;
             }
-        }
 
         let safe_id = app_id.replace(' ', "-").to_lowercase();
         let name = if display_name.is_empty() { app_id } else { display_name };

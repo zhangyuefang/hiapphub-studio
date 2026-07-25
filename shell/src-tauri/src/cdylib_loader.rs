@@ -37,9 +37,7 @@ pub fn set_app_handle(handle: tauri::AppHandle) {
     let _ = APP_HANDLE.set(handle);
 }
 
-static SHELL_VERSION: &std::ffi::CStr = unsafe {
-    std::ffi::CStr::from_bytes_with_nul_unchecked(b"0.2.0\0")
-};
+static SHELL_VERSION: &std::ffi::CStr = c"0.2.0";
 
 static HAP_CONTEXT: HapContext = HapContext {
     emit_callback: real_emit,

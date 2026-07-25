@@ -324,7 +324,7 @@ impl HapBuilder {
                 self.add_dir_recursive(base, &path)?;
             } else {
                 let relative = path.strip_prefix(base)
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
+                    .map_err(io::Error::other)?
                     .to_string_lossy()
                     .replace('\\', "/");
                 let data = fs::read(&path)?;
@@ -478,11 +478,11 @@ fn encrypt_aes_gcm(key: &[u8; 32], data: &[u8]) -> io::Result<Vec<u8>> {
     let cipher = Aes256Gcm::new(cipher_key);
     let mut nonce_bytes = [0u8; 12];
     getrandom::fill(&mut nonce_bytes)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("rng failed: {e}")))?;
+        .map_err(|e| io::Error::other(format!("rng failed: {e}")))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ct_with_tag = cipher.encrypt(nonce, data)
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "AES-256-GCM encryption failed"))?;
+        .map_err(|_| io::Error::other("AES-256-GCM encryption failed"))?;
 
     let tag_start = ct_with_tag.len() - 16;
     let ciphertext = &ct_with_tag[..tag_start];

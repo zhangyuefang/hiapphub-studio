@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::LazyLock;
-use std::path::PathBuf;
 
 use crate::hap_format;
 use crate::hap_manager;
@@ -81,7 +80,7 @@ pub fn handle_request(
     respond_ok(responder, &data, mime);
 }
 
-fn read_from_hap(hap_path: &PathBuf, file_path: &str) -> Result<Vec<u8>, String> {
+fn read_from_hap(hap_path: &std::path::Path, file_path: &str) -> Result<Vec<u8>, String> {
     let mut reader = hap_format::HapReader::open_file(hap_path)
         .map_err(|e| format!("{e}"))?;
 
