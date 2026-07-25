@@ -15,6 +15,7 @@ pub struct LaunchOverrides {
     pub dev_port: Option<u16>,
     pub name: Option<String>,
     pub window_config: Option<String>,
+    pub manifest_path: Option<String>,
 }
 
 const MAX_RESTART_ATTEMPTS: u32 = 3;
@@ -295,6 +296,10 @@ impl ProcessManager {
 
         if let Some(port) = overrides.dev_port {
             cmd.arg("--dev-port").arg(port.to_string());
+        }
+
+        if let Some(ref mp) = overrides.manifest_path {
+            cmd.arg("--manifest-path").arg(mp);
         }
 
         let child = cmd.spawn().map_err(|e| format!("spawn {effective_app_id} failed: {e}"))?;

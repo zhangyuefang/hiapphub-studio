@@ -318,6 +318,7 @@ fn hap_launch_independent_app_with_params(
                     dev_port: params["devPort"].as_u64().map(|p| p as u16),
                     name: params["name"].as_str().map(|s| s.to_string()),
                     window_config: params.get("windowConfig").map(|v| v.to_string()),
+                    manifest_path: params["manifestPath"].as_str().map(|s| s.to_string()),
                 };
                 return pm.launch_app_with_overrides(
                     &plugin_id,
