@@ -148,6 +148,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                                 dev_port: params["devPort"].as_u64().map(|p| p as u16),
                                 name: params["name"].as_str().map(|s| s.to_string()),
                                 window_config: params.get("windowConfig").map(|v| v.to_string()),
+                                manifest_path: params["manifestPath"].as_str().map(|s| s.to_string()),
                             };
                             if let Err(e) = pm_for_open.launch_app_with_overrides(
                                 &app_id,
