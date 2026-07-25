@@ -340,9 +340,13 @@ impl ProcessManager {
         let mut cfg = serde_json::Map::new();
         if let Some(w) = win {
             for key in &[
-                "width", "height", "minWidth", "minHeight", "title",
-                "decorations", "resizable", "titleBarStyle", "hiddenTitle",
-                "trafficLightPosition",
+                "width", "height", "minWidth", "minHeight", "maxWidth", "maxHeight",
+                "title", "decorations", "resizable", "maximizable", "minimizable",
+                "closable", "alwaysOnTop", "transparent", "shadow",
+                "titleBarStyle", "hiddenTitle", "trafficLightPosition",
+                "backgroundColor", "x", "y", "center", "startState",
+                "opacity", "skipTaskbar", "aspectRatio", "vibrancy",
+                "macos", "windows", "linux",
             ] {
                 if let Some(v) = w.get(*key) {
                     cfg.insert(key.to_string(), v.clone());
