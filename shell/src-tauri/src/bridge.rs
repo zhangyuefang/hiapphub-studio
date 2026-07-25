@@ -278,10 +278,13 @@ pub fn hap_open_app(
     plugin_name: String,
     params_json: Option<String>,
 ) -> Result<(), String> {
+    eprintln!("[hap_open_app] plugin_id={plugin_id} params_json={params_json:?}");
     let pm = app.state::<std::sync::Arc<ProcessManager>>();
     if pm.is_host_available() {
+        eprintln!("[hap_open_app] host available, launching independent");
         hap_launch_independent_app_with_params(app, plugin_id, params_json)
     } else {
+        eprintln!("[hap_open_app] host NOT available, opening plugin window");
         hap_open_plugin_window(app, plugin_id, plugin_name, None, None)
     }
 }
@@ -312,6 +315,7 @@ fn hap_launch_independent_app_with_params(
     if let Some(ref json_str) = params_json {
         if let Ok(params) = serde_json::from_str::<serde_json::Value>(json_str) {
             if params.get("entry").is_some() {
+                eprintln!("[hap_open_app] entry={} devPort={:?}", params["entry"], params["devPort"]);
                 let overrides = crate::process_manager::LaunchOverrides {
                     url: params["entry"].as_str().map(|s| s.to_string()),
                     app_id_override: params["appId"].as_str().map(|s| s.to_string()),
