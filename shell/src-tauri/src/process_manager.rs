@@ -30,6 +30,9 @@ struct AppProcess {
     window_config_json: String,
     launch_binary: PathBuf,
     entry: Option<String>,
+    url: Option<String>,
+    dev_port: Option<u16>,
+    manifest_path: Option<String>,
     restart_count: u32,
     first_start_at: Instant,
     last_start_at: Instant,
@@ -61,18 +64,18 @@ impl ProcessManager {
     }
 
     fn find_host_binary() -> PathBuf {
+        let data_dir = crate::hap_manager::data_dir();
+        let candidate = data_dir.join("bin").join("hiapphub-host");
+        if candidate.exists() {
+            return candidate;
+        }
+
         if let Ok(exe) = std::env::current_exe() {
             let dir = exe.parent().unwrap_or(std::path::Path::new("."));
             let candidate = dir.join("hiapphub-host");
             if candidate.exists() {
                 return candidate;
             }
-        }
-
-        let data_dir = crate::hap_manager::data_dir();
-        let candidate = data_dir.join("bin").join("hiapphub-host");
-        if candidate.exists() {
-            return candidate;
         }
 
         PathBuf::from("hiapphub-host")
@@ -228,6 +231,9 @@ impl ProcessManager {
                 window_config_json,
                 launch_binary,
                 entry: manifest["entry"].as_str().map(|s| s.to_string()),
+                url: None,
+                dev_port: None,
+                manifest_path: None,
                 restart_count: 0,
                 first_start_at: now,
                 last_start_at: now,
@@ -324,6 +330,9 @@ impl ProcessManager {
                 window_config_json,
                 launch_binary,
                 entry: manifest["entry"].as_str().map(|s| s.to_string()),
+                url: overrides.url.clone(),
+                dev_port: overrides.dev_port,
+                manifest_path: overrides.manifest_path.clone(),
                 restart_count: 0,
                 first_start_at: now,
                 last_start_at: now,
@@ -438,6 +447,9 @@ impl ProcessManager {
                                         proc.window_config_json.clone(),
                                         proc.launch_binary.clone(),
                                         proc.entry.clone(),
+                                        proc.url.clone(),
+                                        proc.dev_port,
+                                        proc.manifest_path.clone(),
                                         proc.restart_count + 1,
                                     ))
                                 } else {
@@ -448,6 +460,9 @@ impl ProcessManager {
                                         proc.window_config_json.clone(),
                                         proc.launch_binary.clone(),
                                         proc.entry.clone(),
+                                        proc.url.clone(),
+                                        proc.dev_port,
+                                        proc.manifest_path.clone(),
                                         1,
                                     ))
                                 }
@@ -471,7 +486,7 @@ impl ProcessManager {
                 }
             };
 
-            if let Some((app_id, hap_path, window_config_json, launch_binary, entry, count)) = should_restart {
+            if let Some((app_id, hap_path, window_config_json, launch_binary, entry, url, dev_port, manifest_path, count)) = should_restart {
                 eprintln!("[pm] restarting {app_id} (attempt {count}/{MAX_RESTART_ATTEMPTS})");
 
                 let token = ipc_server.generate_token(&key);
@@ -487,8 +502,18 @@ impl ProcessManager {
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped());
 
-                if let Some(ref e) = entry {
+                if let Some(ref u) = url {
+                    cmd.arg("--url").arg(u);
+                } else if let Some(ref e) = entry {
                     cmd.arg("--entry").arg(e);
+                }
+
+                if let Some(port) = dev_port {
+                    cmd.arg("--dev-port").arg(port.to_string());
+                }
+
+                if let Some(ref mp) = manifest_path {
+                    cmd.arg("--manifest-path").arg(mp);
                 }
 
                 #[cfg(target_os = "macos")]
@@ -517,6 +542,9 @@ impl ProcessManager {
                                     window_config_json,
                                     launch_binary,
                                     entry,
+                                    url,
+                                    dev_port,
+                                    manifest_path,
                                     restart_count: count,
                                     first_start_at: Instant::now(),
                                     last_start_at: Instant::now(),
