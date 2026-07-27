@@ -121,6 +121,44 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     (payload, None)
                 };
                 log_shell!("[open-app-worker] launching: {app_id}");
+
+                // 开发模式：通过 projectPath 直接启动
+                if let Some(ref json_str) = params_json {
+                    if let Ok(params) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        if let Some(project_path) = params.get("projectPath").and_then(|v| v.as_str()) {
+                            let app_dir = format!("{}/apps/{}", project_path, app_id);
+                            let manifest_path = format!("{}/manifest.json", app_dir);
+                            if std::path::Path::new(&manifest_path).exists() {
+                                let manifest = match std::fs::read_to_string(&manifest_path) {
+                                    Ok(content) => serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default(),
+                                    Err(e) => { log_shell!("[open-app-worker] read manifest: {e}"); continue; }
+                                };
+                                let overrides = crate::process_manager::LaunchOverrides {
+                                    url: None,
+                                    app_id_override: manifest.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                    dev_port: params.get("devPort").and_then(|v| v.as_u64()).map(|p| p as u16),
+                                    name: manifest.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                    window_config: None,
+                                    manifest_path: Some(manifest_path),
+                                };
+                                if let Err(e) = pm_for_open.launch_app_with_overrides(
+                                    &app_id,
+                                    &app_dir,
+                                    &manifest,
+                                    &ipc_for_open,
+                                    &overrides,
+                                ) {
+                                    log_shell!("[open-app-worker] dev launch failed: {e}");
+                                }
+                                continue;
+                            } else {
+                                log_shell!("[open-app-worker] manifest not found: {manifest_path}");
+                                continue;
+                            }
+                        }
+                    }
+                }
+
                 let hap_path = hap_manager::data_dir().join("app").join(format!("{app_id}.hap"));
                 if !hap_path.exists() {
                     log_shell!("[open-app-worker] app '{app_id}' not installed");

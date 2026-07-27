@@ -257,7 +257,7 @@ fn handle_connection(
             Err(_) => continue,
         };
 
-        let response = if authenticated_app_id.is_none() && req.method != "auth.verify" {
+        let response = if authenticated_app_id.is_none() && req.method != "auth.verify" && req.method != "app.openApp" {
             JsonRpcResponse {
                 jsonrpc: "2.0".into(),
                 result: None,
