@@ -49,9 +49,6 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            bridge::clipboard_read_text,
-            bridge::clipboard_write_text,
-            bridge::crypto_hash,
             bridge::crypto_random_bytes,
             bridge::hap_list_modules,
             bridge::hap_call_function,

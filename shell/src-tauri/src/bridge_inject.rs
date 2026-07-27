@@ -200,15 +200,9 @@ pub fn generate_bridge_script(app_id: &str) -> String {
     }},
 
     fs: {{
-      readTextFile: function(path) {{
-        return invoke('fs_read_text_file', {{ path: path }});
-      }},
-      writeTextFile: function(path, content) {{
-        return invoke('fs_write_text_file', {{ path: path, content: content }});
-      }},
-      exists: function(path) {{
-        return invoke('fs_exists', {{ path: path }});
-      }}
+      readTextFile: function() {{ return Promise.reject(new Error('fs not available in Shell; use independent app host')); }},
+      writeTextFile: function() {{ return Promise.reject(new Error('fs not available in Shell; use independent app host')); }},
+      exists: function() {{ return Promise.reject(new Error('fs not available in Shell; use independent app host')); }}
     }},
 
     event: {{

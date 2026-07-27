@@ -28,39 +28,6 @@ static CALL_LOGS: LazyLock<Mutex<VecDeque<HalCallLog>>> = LazyLock::new(|| Mutex
 const MAX_LOGS: usize = 500;
 
 #[tauri::command]
-pub fn fs_read_text_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| format!("read failed: {e}"))
-}
-
-#[tauri::command]
-pub fn fs_write_text_file(path: String, content: String) -> Result<(), String> {
-    if let Some(parent) = std::path::Path::new(&path).parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("mkdir failed: {e}"))?;
-    }
-    fs::write(&path, &content).map_err(|e| format!("write failed: {e}"))
-}
-
-#[tauri::command]
-pub fn fs_exists(path: String) -> bool {
-    std::path::Path::new(&path).exists()
-}
-
-#[tauri::command]
-pub fn clipboard_read_text() -> Result<String, String> {
-    Err("clipboard cdylib module not loaded".into())
-}
-
-#[tauri::command]
-pub fn clipboard_write_text(_text: String) -> Result<(), String> {
-    Err("clipboard cdylib module not loaded".into())
-}
-
-#[tauri::command]
-pub fn crypto_hash(_algorithm: String, _data: String) -> Result<String, String> {
-    Err("crypto cdylib module not loaded".into())
-}
-
-#[tauri::command]
 pub fn crypto_random_bytes(length: usize) -> Result<Vec<u8>, String> {
     let mut buf = vec![0u8; length];
     getrandom::fill(&mut buf).map_err(|e| format!("random bytes generation failed: {e}"))?;
