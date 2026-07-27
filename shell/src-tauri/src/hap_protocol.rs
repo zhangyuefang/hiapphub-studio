@@ -60,7 +60,8 @@ pub fn handle_request(
     let data = match read_from_hap(&hap_path, file_path) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("[hap://] {app_id}/{file_path}: {e}");
+            let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!("[hap://] {app_id}/{file_path}: {e}"));
+            let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n");
             respond_404(responder);
             return;
         }

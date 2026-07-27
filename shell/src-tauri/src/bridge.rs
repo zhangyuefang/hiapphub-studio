@@ -123,7 +123,8 @@ fn app_has_permission(app_id: &str, required: &str) -> bool {
 
 #[tauri::command]
 pub fn hap_js_log(msg: String) {
-    eprintln!("[JS] {msg}");
+    let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!("[JS] {msg}"));
+    let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n");
 }
 
 #[tauri::command]

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -7,6 +8,12 @@ use std::time::{Duration, Instant};
 use serde_json::Value;
 
 use crate::ipc_server::IpcServer;
+
+macro_rules! log_pm {
+    ($($arg:tt)*) => {{
+        let _ = writeln!(std::io::stderr(), $($arg)*);
+    }};
+}
 
 #[derive(Default, Debug)]
 pub struct LaunchOverrides {
@@ -181,7 +188,7 @@ impl ProcessManager {
             }
         } else {
             if ipc_server.is_app_running(app_id) {
-                eprintln!("[pm] {app_id} already running, activating window");
+                log_pm!("[pm] {app_id} already running, activating window");
                 return ipc_server.activate_app_window(app_id);
             }
             app_id.to_string()
@@ -211,7 +218,7 @@ impl ProcessManager {
 
         let child = cmd.spawn().map_err(|e| format!("spawn {app_id} failed: {e}"))?;
         let pid = child.id();
-        eprintln!("[pm] launched {app_id} pid={pid} key={process_key}");
+        log_pm!("[pm] launched {app_id} pid={pid} key={process_key}");
 
         self.write_pid_file(app_id, pid);
 
@@ -268,7 +275,7 @@ impl ProcessManager {
             }
         } else {
             if ipc_server.is_app_running(effective_app_id) {
-                eprintln!("[pm] {effective_app_id} already running, activating window");
+                log_pm!("[pm] {effective_app_id} already running, activating window");
                 return ipc_server.activate_app_window(effective_app_id);
             }
             effective_app_id.to_string()
@@ -310,7 +317,7 @@ impl ProcessManager {
 
         let child = cmd.spawn().map_err(|e| format!("spawn {effective_app_id} failed: {e}"))?;
         let pid = child.id();
-        eprintln!("[pm] launched {effective_app_id} pid={pid} key={process_key}");
+        log_pm!("[pm] launched {effective_app_id} pid={pid} key={process_key}");
 
         self.write_pid_file(effective_app_id, pid);
 
@@ -432,7 +439,7 @@ impl ProcessManager {
                     match proc.child.try_wait() {
                         Ok(Some(status)) => {
                             let code = status.code().unwrap_or(-1);
-                            eprintln!("[pm] {} exited with code {code}", proc.app_id);
+                            log_pm!("[pm] {} exited with code {code}", proc.app_id);
                             self.remove_pid_file(&proc.app_id);
 
                             if code == 0 {
@@ -467,7 +474,7 @@ impl ProcessManager {
                                     ))
                                 }
                             } else {
-                                eprintln!(
+                                log_pm!(
                                     "[pm] {} exceeded max restart attempts ({})",
                                     proc.app_id, MAX_RESTART_ATTEMPTS
                                 );
@@ -477,7 +484,7 @@ impl ProcessManager {
                         }
                         Ok(None) => None,
                         Err(e) => {
-                            eprintln!("[pm] check {} failed: {e}", proc.app_id);
+                            log_pm!("[pm] check {} failed: {e}", proc.app_id);
                             None
                         }
                     }
@@ -487,7 +494,7 @@ impl ProcessManager {
             };
 
             if let Some((app_id, hap_path, window_config_json, launch_binary, entry, url, dev_port, manifest_path, count)) = should_restart {
-                eprintln!("[pm] restarting {app_id} (attempt {count}/{MAX_RESTART_ATTEMPTS})");
+                log_pm!("[pm] restarting {app_id} (attempt {count}/{MAX_RESTART_ATTEMPTS})");
 
                 let token = ipc_server.generate_token(&key);
                 let socket_path = ipc_server.socket_path().to_string_lossy().to_string();
@@ -524,7 +531,7 @@ impl ProcessManager {
                 match cmd.spawn() {
                     Ok(child) => {
                         let pid = child.id();
-                        eprintln!("[pm] restarted {app_id} pid={pid}");
+                        log_pm!("[pm] restarted {app_id} pid={pid}");
                         self.write_pid_file(&app_id, pid);
 
                         let mut procs = self.processes.lock().unwrap();
@@ -555,7 +562,7 @@ impl ProcessManager {
                         }
                     }
                     Err(e) => {
-                        eprintln!("[pm] restart {app_id} failed: {e}");
+                        log_pm!("[pm] restart {app_id} failed: {e}");
                         self.processes.lock().unwrap().remove(&key);
                     }
                 }
@@ -607,10 +614,10 @@ impl ProcessManager {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if let Ok(pid) = content.trim().parse::<u32>() {
                     if is_process_alive(pid) {
-                        eprintln!("[pm] found alive process {app_id} pid={pid}");
+                        log_pm!("[pm] found alive process {app_id} pid={pid}");
                         recovered.push((app_id, pid));
                     } else {
-                        eprintln!("[pm] stale pid file {app_id} pid={pid}, removing");
+                        log_pm!("[pm] stale pid file {app_id} pid={pid}, removing");
                         let _ = std::fs::remove_file(&path);
                     }
                 }
@@ -634,7 +641,7 @@ impl ProcessManager {
     pub fn cleanup_all(&self) {
         let mut procs = self.processes.lock().unwrap();
         for (key, proc) in procs.iter_mut() {
-            eprintln!("[pm] killing {key}");
+            log_pm!("[pm] killing {key}");
             let _ = proc.child.kill();
             let _ = proc.child.wait();
             self.remove_pid_file(&proc.app_id);

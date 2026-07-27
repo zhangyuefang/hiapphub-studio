@@ -50,7 +50,8 @@ pub fn init(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let lib_dir = data_dir.join("lib");
     let lib_path = lib_dir.join("hap-mod-sqlite.hal");
     if !lib_path.exists() {
-        eprintln!("⚠ db cdylib not found: {}, skipping db init", lib_path.display());
+        let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!("⚠ db cdylib not found: {}, skipping db init", lib_path.display()));
+        let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n");
         return Ok(());
     }
 

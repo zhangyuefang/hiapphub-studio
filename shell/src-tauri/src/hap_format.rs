@@ -636,7 +636,8 @@ mod tests {
         let data = reader.read_file("manifest.json").expect("should read manifest");
         let content = String::from_utf8(data).expect("should be utf8");
         let v: serde_json::Value = serde_json::from_str(&content).expect("should parse json");
-        eprintln!("DevTools manifest: id={}, name={}", v["id"], v["name"]);
+        let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!("DevTools manifest: id={}, name={}", v["id"], v["name"]));
+        let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n");
         assert_eq!(v["id"].as_str().unwrap(), "hiapphub-devtools");
     }
 }

@@ -3,6 +3,10 @@ use std::sync::OnceLock;
 use libloading::{Library, Symbol};
 use std::collections::HashMap;
 use std::sync::Mutex;
+
+macro_rules! log_hal {
+    ($($arg:tt)*) => {{ let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!($($arg)*)); let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n"); }};
+}
 use std::sync::LazyLock;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
@@ -251,13 +255,13 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                         match init_result {
                             Ok(info) if !info.is_null() => {
                                 let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
-                                eprintln!("[cdylib] 已加载模块: {} → {:?}", name, info_str);
+                                log_hal!("[cdylib] 已加载模块: {} → {:?}", name, info_str);
                                 if let Some(free) = free_fn {
                                     unsafe { free(info as CCharMutPtr) };
                                 }
                             }
                             Err(_) => {
-                                eprintln!("[cdylib] 模块初始化 panic: {}", name);
+                                log_hal!("[cdylib] 模块初始化 panic: {}", name);
                                 continue;
                             }
                             _ => {}
@@ -282,7 +286,7 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                                     parsed
                                 }
                                 Err(_) => {
-                                    eprintln!("[cdylib] 模块描述 panic: {}", name);
+                                    log_hal!("[cdylib] 模块描述 panic: {}", name);
                                     None
                                 }
                                 _ => None,
@@ -301,7 +305,7 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                         d.file_path = Some(file_path_str.clone());
                         d.file_size = file_size;
                         fill_fallback_fields(d);
-                        eprintln!(
+                        log_hal!(
                             "[cdylib] 模块描述: {} v{} — {} 个API",
                             d.name,
                             d.version,
@@ -322,7 +326,7 @@ pub fn load_modules(data_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
                         });
                 }
                 Err(e) => {
-                    eprintln!("[cdylib] 加载模块失败 {:?}: {}", path, e);
+                    log_hal!("[cdylib] 加载模块失败 {:?}: {}", path, e);
                 }
             }
         }
@@ -365,7 +369,7 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
         if !current_files.contains_key(key) {
             map.remove(key);
             result.removed.push(key.clone());
-            eprintln!("[cdylib] 移除模块: {key}");
+            log_hal!("[cdylib] 移除模块: {key}");
         }
     }
 
@@ -399,13 +403,13 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
                     match init_result {
                         Ok(info) if !info.is_null() => {
                             let info_str = unsafe { std::ffi::CStr::from_ptr(info) };
-                            eprintln!("[cdylib] 已加载模块: {name} → {info_str:?}");
+                            log_hal!("[cdylib] 已加载模块: {name} → {info_str:?}");
                             if let Some(free) = free_fn {
                                 unsafe { free(info as CCharMutPtr) };
                             }
                         }
                         Err(_) => {
-                            eprintln!("[cdylib] 模块初始化 panic: {name}");
+                            log_hal!("[cdylib] 模块初始化 panic: {name}");
                             continue;
                         }
                         _ => {}
@@ -429,7 +433,7 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
                                 parsed
                             }
                             Err(_) => {
-                                eprintln!("[cdylib] 模块描述 panic: {name}");
+                                log_hal!("[cdylib] 模块描述 panic: {name}");
                                 None
                             }
                             _ => None,
@@ -457,14 +461,14 @@ pub fn reload_modules(data_dir: &Path) -> Result<ReloadResult, Box<dyn std::erro
 
                 if is_update {
                     result.updated.push(name.clone());
-                    eprintln!("[cdylib] 热更新模块: {name}");
+                    log_hal!("[cdylib] 热更新模块: {name}");
                 } else {
                     result.added.push(name.clone());
-                    eprintln!("[cdylib] 新增模块: {name}");
+                    log_hal!("[cdylib] 新增模块: {name}");
                 }
             }
             Err(e) => {
-                eprintln!("[cdylib] 加载模块失败 {path:?}: {e}");
+                log_hal!("[cdylib] 加载模块失败 {path:?}: {e}");
             }
         }
     }
@@ -560,7 +564,7 @@ pub fn cleanup_app_resources(app_id: &str) {
                 unsafe { cleanup(c_app_id.as_ptr()) }
             }));
             if result.is_err() {
-                eprintln!("[cdylib] 模块 {name} cleanup panic for app {app_id}");
+                log_hal!("[cdylib] 模块 {name} cleanup panic for app {app_id}");
             }
         }
     }

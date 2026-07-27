@@ -5,6 +5,10 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use serde::{Deserialize, Serialize};
 
+macro_rules! log_ipc {
+    ($($arg:tt)*) => {{ let _ = writeln!(std::io::stderr(), $($arg)*); }};
+}
+
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 
@@ -99,7 +103,7 @@ impl IpcServer {
         let _ = std::fs::remove_file(&self.socket_path);
         let listener = UnixListener::bind(&self.socket_path)
             .map_err(|e| format!("bind failed: {e}"))?;
-        eprintln!("[ipc-server] listening on {}", self.socket_path.display());
+        log_ipc!("[ipc-server] listening on {}", self.socket_path.display());
 
         let tokens = self.tokens.clone();
         let connections = self.connections.clone();
@@ -118,7 +122,7 @@ impl IpcServer {
                             handle_connection(stream, tokens, connections, apps, open_app_tx);
                         });
                     }
-                    Err(e) => eprintln!("[ipc-server] accept error: {e}"),
+                    Err(e) => log_ipc!("[ipc-server] accept error: {e}"),
                 }
             }
         });
@@ -134,7 +138,7 @@ impl IpcServer {
         let port_info = format!("{}", addr.port());
         std::fs::write(&self.socket_path, &port_info)
             .map_err(|e| format!("write pipe info: {e}"))?;
-        eprintln!("[ipc-server] listening on tcp 127.0.0.1:{}", addr.port());
+        log_ipc!("[ipc-server] listening on tcp 127.0.0.1:{}", addr.port());
 
         let tokens = self.tokens.clone();
         let connections = self.connections.clone();
@@ -153,7 +157,7 @@ impl IpcServer {
                             handle_connection(stream, tokens, connections, apps, open_app_tx);
                         });
                     }
-                    Err(e) => eprintln!("[ipc-server] accept error: {e}"),
+                    Err(e) => log_ipc!("[ipc-server] accept error: {e}"),
                 }
             }
         });
@@ -241,7 +245,7 @@ fn handle_connection(
         let line = match line {
             Ok(l) => l,
             Err(e) => {
-                eprintln!("[ipc-server] read error: {e}");
+                log_ipc!("[ipc-server] read error: {e}");
                 break;
             }
         };
@@ -272,7 +276,7 @@ fn handle_connection(
     }
 
     if let Some(ref app_id) = authenticated_app_id {
-        eprintln!("[ipc-server] app '{app_id}' disconnected");
+        log_ipc!("[ipc-server] app '{app_id}' disconnected");
         connections.lock().unwrap().remove(app_id);
         apps.lock().unwrap().remove(app_id);
     }
@@ -302,7 +306,7 @@ fn handle_request(
                     authenticated: true,
                     status: "running".into(),
                 });
-                eprintln!("[ipc-server] app '{app_id}' authenticated");
+                log_ipc!("[ipc-server] app '{app_id}' authenticated");
                 Ok(serde_json::json!({ "authenticated": true, "app_id": app_id }))
             } else {
                 Err(JsonRpcError { code: -32001, message: "invalid token".into() })
@@ -320,7 +324,7 @@ fn handle_request(
         "shell.notify" => {
             let title = params["title"].as_str().unwrap_or("Notification");
             let body = params["body"].as_str().unwrap_or("");
-            eprintln!("[ipc-server] notify from {:?}: {} - {}", authenticated_app_id, title, body);
+            log_ipc!("[ipc-server] notify from {:?}: {} - {}", authenticated_app_id, title, body);
             Ok(serde_json::json!({ "sent": true }))
         }
 
@@ -361,7 +365,7 @@ fn handle_request(
         "app.openApp" => {
             let target_app = params["appId"].as_str().unwrap_or("");
             let params_json = params["paramsJson"].as_str().unwrap_or("");
-            eprintln!("[ipc-server] app.openApp requested: {target_app} params={params_json}");
+            log_ipc!("[ipc-server] app.openApp requested: {target_app} params={params_json}");
             if !target_app.is_empty() {
                 if let Some(tx) = open_app_tx.lock().unwrap().as_ref() {
                     let payload = if params_json.is_empty() {
