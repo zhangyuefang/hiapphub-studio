@@ -49,9 +49,6 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            bridge::fs_read_text_file,
-            bridge::fs_write_text_file,
-            bridge::fs_exists,
             bridge::clipboard_read_text,
             bridge::clipboard_write_text,
             bridge::crypto_hash,
@@ -75,9 +72,6 @@ pub fn run() {
             bridge::hap_js_log,
             bridge::hap_get_call_logs,
             bridge::get_data_dir,
-            bridge::fs_read_text_file,
-            bridge::fs_write_text_file,
-            bridge::fs_exists,
             bridge::store_auth_data,
             bridge::load_auth_data,
             bridge::clear_auth_data,
