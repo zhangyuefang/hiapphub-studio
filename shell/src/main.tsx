@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import App from "./App";
 import { useAppStore } from "@/store/app-store";
 import type { PluginManifest, PluginRecord } from "@/types";
+import { startAutomationClient } from "./automation-client";
 import "./styles/index.css";
 
 async function bootstrap() {
@@ -27,3 +28,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 
 bootstrap();
+startAutomationClient();
