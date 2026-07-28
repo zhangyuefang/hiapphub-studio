@@ -615,7 +615,7 @@ impl ProcessManager {
         let pm = self.clone();
         std::thread::spawn(move || {
             loop {
-                std::thread::sleep(Duration::from_secs(5));
+                std::thread::sleep(Duration::from_secs(1));
                 pm.check_and_restart(&ipc_server);
             }
         });
