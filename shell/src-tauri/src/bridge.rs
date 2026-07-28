@@ -264,15 +264,9 @@ fn hap_launch_independent_app_with_params(
         return Err(format!("app '{plugin_id}' not installed"));
     }
 
-    let manifest = {
-        let mut reader = crate::hap_format::HapReader::open_file(&hap_path)
-            .map_err(|e| format!("{e}"))?;
-        let data = reader.read_file("manifest.json")
-            .map_err(|e| format!("{e}"))?;
-        let content = String::from_utf8(data).map_err(|e| format!("{e}"))?;
-        serde_json::from_str::<serde_json::Value>(&content)
-            .map_err(|e| format!("manifest parse: {e}"))?
-    };
+    let content = hap_manager::read_manifest_content(&hap_path)?;
+    let manifest: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("manifest parse: {e}"))?;
 
     let ipc = app.state::<std::sync::Arc<IpcServer>>();
     let pm = app.state::<std::sync::Arc<ProcessManager>>();
@@ -317,15 +311,9 @@ pub fn hap_launch_independent_app(
         return Err(format!("app '{plugin_id}' not installed"));
     }
 
-    let manifest = {
-        let mut reader = crate::hap_format::HapReader::open_file(&hap_path)
-            .map_err(|e| format!("{e}"))?;
-        let data = reader.read_file("manifest.json")
-            .map_err(|e| format!("{e}"))?;
-        let content = String::from_utf8(data).map_err(|e| format!("{e}"))?;
-        serde_json::from_str::<serde_json::Value>(&content)
-            .map_err(|e| format!("manifest parse: {e}"))?
-    };
+    let content = hap_manager::read_manifest_content(&hap_path)?;
+    let manifest: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("manifest parse: {e}"))?;
 
     let ipc = app.state::<std::sync::Arc<IpcServer>>();
     let pm = app.state::<std::sync::Arc<ProcessManager>>();

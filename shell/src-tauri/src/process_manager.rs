@@ -209,7 +209,7 @@ impl ProcessManager {
             .arg("--ipc-token").arg(&token)
             .arg("--lib-dir").arg(&self.lib_dir)
             .arg("--window-config").arg(&window_config_json)
-            .stdout(Stdio::piped())
+            .stdout(Stdio::null())
             .stderr(Stdio::inherit());
 
         if let Some(entry) = manifest["entry"].as_str() {
@@ -298,7 +298,7 @@ impl ProcessManager {
             .arg("--ipc-token").arg(&token)
             .arg("--lib-dir").arg(&self.lib_dir)
             .arg("--window-config").arg(&window_config_json)
-            .stdout(Stdio::piped())
+            .stdout(Stdio::null())
             .stderr(Stdio::inherit());
 
         if let Some(ref url) = overrides.url {
@@ -442,8 +442,15 @@ impl ProcessManager {
                             log_pm!("[pm] {} exited with code {code}", proc.app_id);
                             self.remove_pid_file(&proc.app_id);
 
-                            if code == 0 {
+                            let exited_app_id = proc.app_id.clone();
+                            let no_restart = exited_app_id == "hiapphub-devtools";
+                            if code == 0 || no_restart {
                                 procs.remove(&key);
+                                if no_restart {
+                                    drop(procs);
+                                    let count = self.stop_all_by_hap("hap-dev-runner");
+                                    if count > 0 { log_pm!("[pm] devtools exited, cascade-stopped {count} dev-runner(s)"); }
+                                }
                                 None
                             } else if proc.restart_count < MAX_RESTART_ATTEMPTS {
                                 let elapsed = proc.last_start_at.elapsed();
@@ -506,8 +513,8 @@ impl ProcessManager {
                     .arg("--ipc-token").arg(&token)
                     .arg("--lib-dir").arg(&self.lib_dir)
                     .arg("--window-config").arg(&window_config_json)
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped());
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null());
 
                 if let Some(ref u) = url {
                     cmd.arg("--url").arg(u);
