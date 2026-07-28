@@ -97,6 +97,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     let ipc = std::sync::Arc::new(ipc_server::IpcServer::new());
     let open_app_rx = ipc.setup_open_app_channel();
+    let stop_app_rx = ipc.setup_stop_app_channel();
     if let Err(e) = ipc.start() {
         log_shell!("[setup] IPC server start failed (non-fatal): {e}");
     } else {
@@ -192,6 +193,11 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(ref json_str) = params_json {
                     if let Ok(params) = serde_json::from_str::<serde_json::Value>(json_str) {
                         if params.get("entry").is_some() {
+                            let effective_id = params["appId"].as_str().unwrap_or(&app_id);
+                            if pm_for_open.is_app_running(effective_id) {
+                                log_shell!("[open-app-worker] {effective_id} already running, skip duplicate");
+                                continue;
+                            }
                             let overrides = crate::process_manager::LaunchOverrides {
                                 url: params["entry"].as_str().map(|s| s.to_string()),
                                 app_id_override: params["appId"].as_str().map(|s| s.to_string()),
@@ -221,6 +227,25 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     &ipc_for_open,
                 ) {
                     log_shell!("[open-app-worker] launch failed: {e}");
+                }
+            }
+        });
+    }
+
+    {
+        let pm_for_stop = pm.clone();
+        std::thread::spawn(move || {
+            while let Ok(app_id) = stop_app_rx.recv() {
+                log_shell!("[stop-app-worker] stopping: {app_id}");
+                if app_id == "hap-dev-runner" || app_id == "*runners*" {
+                    let count = pm_for_stop.stop_all_by_hap("hap-dev-runner");
+                    log_shell!("[stop-app-worker] stopped {count} dev-runner(s)");
+                } else {
+                    pm_for_stop.stop_app(&app_id);
+                    if app_id == "hiapphub-devtools" {
+                        let count = pm_for_stop.stop_all_by_hap("hap-dev-runner");
+                        log_shell!("[stop-app-worker] devtools closed, stopped {count} dev-runner(s)");
+                    }
                 }
             }
         });

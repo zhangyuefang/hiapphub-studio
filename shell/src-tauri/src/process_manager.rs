@@ -570,6 +570,40 @@ impl ProcessManager {
         }
     }
 
+    pub fn stop_app(&self, app_id: &str) -> bool {
+        let mut procs = self.processes.lock().unwrap_or_else(|e| e.into_inner());
+        let key = procs.keys().find(|k| {
+            procs.get(*k).map(|p| p.app_id == app_id).unwrap_or(false)
+        }).cloned();
+        if let Some(key) = key {
+            if let Some(mut proc) = procs.remove(&key) {
+                let _ = proc.child.kill();
+                log_pm!("[pm] stop_app: killed and removed {app_id}");
+                self.remove_pid_file(app_id);
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn stop_all_by_hap(&self, hap_name: &str) -> u32 {
+        let mut procs = self.processes.lock().unwrap_or_else(|e| e.into_inner());
+        let keys: Vec<String> = procs.iter()
+            .filter(|(_, p)| p.hap_path.contains(hap_name))
+            .map(|(k, _)| k.clone())
+            .collect();
+        let mut count = 0u32;
+        for key in keys {
+            if let Some(mut proc) = procs.remove(&key) {
+                let _ = proc.child.kill();
+                self.remove_pid_file(&proc.app_id);
+                count += 1;
+            }
+        }
+        if count > 0 { log_pm!("[pm] stop_all_by_hap({hap_name}): killed {count} processes"); }
+        count
+    }
+
     pub fn start_monitor(self: &Arc<Self>, ipc_server: Arc<IpcServer>) {
         let pm = self.clone();
         std::thread::spawn(move || {
@@ -630,6 +664,11 @@ impl ProcessManager {
     #[allow(dead_code)]
     pub fn is_app_managed(&self, app_id: &str) -> bool {
         self.processes.lock().unwrap().contains_key(app_id)
+    }
+
+    pub fn is_app_running(&self, app_id: &str) -> bool {
+        let procs = self.processes.lock().unwrap_or_else(|e| e.into_inner());
+        procs.values().any(|p| p.app_id == app_id)
     }
 
     #[allow(dead_code)]
