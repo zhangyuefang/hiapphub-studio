@@ -172,7 +172,21 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                         }
                         Err(e) => { log_shell!("[open-app-worker] read manifest: {e}"); continue; }
                     },
-                    Err(e) => { log_shell!("[open-app-worker] open hap: {e}"); continue; }
+                    Err(_) => {
+                        match zip::ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&hap_path).unwrap())) {
+                            Ok(mut archive) => {
+                                match archive.by_name("manifest.json") {
+                                    Ok(mut file) => {
+                                        let mut content = String::new();
+                                        std::io::Read::read_to_string(&mut file, &mut content).unwrap_or_default();
+                                        serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default()
+                                    }
+                                    Err(e) => { log_shell!("[open-app-worker] zip manifest: {e}"); continue; }
+                                }
+                            }
+                            Err(e) => { log_shell!("[open-app-worker] open hap (neither custom nor zip): {e}"); continue; }
+                        }
+                    }
                 };
 
                 if let Some(ref json_str) = params_json {
