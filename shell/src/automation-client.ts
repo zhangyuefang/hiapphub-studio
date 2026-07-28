@@ -1,5 +1,5 @@
 const WS_PORT = 19768;
-const RETRY_DELAY = 5000;
+const RETRY_DELAY = 2000;
 const APP_ID = 'hiapphub-shell';
 
 let ws: WebSocket | null = null;
@@ -16,20 +16,25 @@ function tryConnect() {
   }
 
   ws.onopen = () => {
+    console.log('[automation-client] connected');
     ws!.send(JSON.stringify({ type: 'register', role: 'runner', appId: APP_ID, label: 'Shell' }));
   };
 
   ws.onmessage = (ev) => {
     try {
-      const msg = JSON.parse(ev.data);
+      const msg = JSON.parse(typeof ev.data === 'string' ? ev.data : '');
       if (msg.type === 'api:request' && msg.requestId) {
         handleApiRequest(msg.requestId, msg.action, msg.params);
       }
     } catch {}
   };
 
-  ws.onclose = () => { ws = null; scheduleRetry(); };
-  ws.onerror = () => { ws?.close(); };
+  ws.onclose = () => {
+    console.log('[automation-client] disconnected, retrying...');
+    ws = null;
+    scheduleRetry();
+  };
+  ws.onerror = () => { try { ws?.close(); } catch {} };
 }
 
 function scheduleRetry() {
@@ -39,6 +44,7 @@ function scheduleRetry() {
 
 async function handleApiRequest(requestId: string, action: string, params?: any) {
   let data: any = {};
+  const currentWs = ws;
   try {
     if (action === 'get_bounds') {
       const win = (window as any).__TAURI__?.window?.getCurrentWindow?.();
@@ -87,8 +93,9 @@ async function handleApiRequest(requestId: string, action: string, params?: any)
   } catch (e: any) {
     data = { error: e?.message || 'unknown error' };
   }
-  if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'api:response', requestId, data }));
+  const sendWs = currentWs || ws;
+  if (sendWs && sendWs.readyState === WebSocket.OPEN) {
+    sendWs.send(JSON.stringify({ type: 'api:response', requestId, data }));
   }
 }
 
