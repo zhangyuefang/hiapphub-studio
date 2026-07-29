@@ -29,9 +29,13 @@ const MAX_LOGS: usize = 500;
 
 #[tauri::command]
 pub fn crypto_random_bytes(length: usize) -> Result<Vec<u8>, String> {
-    let mut buf = vec![0u8; length];
-    getrandom::fill(&mut buf).map_err(|e| format!("random bytes generation failed: {e}"))?;
-    Ok(buf)
+    let params = serde_json::json!({ "length": length });
+    let result = crate::cdylib_loader::call_function("crypto", "hap_crypto_random_bytes", &params.to_string())
+        .map_err(|e| format!("HAL crypto random: {e}"))?;
+    let hex_str: String = serde_json::from_str(&result)
+        .map_err(|e| format!("parse random result: {e}"))?;
+    hex::decode(&hex_str)
+        .map_err(|e| format!("decode random bytes: {e}"))
 }
 
 #[tauri::command]
@@ -72,7 +76,16 @@ pub fn hap_call_function(window: tauri::WebviewWindow, module_name: String, symb
     };
 
     let start = std::time::Instant::now();
-    let result = cdylib_loader::call_function(&module_name, &symbol_name, &enriched_params);
+    let result = cdylib_loader::call_function(&module_name, &symbol_name, &enriched_params)
+        .and_then(|r| {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&r) {
+                if let Some(err_obj) = parsed.get("error") {
+                    let msg = err_obj["message"].as_str().unwrap_or("HAL module error");
+                    return Err(msg.to_string());
+                }
+            }
+            Ok(r)
+        });
 
     let skip_log = app_id_str == "hiapphub-devtools" && module_name == "webserver";
     if !skip_log {

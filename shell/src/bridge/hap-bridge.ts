@@ -20,53 +20,53 @@ export function createBridge(pluginId: string, permissions: string[]) {
 
     fs: {
       async readFile(path: string): Promise<Uint8Array> {
-        guard("fs:read");
+        guard("fs.read");
         return invoke("fs_read_file", { path });
       },
       async readTextFile(path: string): Promise<string> {
-        guard("fs:read");
+        guard("fs.read");
         return invoke("fs_read_text_file", { path });
       },
       async writeFile(path: string, data: Uint8Array): Promise<void> {
-        guard("fs:write");
+        guard("fs.write");
         return invoke("fs_write_file", { path, data: Array.from(data) });
       },
       async writeTextFile(path: string, content: string): Promise<void> {
-        guard("fs:write");
+        guard("fs.write");
         return invoke("fs_write_text_file", { path, content });
       },
       async exists(path: string): Promise<boolean> {
-        guard("fs:read");
+        guard("fs.read");
         return invoke("fs_exists", { path });
       },
       async remove(path: string): Promise<void> {
-        guard("fs:delete");
+        guard("fs.delete");
         return invoke("fs_remove", { path });
       },
       async readDir(path: string): Promise<unknown[]> {
-        guard("fs:read");
+        guard("fs.read");
         return invoke("fs_read_dir", { path });
       },
       async createDir(path: string): Promise<void> {
-        guard("fs:write");
+        guard("fs.write");
         return invoke("fs_create_dir", { path });
       },
     },
 
     clipboard: {
       async readText(): Promise<string> {
-        guard("clipboard:read");
+        guard("clipboard.read");
         return invoke("clipboard_read_text");
       },
       async writeText(text: string): Promise<void> {
-        guard("clipboard:write");
+        guard("clipboard.write");
         return invoke("clipboard_write_text", { text });
       },
     },
 
     http: {
       async fetch(url: string, options?: Record<string, unknown>): Promise<unknown> {
-        guard("http:request");
+        guard("http");
         return invoke("http_fetch", { url, options });
       },
     },

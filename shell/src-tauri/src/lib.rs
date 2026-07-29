@@ -14,8 +14,64 @@ macro_rules! log_shell {
     ($($arg:tt)*) => {{ let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!($($arg)*)); let _ = std::io::Write::write_all(&mut std::io::stderr(), b"\n"); }};
 }
 
+#[cfg(target_os = "macos")]
+fn fix_path_env() {
+    let current = std::env::var("PATH").unwrap_or_default();
+    let mut extra = Vec::new();
+    if let Ok(content) = std::fs::read_to_string("/etc/paths") {
+        for line in content.lines() {
+            let p = line.trim();
+            if !p.is_empty() && !current.contains(p) {
+                extra.push(p.to_string());
+            }
+        }
+    }
+    if let Ok(entries) = std::fs::read_dir("/etc/paths.d") {
+        for entry in entries.flatten() {
+            if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                for line in content.lines() {
+                    let p = line.trim();
+                    if !p.is_empty() && !current.contains(p) {
+                        extra.push(p.to_string());
+                    }
+                }
+            }
+        }
+    }
+    if let Some(home) = dirs::home_dir() {
+        for dir in &[".volta/bin", ".local/bin"] {
+            let full = home.join(dir);
+            let s = full.to_string_lossy().to_string();
+            if full.exists() && !current.contains(&s) { extra.push(s); }
+        }
+        let node_ver_dirs = [
+            home.join(".nvm/versions/node"),
+            home.join(".fnm/node-versions"),
+        ];
+        for base in &node_ver_dirs {
+            if let Ok(entries) = std::fs::read_dir(base) {
+                if let Some(latest) = entries.flatten().filter(|e| e.path().is_dir()).max_by(|a, b| a.file_name().cmp(&b.file_name())) {
+                    let bin = if base.ends_with("node-versions") {
+                        latest.path().join("installation/bin")
+                    } else {
+                        latest.path().join("bin")
+                    };
+                    let s = bin.to_string_lossy().to_string();
+                    if bin.exists() && !current.contains(&s) { extra.push(s); }
+                }
+            }
+        }
+    }
+    if !extra.is_empty() {
+        let new_path = format!("{}:{}", extra.join(":"), current);
+        std::env::set_var("PATH", &new_path);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "macos")]
+    fix_path_env();
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(w) = app.get_webview_window("main") {
@@ -25,9 +81,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_shell::init())
         .register_asynchronous_uri_scheme_protocol("hap", |_ctx, req, responder| {
             std::thread::spawn(move || {
                 hap_protocol::handle_request(req, responder);
@@ -179,21 +233,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                         }
                         Err(e) => { log_shell!("[open-app-worker] read manifest: {e}"); continue; }
                     },
-                    Err(_) => {
-                        match zip::ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&hap_path).unwrap())) {
-                            Ok(mut archive) => {
-                                match archive.by_name("manifest.json") {
-                                    Ok(mut file) => {
-                                        let mut content = String::new();
-                                        std::io::Read::read_to_string(&mut file, &mut content).unwrap_or_default();
-                                        serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default()
-                                    }
-                                    Err(e) => { log_shell!("[open-app-worker] zip manifest: {e}"); continue; }
-                                }
-                            }
-                            Err(e) => { log_shell!("[open-app-worker] open hap (neither custom nor zip): {e}"); continue; }
-                        }
-                    }
+                    Err(e) => { log_shell!("[open-app-worker] open hap: {e}"); continue; }
                 };
 
                 if let Some(ref json_str) = params_json {

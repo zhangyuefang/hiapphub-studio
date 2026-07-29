@@ -31,10 +31,6 @@
       "desktop": {
         "schemes": ["hiapphub"]
       }
-    },
-    "updater": {
-      "pubkey": "",
-      "endpoints": []
     }
   }
 }

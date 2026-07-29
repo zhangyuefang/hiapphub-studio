@@ -63,20 +63,11 @@ fn read_manifest_from_hap(hap_path: &Path) -> Result<Value, String> {
 
 pub fn read_manifest_content(hap_path: &Path) -> Result<String, String> {
     use crate::hap_format;
-    if let Ok(mut reader) = hap_format::HapReader::open_file(hap_path) {
-        let data = reader.read_file("manifest.json")
-            .map_err(|e| format!("{e}"))?;
-        return String::from_utf8(data).map_err(|e| format!("{e}"));
-    }
-    let file = fs::File::open(hap_path).map_err(|e| format!("{e}"))?;
-    let mut archive = zip::ZipArchive::new(std::io::BufReader::new(file))
-        .map_err(|e| format!("not a valid HAP file (neither custom nor zip): {e}"))?;
-    let mut entry = archive.by_name("manifest.json")
-        .map_err(|e| format!("manifest.json not found in zip: {e}"))?;
-    let mut content = String::new();
-    std::io::Read::read_to_string(&mut entry, &mut content)
-        .map_err(|e| format!("read manifest: {e}"))?;
-    Ok(content)
+    let mut reader = hap_format::HapReader::open_file(hap_path)
+        .map_err(|e| format!("open hap: {e}"))?;
+    let data = reader.read_file("manifest.json")
+        .map_err(|e| format!("{e}"))?;
+    String::from_utf8(data).map_err(|e| format!("{e}"))
 }
 
 pub fn install_from_hap(hap_path: &str) -> Result<Value, String> {

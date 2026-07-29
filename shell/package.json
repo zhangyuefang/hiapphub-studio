@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "pack": "node ../packages/hap-cli/dist/index.js pack . -o hiapphub-shell.hap"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.0",
@@ -16,9 +17,6 @@
     "@radix-ui/react-tooltip": "^1.1.0",
     "@tauri-apps/plugin-deep-link": "^2.2.0",
     "@tauri-apps/plugin-dialog": "^2.2.0",
-    "@tauri-apps/plugin-notification": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0",
-    "@tauri-apps/plugin-updater": "^2.5.0",
     "lucide-react": "^0.511.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

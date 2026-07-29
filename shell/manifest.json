@@ -4,13 +4,33 @@
   "name": "HiAppHub Shell",
   "names": {
     "zh-CN": "HiAppHub",
-    "en-US": "HiAppHub"
+    "en-US": "HiAppHub",
+    "zh-TW": "HiAppHub",
+    "ja": "HiAppHub",
+    "ko": "HiAppHub",
+    "es": "HiAppHub",
+    "fr": "HiAppHub",
+    "de": "HiAppHub",
+    "pt-BR": "HiAppHub",
+    "ru": "HiAppHub",
+    "ar": "HiAppHub",
+    "hi": "HiAppHub"
   },
   "version": "0.1.0",
   "description": "HiAppHub application launcher and marketplace",
   "descriptions": {
     "zh-CN": "HiAppHub 应用启动器与市场",
-    "en-US": "HiAppHub application launcher and marketplace"
+    "en-US": "HiAppHub application launcher and marketplace",
+    "zh-TW": "HiAppHub 應用啟動器與市場",
+    "ja": "HiAppHub アプリランチャーとマーケットプレイス",
+    "ko": "HiAppHub 앱 런처 및 마켓플레이스",
+    "es": "Lanzador de aplicaciones y tienda HiAppHub",
+    "fr": "Lanceur d'applications et boutique HiAppHub",
+    "de": "HiAppHub Anwendungsstarter und Marktplatz",
+    "pt-BR": "Lançador de aplicativos e loja HiAppHub",
+    "ru": "Запуск приложений и магазин HiAppHub",
+    "ar": "مشغل التطبيقات ومتجر HiAppHub",
+    "hi": "HiAppHub ऐप लॉन्चर और मार्केटप्लेस"
   },
   "author": "HiAppHub Team",
   "authorId": "hiapphub",
@@ -18,11 +38,14 @@
   "icon": "icon.png",
   "entry": "index.html",
   "category": "system",
-  "minBootstrapVersion": "0.1.0",
+  "tags": ["shell", "launcher", "marketplace"],
+  "minShellVersion": "0.1.0",
+  "platforms": ["windows", "macos", "linux"],
   "hapType": "shell",
   "permissions": [
     "db",
-    "fs",
+    "fs.read",
+    "fs.write",
     "window",
     "system.info",
     "system.openApp",
@@ -35,8 +58,53 @@
     "system.loadPluginHtml",
     "system.libUsageStats",
     "hal",
-    "event"
+    "event",
+    "notification",
+    "dialog.file",
+    "dialog.directory"
   ],
+  "dependencies": {
+    "hal": [
+      {
+        "id": "tray",
+        "uuid": "a1b2c3d4-1000-4000-8000-000000000018",
+        "minVersion": "1.0.0",
+        "name": {
+          "zh-CN": "系统托盘模块",
+          "en-US": "System tray module",
+          "zh-TW": "系統托盤模組",
+          "ja": "システムトレイモジュール",
+          "ko": "시스템 트레이 모듈",
+          "es": "Módulo de bandeja del sistema",
+          "fr": "Module de barre d'état système",
+          "de": "Systemtray-Modul",
+          "pt-BR": "Módulo de bandeja do sistema",
+          "ru": "Модуль системного трея",
+          "ar": "وحدة صينية النظام",
+          "hi": "सिस्टम ट्रे मॉड्यूल"
+        }
+      },
+      {
+        "id": "http",
+        "uuid": "a1b2c3d4-1000-4000-8000-000000000007",
+        "minVersion": "1.0.0",
+        "name": {
+          "zh-CN": "HTTP 请求模块",
+          "en-US": "HTTP request module",
+          "zh-TW": "HTTP 請求模組",
+          "ja": "HTTPリクエストモジュール",
+          "ko": "HTTP 요청 모듈",
+          "es": "Módulo de solicitudes HTTP",
+          "fr": "Module de requêtes HTTP",
+          "de": "HTTP-Anfragemodul",
+          "pt-BR": "Módulo de requisições HTTP",
+          "ru": "Модуль HTTP-запросов",
+          "ar": "وحدة طلبات HTTP",
+          "hi": "HTTP अनुरोध मॉड्यूल"
+        }
+      }
+    ]
+  },
   "windows": [
     {
       "label": "main",

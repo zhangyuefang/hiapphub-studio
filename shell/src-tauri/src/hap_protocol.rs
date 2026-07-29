@@ -96,18 +96,7 @@ fn read_from_hap(hap_path: &std::path::Path, file_path: &str) -> Result<Vec<u8>,
                 reader.read_file(file_path).map_err(|e| format!("{e}"))
             }
         }
-        Err(_) => {
-            let file = std::fs::File::open(hap_path)
-                .map_err(|e| format!("open hap: {e}"))?;
-            let mut archive = zip::ZipArchive::new(std::io::BufReader::new(file))
-                .map_err(|e| format!("not a valid HAP or ZIP: {e}"))?;
-            let mut entry = archive.by_name(file_path)
-                .map_err(|e| format!("file not found in zip: {e}"))?;
-            let mut data = Vec::with_capacity(entry.size() as usize);
-            std::io::Read::read_to_end(&mut entry, &mut data)
-                .map_err(|e| format!("read zip entry: {e}"))?;
-            Ok(data)
-        }
+        Err(e) => Err(format!("open hap: {e}"))
     }
 }
 
