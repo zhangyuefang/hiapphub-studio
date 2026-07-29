@@ -257,7 +257,7 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
         <h3 className="text-sm font-medium mb-3 opacity-60 uppercase tracking-wider">{t("settings.about")}</h3>
         <div className="space-y-2 text-sm opacity-70">
           <div className="flex justify-between"><span>{t("settings.version")}</span><span>{currentVersion}</span></div>
-          <div className="flex justify-between"><span>{t("settings.framework")}</span><span>Tauri 2.x + React 19</span></div>
+          <div className="flex justify-between"><span>{t("settings.framework")}</span><span>HiAppHub Host + React 19</span></div>
           <div className="flex justify-between">
             <span>{t("settings.website")}</span>
             <a className="text-blue-500 hover:underline" href="https://hiapphub.com" target="_blank" rel="noreferrer">hiapphub.com</a>

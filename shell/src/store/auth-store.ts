@@ -30,7 +30,7 @@ interface AuthData {
   user: Pick<UserInfo, "id" | "username" | "email" | "name">;
 }
 
-async function saveAuthToTauri(data: AuthData) {
+async function saveAuthData(data: AuthData) {
   localStorage.setItem("shell_token", data.accessToken);
   localStorage.setItem("shell_refreshToken", data.refreshToken);
   try {
@@ -38,7 +38,7 @@ async function saveAuthToTauri(data: AuthData) {
   } catch { /* Bridge not available */ }
 }
 
-async function loadAuthFromTauri(): Promise<AuthData | null> {
+async function loadAuthData(): Promise<AuthData | null> {
   try {
     const raw = await hap.system.loadAuth();
     if (raw) {
@@ -59,7 +59,7 @@ async function loadAuthFromTauri(): Promise<AuthData | null> {
   return null;
 }
 
-async function clearAuthFromTauri() {
+async function clearAuthData() {
   localStorage.removeItem("shell_token");
   localStorage.removeItem("shell_refreshToken");
   localStorage.removeItem("shell_user");
@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginWithTokens: async (accessToken, refreshToken) => {
     set({ isLoading: true, error: null });
     try {
-      await saveAuthToTauri({ accessToken, refreshToken, user: { id: "", username: null, email: null, name: null } });
+      await saveAuthData({ accessToken, refreshToken, user: { id: "", username: null, email: null, name: null } });
       set({ isLoggedIn: true, isLoading: false });
       await get().fetchProfile();
     } catch (e: any) {
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    clearAuthFromTauri();
+    clearAuthData();
     set({ user: null, isLoggedIn: false, error: null });
   },
 
@@ -113,12 +113,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: profile, isLoggedIn: true });
     } catch {
       set({ user: null, isLoggedIn: false });
-      clearAuthFromTauri();
+      clearAuthData();
     }
   },
 
   loadFromStorage: () => {
-    loadAuthFromTauri().then((data) => {
+    loadAuthData().then((data) => {
       if (data) {
         set({ user: data.user as any, isLoggedIn: true });
       }

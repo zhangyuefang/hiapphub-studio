@@ -49,7 +49,17 @@ export default function App() {
       setIsMaximized(await hap.window.isMaximized());
       setIsFullscreen(await hap.window.isFullscreen());
     });
-    return () => { unlisten.then((fn) => fn()); };
+    const dlId = hap.event.on("deep-link", (url: any) => {
+      const raw = typeof url === "string" ? url : String(url);
+      const match = raw.match(/^hiapphub:\/\/tool\/([^/?#]+)/);
+      if (match) {
+        hap.system.openApp(match[1]).catch((e: any) => console.error("deep-link open failed:", e));
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+      hap.event.off("deep-link", dlId);
+    };
   }, []);
 
   const isMac = navigator.userAgent.includes("Mac");
