@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import type { PluginRecord } from "../types";
 import { useI18n } from "../i18n";
 
@@ -14,13 +13,11 @@ export function PluginView({ plugin, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!plugin?.manifest._installPath) return;
-    invoke<string>("hap_load_plugin_html", {
-      installPath: plugin.manifest._installPath,
-    })
+    if (!plugin?.manifest.id) return;
+    hap.system.loadPluginHtml(plugin.manifest.id)
       .then(setHtml)
       .catch((e) => setError(String(e)));
-  }, [plugin?.manifest._installPath]);
+  }, [plugin?.manifest.id]);
 
   if (!plugin) {
     return (

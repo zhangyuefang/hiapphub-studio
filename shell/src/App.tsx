@@ -1,14 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "@/store/app-store";
 import { useI18n, loadExternalLocales } from "@/i18n";
 import { ToolGrid } from "@/components/ToolGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { Toast } from "@/components/Toast";
 import { Settings } from "@/components/Settings";
-
-const appWindow = getCurrentWindow();
 
 export default function App() {
   const { plugins, search, category, theme, setSearch, setCategory, toggleTheme } =
@@ -37,10 +33,10 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      setIsMaximized(await appWindow.isMaximized());
-      setIsFullscreen(await appWindow.isFullscreen());
+      setIsMaximized(await hap.window.isMaximized());
+      setIsFullscreen(await hap.window.isFullscreen());
       if (!navigator.userAgent.includes("Mac")) {
-        await appWindow.setDecorations(false);
+        await hap.window.setDecorations(false);
       }
       const saved = localStorage.getItem("shell_locale");
       if (saved && saved !== locale) {
@@ -49,9 +45,9 @@ export default function App() {
       await loadExternalLocales();
     };
     init();
-    const unlisten = appWindow.onResized(async () => {
-      setIsMaximized(await appWindow.isMaximized());
-      setIsFullscreen(await appWindow.isFullscreen());
+    const unlisten = hap.window.onResized(async () => {
+      setIsMaximized(await hap.window.isMaximized());
+      setIsFullscreen(await hap.window.isFullscreen());
     });
     return () => { unlisten.then((fn) => fn()); };
   }, []);
@@ -84,10 +80,7 @@ export default function App() {
     const rec = plugins.find((p) => p.manifest.id === id);
     if (!rec) return;
     try {
-      await invoke("hap_open_app", {
-        pluginId: rec.manifest.id,
-        pluginName: rec.manifest.names?.[locale] ?? rec.manifest.name,
-      });
+      await hap.system.openApp(rec.manifest.id, { name: rec.manifest.names?.[locale] ?? rec.manifest.name });
     } catch (e) {
       console.error("打开插件窗口失败:", e);
     }
@@ -177,7 +170,7 @@ export default function App() {
               <button
                 className="w-11 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 style={{ height: 44 }}
-                onClick={() => appWindow.minimize()}
+                onClick={() => hap.window.minimize()}
                 title={t("window.minimize")}
               >
                 <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
@@ -185,7 +178,7 @@ export default function App() {
               <button
                 className="w-11 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 style={{ height: 44 }}
-                onClick={() => isMaximized ? appWindow.unmaximize() : appWindow.maximize()}
+                onClick={() => isMaximized ? hap.window.unmaximize() : hap.window.maximize()}
                 title={isMaximized ? t("window.restore") : t("window.maximize")}
               >
                 {isMaximized ? (
@@ -202,7 +195,7 @@ export default function App() {
               <button
                 className="w-11 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
                 style={{ height: 44 }}
-                onClick={() => appWindow.close()}
+                onClick={() => hap.window.close()}
                 title={t("window.close")}
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.2">

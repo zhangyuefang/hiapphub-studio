@@ -134,3 +134,17 @@ pub fn plugin_kv_set(plugin_id: &str, key: &str, value: &str) -> Result<(), Stri
     let result = call(b"hap_sqlite_execute", &json_arg)?;
     if result.contains("\"error\"") { Err(result) } else { Ok(()) }
 }
+
+pub fn plugin_kv_delete(plugin_id: &str, key: &str) -> Result<(), String> {
+    let db_id = get_db_id()?;
+    let sql = "DELETE FROM plugin_kv WHERE plugin_id = ?1 AND key = ?2";
+    let json_arg = format!(
+        r#"{{"db_id":"{}","sql":"{}","params":["{}","{}"]}}"#,
+        escape_json_str(&db_id),
+        escape_json_str(sql),
+        escape_json_str(plugin_id),
+        escape_json_str(key)
+    );
+    let result = call(b"hap_sqlite_execute", &json_arg)?;
+    if result.contains("\"error\"") { Err(result) } else { Ok(()) }
+}

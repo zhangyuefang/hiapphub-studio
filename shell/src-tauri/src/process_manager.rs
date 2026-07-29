@@ -71,18 +71,14 @@ impl ProcessManager {
     }
 
     fn find_host_binary() -> PathBuf {
+        if let Ok(exe) = std::env::current_exe() {
+            return exe;
+        }
+
         let data_dir = crate::hap_manager::data_dir();
         let candidate = data_dir.join("bin").join("hiapphub-host");
         if candidate.exists() {
             return candidate;
-        }
-
-        if let Ok(exe) = std::env::current_exe() {
-            let dir = exe.parent().unwrap_or(std::path::Path::new("."));
-            let candidate = dir.join("hiapphub-host");
-            if candidate.exists() {
-                return candidate;
-            }
         }
 
         PathBuf::from("hiapphub-host")
@@ -203,7 +199,8 @@ impl ProcessManager {
         let launch_binary = self.get_named_binary(manifest, app_id);
 
         let mut cmd = Command::new(&launch_binary);
-        cmd.arg("--app-id").arg(app_id)
+        cmd.arg("--mode").arg("host")
+            .arg("--app-id").arg(app_id)
             .arg("--hap-path").arg(hap_path)
             .arg("--ipc-endpoint").arg(&socket_path)
             .arg("--ipc-token").arg(&token)
@@ -292,7 +289,8 @@ impl ProcessManager {
         let launch_binary = self.get_named_binary_with_name(manifest, app_id, bundle_name);
 
         let mut cmd = Command::new(&launch_binary);
-        cmd.arg("--app-id").arg(effective_app_id)
+        cmd.arg("--mode").arg("host")
+            .arg("--app-id").arg(effective_app_id)
             .arg("--hap-path").arg(hap_path)
             .arg("--ipc-endpoint").arg(&socket_path)
             .arg("--ipc-token").arg(&token)
@@ -507,7 +505,8 @@ impl ProcessManager {
                 let socket_path = ipc_server.socket_path().to_string_lossy().to_string();
 
                 let mut cmd = Command::new(&launch_binary);
-                cmd.arg("--app-id").arg(&app_id)
+                cmd.arg("--mode").arg("host")
+                    .arg("--app-id").arg(&app_id)
                     .arg("--hap-path").arg(&hap_path)
                     .arg("--ipc-endpoint").arg(&socket_path)
                     .arg("--ipc-token").arg(&token)

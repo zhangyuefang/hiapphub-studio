@@ -223,6 +223,11 @@ pub fn db_plugin_set(plugin_id: String, key: String, value: String) -> Result<()
     db::plugin_kv_set(&plugin_id, &key, &value)
 }
 
+#[tauri::command]
+pub fn db_plugin_delete(plugin_id: String, key: String) -> Result<(), String> {
+    db::plugin_kv_delete(&plugin_id, &key)
+}
+
 fn cleanup_plugin_trays(_plugin_id: &str) {
     use crate::cdylib_loader;
     if let Ok(result) = cdylib_loader::call_function("tray", "hap_tray_list", "{}") {
@@ -650,4 +655,29 @@ pub fn hap_load_plugin_html(install_path: String) -> Result<String, String> {
 #[tauri::command]
 pub fn set_locale(locale: String) {
     cdylib_loader::set_user_locale(&locale);
+}
+
+#[tauri::command]
+pub fn hap_get_versions() -> Result<Value, String> {
+    hap_manager::get_versions()
+}
+
+#[tauri::command]
+pub fn hap_replace(app_id: String, hap_path: String) -> Result<Value, String> {
+    hap_manager::replace_hap(&app_id, &hap_path)
+}
+
+#[tauri::command]
+pub fn hap_rollback(app_id: String) -> Result<Value, String> {
+    hap_manager::rollback_hap(&app_id)
+}
+
+#[tauri::command]
+pub fn hap_check_updates() -> Result<Value, String> {
+    hap_manager::check_for_updates()
+}
+
+#[tauri::command]
+pub fn hap_download_update(url: String, app_id: String) -> Result<Value, String> {
+    hap_manager::download_update(&url, &app_id)
 }

@@ -82,19 +82,32 @@ pub fn handle_request(
 }
 
 fn read_from_hap(hap_path: &std::path::Path, file_path: &str) -> Result<Vec<u8>, String> {
-    let mut reader = hap_format::HapReader::open_file(hap_path)
-        .map_err(|e| format!("{e}"))?;
-
-    if reader.is_encrypted() {
-        let app_id = hap_path.file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown");
-        let key = hap_manager::load_app_key(app_id)
-            .map_err(|e| format!("load encryption key: {e}"))?;
-        reader.read_file_with_key(file_path, Some(&key))
-            .map_err(|e| format!("{e}"))
-    } else {
-        reader.read_file(file_path).map_err(|e| format!("{e}"))
+    match hap_format::HapReader::open_file(hap_path) {
+        Ok(mut reader) => {
+            if reader.is_encrypted() {
+                let app_id = hap_path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown");
+                let key = hap_manager::load_app_key(app_id)
+                    .map_err(|e| format!("load encryption key: {e}"))?;
+                reader.read_file_with_key(file_path, Some(&key))
+                    .map_err(|e| format!("{e}"))
+            } else {
+                reader.read_file(file_path).map_err(|e| format!("{e}"))
+            }
+        }
+        Err(_) => {
+            let file = std::fs::File::open(hap_path)
+                .map_err(|e| format!("open hap: {e}"))?;
+            let mut archive = zip::ZipArchive::new(std::io::BufReader::new(file))
+                .map_err(|e| format!("not a valid HAP or ZIP: {e}"))?;
+            let mut entry = archive.by_name(file_path)
+                .map_err(|e| format!("file not found in zip: {e}"))?;
+            let mut data = Vec::with_capacity(entry.size() as usize);
+            std::io::Read::read_to_end(&mut entry, &mut data)
+                .map_err(|e| format!("read zip entry: {e}"))?;
+            Ok(data)
+        }
     }
 }
 

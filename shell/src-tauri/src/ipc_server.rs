@@ -270,7 +270,9 @@ fn handle_connection(
             Err(_) => continue,
         };
 
-        let response = if authenticated_app_id.is_none() && req.method != "auth.verify" && req.method != "app.openApp" && req.method != "app.stopApp" {
+        let response = if authenticated_app_id.is_none()
+            && req.method != "auth.verify"
+            && !req.method.starts_with("app.") {
             JsonRpcResponse {
                 jsonrpc: "2.0".into(),
                 result: None,
@@ -404,6 +406,60 @@ fn handle_request(
             } else {
                 Err(JsonRpcError { code: -32602, message: "appId required".into() })
             }
+        }
+
+        "app.listPlugins" => {
+            match crate::bridge::hap_list_plugins() {
+                Ok(plugins) => Ok(serde_json::Value::Array(plugins)),
+                Err(e) => Err(JsonRpcError { code: -32000, message: e }),
+            }
+        }
+
+        "app.reloadModules" => {
+            match crate::bridge::hap_reload_modules() {
+                Ok(result) => Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({"ok": true}))),
+                Err(e) => Err(JsonRpcError { code: -32000, message: e }),
+            }
+        }
+
+        "app.setLocale" => {
+            let locale = params["locale"].as_str().unwrap_or("").to_string();
+            crate::bridge::set_locale(locale);
+            Ok(serde_json::json!(null))
+        }
+
+        "app.loadPluginHtml" => {
+            let plugin_id = params["pluginId"].as_str().unwrap_or("");
+            let file = params["file"].as_str().unwrap_or("index.html");
+            let hap_path = crate::hap_manager::data_dir().join("app").join(format!("{plugin_id}.hap"));
+            if !hap_path.exists() {
+                Err(JsonRpcError { code: -32000, message: format!("plugin not found: {plugin_id}") })
+            } else {
+                match crate::hap_format::HapReader::open_file(&hap_path) {
+                    Ok(mut reader) => {
+                        match reader.read_file(file) {
+                            Ok(data) => {
+                                let html = String::from_utf8(data).unwrap_or_default();
+                                Ok(serde_json::Value::String(html))
+                            }
+                            Err(e) => Err(JsonRpcError { code: -32000, message: format!("read {file} failed: {e}") }),
+                        }
+                    }
+                    Err(e) => Err(JsonRpcError { code: -32000, message: format!("open hap failed: {e}") }),
+                }
+            }
+        }
+
+        "app.libUsageStats" => {
+            match crate::bridge::hap_lib_usage_stats() {
+                Ok(stats) => Ok(stats),
+                Err(e) => Err(JsonRpcError { code: -32000, message: e }),
+            }
+        }
+
+        "app.installPlugin" => {
+            let _url = params["url"].as_str().unwrap_or("");
+            Err(JsonRpcError { code: -32601, message: "installPlugin not yet implemented".into() })
         }
 
         _ => {

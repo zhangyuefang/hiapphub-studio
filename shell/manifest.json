@@ -1,0 +1,57 @@
+{
+  "id": "hiapphub-shell",
+  "uuid": "00000000-0000-0000-0000-000000000001",
+  "name": "HiAppHub Shell",
+  "names": {
+    "zh-CN": "HiAppHub",
+    "en-US": "HiAppHub"
+  },
+  "version": "0.1.0",
+  "description": "HiAppHub application launcher and marketplace",
+  "descriptions": {
+    "zh-CN": "HiAppHub 应用启动器与市场",
+    "en-US": "HiAppHub application launcher and marketplace"
+  },
+  "author": "HiAppHub Team",
+  "authorId": "hiapphub",
+  "license": "MIT",
+  "icon": "icon.png",
+  "entry": "index.html",
+  "category": "system",
+  "minBootstrapVersion": "0.1.0",
+  "hapType": "shell",
+  "permissions": [
+    "db",
+    "fs",
+    "window",
+    "system.info",
+    "system.openApp",
+    "system.stopApp",
+    "system.listPlugins",
+    "system.installPlugin",
+    "system.reloadModules",
+    "system.revealInFolder",
+    "system.setLocale",
+    "system.loadPluginHtml",
+    "system.libUsageStats",
+    "hal",
+    "event"
+  ],
+  "windows": [
+    {
+      "label": "main",
+      "title": "",
+      "entry": "index.html",
+      "width": 1024,
+      "height": 720,
+      "minWidth": 640,
+      "minHeight": 480,
+      "resizable": true,
+      "decorations": true,
+      "titleBarStyle": "overlay",
+      "hiddenTitle": true,
+      "trafficLightPosition": { "x": 13, "y": 24 },
+      "position": "center"
+    }
+  ]
+}

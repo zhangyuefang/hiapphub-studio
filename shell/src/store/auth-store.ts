@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { invoke } from "@tauri-apps/api/core";
 import { apiFetch } from "@/lib/api";
 
 export interface OAuthAccount {
@@ -35,24 +34,20 @@ async function saveAuthToTauri(data: AuthData) {
   localStorage.setItem("shell_token", data.accessToken);
   localStorage.setItem("shell_refreshToken", data.refreshToken);
   try {
-    await invoke("store_auth_data", { data: JSON.stringify(data) });
-  } catch {
-    // Tauri not available, localStorage only
-  }
+    await hap.system.storeAuth(JSON.stringify(data));
+  } catch { /* Bridge not available */ }
 }
 
 async function loadAuthFromTauri(): Promise<AuthData | null> {
   try {
-    const raw = await invoke<string | null>("load_auth_data");
+    const raw = await hap.system.loadAuth();
     if (raw) {
       const data = JSON.parse(raw) as AuthData;
       localStorage.setItem("shell_token", data.accessToken);
       localStorage.setItem("shell_refreshToken", data.refreshToken);
       return data;
     }
-  } catch {
-    // fallback to localStorage
-  }
+  } catch { /* fallback to localStorage */ }
   const token = localStorage.getItem("shell_token");
   const refresh = localStorage.getItem("shell_refreshToken");
   const userStr = localStorage.getItem("shell_user");
@@ -69,7 +64,7 @@ async function clearAuthFromTauri() {
   localStorage.removeItem("shell_refreshToken");
   localStorage.removeItem("shell_user");
   try {
-    await invoke("clear_auth_data");
+    await hap.system.clearAuth();
   } catch { /* ignore */ }
 }
 

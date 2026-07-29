@@ -10,19 +10,7 @@
     "beforeBuildCommand": "pnpm run build"
   },
   "app": {
-    "windows": [
-      {
-        "title": "",
-        "width": 1024,
-        "height": 720,
-        "minWidth": 640,
-        "minHeight": 480,
-        "decorations": true,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
-        "trafficLightPosition": { "x": 13, "y": 24 }
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

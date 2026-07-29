@@ -122,10 +122,8 @@ function DeviceFlowPanel({ t, theme, onBack }: {
             setStep("done");
             await loginWithTokens(data.accessToken, data.refreshToken);
             try {
-              const { getCurrentWindow } = await import("@tauri-apps/api/window");
-              const win = getCurrentWindow();
-              await win.setFocus();
-            } catch { /* non-Tauri env */ }
+              await hap.window.focus();
+            } catch { /* Bridge not available */ }
           }
         } catch { /* retry next interval */ }
       }, intervalMs);

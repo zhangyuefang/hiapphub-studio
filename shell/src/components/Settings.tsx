@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { invoke } from "@tauri-apps/api/core";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
@@ -109,7 +108,7 @@ export function Settings({ onBack }: Props) {
   ];
 
   const reloadModules = () => {
-    invoke<ModuleDesc[]>("hap_list_modules").then(setModules).catch(() => {});
+    hap.system.listHalModules().then(setModules).catch(() => {});
   };
 
   useEffect(() => {
@@ -473,7 +472,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
   const handleReload = async () => {
     setReloading(true);
     try {
-      await invoke("hap_reload_modules");
+      await hap.system.reloadModules();
       onReload();
     } catch { /* ignore */ }
     setReloading(false);
@@ -482,7 +481,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
   const [showUsage, setShowUsage] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<Record<string, { id: string; name: string }[]>>("hap_lib_usage_stats")
+    hap.system.libUsageStats()
       .then(setUsageStats)
       .catch(() => {});
   }, [modules]);
@@ -637,7 +636,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
                       <span className="font-mono truncate" title={selected.file_path}>{selected.file_path}</span>
                       <button
                         className="shrink-0 text-blue-500 hover:underline whitespace-nowrap"
-                        onClick={() => invoke("hap_reveal_in_folder", { path: selected.file_path })}
+                        onClick={() => hap.system.revealInFolder(selected.file_path!)}
                       >{t("settings.browse")}</button>
                     </span>
                   } />

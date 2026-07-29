@@ -47,12 +47,9 @@ async function handleApiRequest(requestId: string, action: string, params?: any)
   const currentWs = ws;
   try {
     if (action === 'get_bounds') {
-      const win = (window as any).__TAURI__?.window?.getCurrentWindow?.();
-      if (win) {
-        const pos = await win.outerPosition();
-        const size = await win.outerSize();
-        data = { x: pos.x, y: pos.y, width: size.width, height: size.height };
-      } else {
+      try {
+        data = await hap.window.getBounds();
+      } catch {
         data = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
       }
     } else if (action === 'eval') {
@@ -70,22 +67,18 @@ async function handleApiRequest(requestId: string, action: string, params?: any)
     } else if (action === 'screenshot') {
       data = { error: 'screenshot not supported for Shell' };
     } else if (action === 'resize') {
-      const win = (window as any).__TAURI__?.window?.getCurrentWindow?.();
-      if (win) {
-        const { LogicalSize } = await import('@tauri-apps/api/dpi');
-        await win.setSize(new LogicalSize(params.width, params.height));
+      try {
+        await hap.window.setSize(params.width, params.height);
         data = { success: true };
-      } else {
-        data = { error: 'window API unavailable' };
+      } catch (e: any) {
+        data = { error: e?.message || 'resize failed' };
       }
     } else if (action === 'move') {
-      const win = (window as any).__TAURI__?.window?.getCurrentWindow?.();
-      if (win) {
-        const { LogicalPosition } = await import('@tauri-apps/api/dpi');
-        await win.setPosition(new LogicalPosition(params.x, params.y));
+      try {
+        await hap.window.setPosition(params.x, params.y);
         data = { success: true };
-      } else {
-        data = { error: 'window API unavailable' };
+      } catch (e: any) {
+        data = { error: e?.message || 'move failed' };
       }
     } else {
       data = { error: `unknown action: ${action}` };

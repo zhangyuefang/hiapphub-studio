@@ -62,6 +62,7 @@ pub fn run() {
             bridge::hap_install_plugin,
             bridge::db_plugin_get,
             bridge::db_plugin_set,
+            bridge::db_plugin_delete,
             bridge::hap_reveal_in_folder,
             bridge::hap_load_plugin_html,
             bridge::hap_open_app,
@@ -77,6 +78,11 @@ pub fn run() {
             bridge::load_auth_data,
             bridge::clear_auth_data,
             bridge::set_locale,
+            bridge::hap_get_versions,
+            bridge::hap_replace,
+            bridge::hap_rollback,
+            bridge::hap_check_updates,
+            bridge::hap_download_update,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start HiAppHub Shell");
@@ -254,12 +260,49 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(ipc);
     app.manage(pm);
 
+    let shell_hap = data_dir.join("app").join("hiapphub-shell.hap");
+    let url = if shell_hap.exists() {
+        log_shell!("[setup] loading Shell UI from .hap: {}", shell_hap.display());
+        tauri::WebviewUrl::External("hap://localhost/hiapphub-shell/index.html".parse().unwrap())
+    } else {
+        log_shell!("[setup] loading Shell UI from embedded resources");
+        tauri::WebviewUrl::App("index.html".into())
+    };
+
+    let bridge_script = bridge_inject::generate_shell_bridge_script();
+    let _main_window = tauri::WebviewWindowBuilder::new(app, "main", url)
+        .initialization_script(&bridge_script)
+        .title("")
+        .inner_size(1024.0, 720.0)
+        .min_inner_size(640.0, 480.0)
+        .decorations(true)
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .build()?;
+
     let handle = app.handle().clone();
     app.listen("deep-link://new-url", move |event: tauri::Event| {
         let payload = event.payload();
         if let Some(tool_id) = payload.strip_prefix("hiapphub://tool/") {
             let tool_id = tool_id.trim_end_matches('/').to_string();
             let _ = handle.emit("open-tool", &tool_id);
+        }
+    });
+
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        log_shell!("[update] background update check starting");
+        match hap_manager::check_for_updates() {
+            Ok(result) => {
+                let updates = result["updates"].as_array().map(|a| a.len()).unwrap_or(0);
+                log_shell!("[update] check done: {updates} update(s) available");
+            }
+            Err(e) => log_shell!("[update] check failed (non-fatal): {e}"),
+        }
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(86400));
+            log_shell!("[update] periodic check");
+            let _ = hap_manager::check_for_updates();
         }
     });
 

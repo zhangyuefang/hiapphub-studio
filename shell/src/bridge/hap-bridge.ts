@@ -1,4 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
+const invoke: (cmd: string, args?: Record<string, unknown>) => Promise<any> =
+  (window as any).__TAURI_INTERNALS__?.invoke ??
+  (() => Promise.reject(new Error("Tauri IPC not available")));
 
 /**
  * 根据插件 manifest.permissions 构建受限 Bridge 实例。

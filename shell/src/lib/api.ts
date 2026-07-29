@@ -19,11 +19,10 @@ async function tryRefreshToken(): Promise<string | null> {
     localStorage.setItem("shell_token", data.accessToken);
     localStorage.setItem("shell_refreshToken", newRefresh);
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
       const userStr = localStorage.getItem("shell_user");
       const user = userStr ? JSON.parse(userStr) : { id: "", username: null, email: null, name: null };
-      await invoke("store_auth_data", { data: JSON.stringify({ accessToken: data.accessToken, refreshToken: newRefresh, user }) });
-    } catch { /* Tauri not available */ }
+      await hap.system.storeAuth(JSON.stringify({ accessToken: data.accessToken, refreshToken: newRefresh, user }));
+    } catch { /* Bridge not available */ }
     return data.accessToken;
   } catch {
     return null;

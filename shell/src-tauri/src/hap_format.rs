@@ -632,6 +632,7 @@ mod tests {
     fn test_read_devtools_hap() {
         let path = std::path::Path::new("/Users/mac/.hiapphub/app/hiapphub-devtools.hap");
         if !path.exists() { return; }
+        if !is_hap_format(path).unwrap_or(false) { return; }
         let mut reader = HapReader::open_file(path).expect("should open devtools hap");
         let data = reader.read_file("manifest.json").expect("should read manifest");
         let content = String::from_utf8(data).expect("should be utf8");

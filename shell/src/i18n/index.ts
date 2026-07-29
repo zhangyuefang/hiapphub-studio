@@ -73,9 +73,7 @@ export const useI18n = create<I18nState>((set, get) => ({
       document.documentElement.lang = locale;
       const cfg = SHELL_LANGS.find(l => l.code === locale);
       document.documentElement.dir = cfg?.dir === "rtl" ? "rtl" : "ltr";
-      import("@tauri-apps/api/core").then(({ invoke }) =>
-        invoke("set_locale", { locale }).catch(() => {})
-      ).catch(() => {});
+      hap.system.setLocale(locale).catch(() => {});
     }
   },
 
@@ -104,20 +102,17 @@ export const useI18n = create<I18nState>((set, get) => ({
  */
 export async function loadExternalLocales() {
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const localesDir = `${await invoke<string>("get_data_dir")}/locales`;
-    const exists: boolean = await invoke("fs_exists", { path: localesDir });
+    const dataDir = await hap.app.dataDir;
+    const localesDir = dataDir.replace(/\/data\/plugins\/.*$/, "/locales");
+    const exists = await hap.fs.exists(localesDir);
     if (!exists) return;
 
-    const entries: Array<{ name: string; path: string; isDir: boolean }> =
-      await invoke("fs_read_dir", { path: localesDir });
-
+    const entries: any[] = await hap.fs.readDir(localesDir);
     for (const entry of entries) {
-      if (entry.name.endsWith(".json") && !entry.isDir) {
-        const locale = entry.name.replace(".json", "");
-        const content: string = await invoke("fs_read_text_file", {
-          path: entry.path,
-        });
+      const name = typeof entry === "string" ? entry : entry.name;
+      if (name?.endsWith(".json")) {
+        const locale = name.replace(".json", "");
+        const content = await hap.fs.readTextFile(`${localesDir}/${name}`);
         const data: Translations = JSON.parse(content);
         useI18n.getState().loadLanguagePack(locale, data);
       }
