@@ -1,0 +1,111 @@
+{
+  "id": "hap-dev-runner",
+  "uuid": "a1b2c3d4-e5f6-7890-abcd-ef0123456790",
+  "hapType": "app",
+  "name": "HAP Dev Runner",
+  "names": {
+    "en-US": "HAP Dev Runner",
+    "zh-CN": "HAP 开发运行器",
+    "zh-TW": "HAP 開發運行器",
+    "ja": "HAP 開発ランナー",
+    "ko": "HAP 개발 러너",
+    "de": "HAP Dev Runner",
+    "fr": "HAP Dev Runner",
+    "es": "HAP Dev Runner",
+    "pt-BR": "HAP Dev Runner",
+    "ru": "HAP Dev Runner",
+    "ar": "HAP Dev Runner",
+    "hi": "HAP Dev Runner"
+  },
+  "description": "HAP Development Runner - Preview & configure app windows",
+  "descriptions": {
+    "en-US": "HAP Development Runner - Preview & configure app windows",
+    "zh-CN": "HAP 开发运行器 - 预览和配置应用窗口",
+    "zh-TW": "HAP 開發運行器 - 預覽和設定應用視窗",
+    "ja": "HAP 開発ランナー - アプリウィンドウのプレビューと設定",
+    "ko": "HAP 개발 러너 - 앱 윈도우 미리보기 및 설정",
+    "de": "HAP Dev Runner - Vorschau & Konfiguration von App-Fenstern",
+    "fr": "HAP Dev Runner - Aperçu et configuration des fenêtres",
+    "es": "HAP Dev Runner - Vista previa y configuración de ventanas",
+    "pt-BR": "HAP Dev Runner - Pré-visualização e configuração de janelas",
+    "ru": "HAP Dev Runner - Предварительный просмотр и настройка окон",
+    "ar": "HAP Dev Runner - معاينة وتكوين نوافذ التطبيق",
+    "hi": "HAP Dev Runner - ऐप विंडो पूर्वावलोकन और कॉन्फ़िगरेशन"
+  },
+  "version": "1.0.0",
+  "author": "HiAppHub Team",
+  "authorId": "hiapphub",
+  "license": "MIT",
+  "icon": "icon.png",
+  "entry": "index.html",
+  "category": "developer",
+  "minShellVersion": "0.1.0",
+  "multi_instance": true,
+  "permissions": [
+    "fs.read",
+    "fs.write",
+    "system.info"
+  ],
+  "dependencies": {
+    "hal": [
+      {
+        "id": "fs",
+        "uuid": "a1b2c3d4-4000-4000-8000-000000000004",
+        "minVersion": "1.0.0",
+        "name": {
+          "zh-CN": "文件系统模块",
+          "en-US": "File system module",
+          "zh-TW": "檔案系統模組",
+          "ja": "ファイルシステムモジュール",
+          "ko": "파일 시스템 모듈",
+          "es": "Módulo de sistema de archivos",
+          "fr": "Module système de fichiers",
+          "de": "Dateisystem-Modul",
+          "pt-BR": "Módulo de sistema de arquivos",
+          "ru": "Модуль файловой системы",
+          "ar": "وحدة نظام الملفات",
+          "hi": "फ़ाइल सिस्टम मॉड्यूल"
+        }
+      },
+      {
+        "id": "system",
+        "uuid": "a1b2c3d4-2000-4000-8000-000000000002",
+        "minVersion": "1.0.0",
+        "name": {
+          "zh-CN": "系统信息模块",
+          "en-US": "System information module",
+          "zh-TW": "系統資訊模組",
+          "ja": "システム情報モジュール",
+          "ko": "시스템 정보 모듈",
+          "es": "Módulo de información del sistema",
+          "fr": "Module d'information système",
+          "de": "Systeminformationsmodul",
+          "pt-BR": "Módulo de informações do sistema",
+          "ru": "Модуль системной информации",
+          "ar": "وحدة معلومات النظام",
+          "hi": "सिस्टम जानकारी मॉड्यूल"
+        }
+      }
+    ]
+  },
+  "windows": [
+    {
+      "label": "main",
+      "title": "HAP Dev Runner",
+      "entry": "index.html",
+      "width": 900,
+      "height": 650,
+      "minWidth": 600,
+      "minHeight": 400,
+      "resizable": true,
+      "decorations": false,
+      "titleBarStyle": "overlay",
+      "hiddenTitle": true,
+      "trafficLightPosition": {
+        "x": 12,
+        "y": 14
+      }
+    }
+  ],
+  "modules": []
+}
