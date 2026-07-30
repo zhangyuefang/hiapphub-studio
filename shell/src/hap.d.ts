@@ -117,3 +117,7 @@ interface HapBridge {
 }
 
 declare const hap: HapBridge;
+
+interface Window {
+  hap: HapBridge;
+}
