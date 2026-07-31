@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "pack": "node ../packages/hap-cli/dist/index.js pack . -o dev-runner.hap"
+    "pack": "node ../../packages/hap-cli/dist/index.js pack . -o dev-runner.hap"
   },
   "dependencies": {
     "lucide-react": "^1.25.0",

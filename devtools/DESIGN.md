@@ -233,7 +233,7 @@ vite-plugin-hap-dev 启动
 ### 3. 项目窗口启动
 
 - DevTools 通过 Shell IPC 启动项目的 hiapphub-host 进程，传入 manifest 路径 + vite dev server URL
-- hiapphub-host 以 URL 模式加载 dev server 页面，而非 .hap 包
+- hiapphub-host 以 URL 模式加载 dev server 页面，而非 .hapk 包
 - 项目有多个窗口定义时，Shell 为每个窗口启动独立 hiapphub-host 进程
 - 项目自身的图标、托盘、窗口配置自然生效（与生产模式一致）
 - Bridge 调用日志由 hiapphub-host 内部记录，通过 Shell IPC 转发到 DevTools（IDE 终端可查看）

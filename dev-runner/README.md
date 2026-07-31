@@ -26,6 +26,6 @@ Settings Panel 顶部提供平台切换（macOS/Windows/Linux），可查看不�
 
 ```bash
 pnpm build
-# 打包为 .hap
+# 打包为 .hapk
 cd ../../packages/hap-cli && node dist/index.js pack ../../apps/dev-runner
 ```

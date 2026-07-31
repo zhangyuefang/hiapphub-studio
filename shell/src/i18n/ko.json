@@ -6,7 +6,7 @@
   "app.theme.light": "라이트",
   "app.theme.dark": "다크",
   "app.empty.title": "설치된 도구 없음",
-  "app.empty.desc": "스토어에서 다운로드 또는 .hap 파일 가져오기",
+  "app.empty.desc": "스토어에서 다운로드 또는 .hapk 파일 가져오기",
   "app.back": "← 뒤로",
   "plugin.not_found": "플러그인을 찾을 수 없습니다",
   "plugin.notfound": "플러그인을 찾을 수 없습니다",

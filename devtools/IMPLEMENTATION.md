@@ -55,7 +55,7 @@
 | 功能 | 状态 | 说明 |
 |------|------|------|
 | --url 模式 | ✅ 完成 | 直接加载 HTTP URL |
-| --hap-path 模式 | ✅ 完成 | 加载 .hap 包 |
+| --hap-path 模式 | ✅ 完成 | 加载 .hapk 包 |
 | 子窗口 | ✅ 完成 | hash 路由、postMessage 通信 |
 | 统一事件转发 | ✅ 完成 | window_event 聚合事件 |
 | 自定义拖拽 | ✅ 完成 | setPosition/getPosition API |
@@ -300,7 +300,7 @@ interface ProjectRuntime {
 | 问题 | 优先级 | 说明 |
 |------|--------|------|
 | JS alert 不显示 | P2 | WKWebView 需要 setRunJavaScriptAlertPanel |
-| DevTools .hap 包加载问题 | P1 | hap:// 协议加载后 WS/HTTP 服务器未启动，需调查前端 JS 错误 |
+| DevTools .hapk 包加载问题 | P1 | hap:// 协议加载后 WS/HTTP 服务器未启动，需调查前端 JS 错误 |
 | useConnection 与新架构冲突 | P1 | App.tsx 中 useConnection 作为 WS 客户端连接 Vite，与 DevTools 作为 WS 服务器的新架构矛盾 |
 | 废弃 panels 代码 | P3 | 8 个未引用面板组件占磁盘空间 |
 | bridge_inject.rs 审查 | P2 | 安全性和完整性检查 |
@@ -310,7 +310,7 @@ interface ProjectRuntime {
 | WS 状态硬编码 | P2 | App.tsx 第466行 ws-dot 始终显示 connected，未绑定实际服务器状态 |
 | setWsHandlers 未被调用 | P2 | server.ts 导出 setWsHandlers 但 App.tsx 未调用，plugin 消息无处理 |
 | 路由结构未文档化 | P3 | DevTools main.tsx 用 hash 路由分流 open-project；dev-runner main.tsx 分流 settings |
-| Shell 加载旧 .hap 缓存 | P2 | WKWebView 可能缓存旧版本 hap:// 协议资源，导致新代码不生效 |
+| Shell 加载旧 .hapk 缓存 | P2 | WKWebView 可能缓存旧版本 hap:// 协议资源，导致新代码不生效 |
 
 ---
 
@@ -367,7 +367,7 @@ interface ProjectRuntime {
 
 **建议**：移除 useConnection，将其数据消费逻辑迁移到监听 server.ts 的 WS 消息回调。
 
-### .hap 包加载失败原因
+### .hapk 包加载失败原因
 
 DevTools 通过 `hiapphub-host --hap-path` 加载时，WS/HTTP 服务器未启动。可能原因：
 1. `server.ts` 中 `hal('listen', ...)` 调用 `window.hap.hal()` 成功但返回值不是预期格式

@@ -1,6 +1,6 @@
 # HiAppHub Studio
 
-HiAppHub 平台内置核心工具套件，以 `.hap` 格式发布，支持自举升级。
+HiAppHub 平台内置核心工具套件，以 `.hapk` 格式发布，支持自举升级。
 
 ## 包含应用
 
