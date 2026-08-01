@@ -27,4 +27,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 
 bootstrap();
-startAutomationClient();
+
+hap.system.capabilities?.().then((caps: any) => {
+  if (caps?.features?.multiWindow !== false) {
+    startAutomationClient();
+  }
+}).catch(() => {
+  startAutomationClient();
+});

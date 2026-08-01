@@ -12,6 +12,7 @@ export default function App() {
   const { t, locale, setLocale, availableLocales } = useI18n();
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [multiWindow, setMultiWindow] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langDropOpen, setLangDropOpen] = useState(false);
   const langDropRef = useRef<HTMLDivElement>(null);
@@ -33,11 +34,19 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      setIsMaximized(await hap.window.isMaximized());
-      setIsFullscreen(await hap.window.isFullscreen());
-      if (!navigator.userAgent.includes("Mac")) {
-        await hap.window.setDecorations(false);
-      }
+      try {
+        const caps = await hap.system.capabilities?.();
+        if (caps?.features?.multiWindow === false) {
+          setMultiWindow(false);
+        }
+      } catch {}
+      try {
+        setIsMaximized(await hap.window.isMaximized());
+        setIsFullscreen(await hap.window.isFullscreen());
+        if (!navigator.userAgent.includes("Mac")) {
+          await hap.window.setDecorations(false);
+        }
+      } catch {}
       const saved = localStorage.getItem("shell_locale");
       if (saved && saved !== locale) {
         setLocale(saved);
@@ -46,8 +55,10 @@ export default function App() {
     };
     init();
     const unlisten = hap.window.onResized(async () => {
-      setIsMaximized(await hap.window.isMaximized());
-      setIsFullscreen(await hap.window.isFullscreen());
+      try {
+        setIsMaximized(await hap.window.isMaximized());
+        setIsFullscreen(await hap.window.isFullscreen());
+      } catch {}
     });
     const dlId = hap.event.on("deep-link", (url: any) => {
       const raw = typeof url === "string" ? url : String(url);
@@ -104,11 +115,12 @@ export default function App() {
         style={{
           borderColor: "var(--fs-border)",
           background: theme === "dark" ? "#1e1e2e" : "#f8f9fa",
-          height: 44,
-          paddingLeft: isMac ? (isFullscreen ? 12 : 78) : 12,
+          height: multiWindow ? 44 : `calc(44px + env(safe-area-inset-top, 0px))`,
+          paddingTop: multiWindow ? 0 : "env(safe-area-inset-top, 0px)",
+          paddingLeft: isMac && multiWindow ? (isFullscreen ? 12 : 78) : 12,
           paddingRight: isMac ? 12 : 0,
         }}
-        data-tauri-drag-region
+        data-tauri-drag-region={multiWindow || undefined}
       >
         {/* 左侧：标题 */}
         <div className="flex items-center gap-2 mr-auto" data-tauri-drag-region>
@@ -175,7 +187,7 @@ export default function App() {
           </button>
 
           {/* Windows/Linux 窗口控制按钮 */}
-          {!isMac && (
+          {multiWindow && !isMac && (
             <div className="flex items-center ml-1">
               <button
                 className="w-11 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"

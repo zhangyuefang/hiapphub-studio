@@ -138,22 +138,22 @@ export function Settings({ onBack }: Props) {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <nav className="w-40 shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "var(--fs-border)" }}>
+        <nav className="w-12 sm:w-40 shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "var(--fs-border)" }}>
           {MENU.map((m) => (
             <button
               key={m.id}
-              className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors ${
+              className={`w-full text-left px-3 sm:px-4 py-2.5 text-sm flex items-center gap-2 transition-colors ${
                 tab === m.id ? "bg-blue-500/10 text-blue-500 font-medium" : "hover:bg-black/5 dark:hover:bg-white/5"
               }`}
               onClick={() => setTab(m.id)}
             >
               <span>{m.icon}</span>
-              <span>{t(`settings.${m.id}`)}</span>
+              <span className="hidden sm:inline">{t(`settings.${m.id}`)}</span>
             </button>
           ))}
         </nav>
 
-        <div className={`flex-1 overflow-hidden ${tab === "libraries" ? "" : "overflow-y-auto px-6 py-4"}`}>
+        <div className={`flex-1 overflow-hidden ${tab === "libraries" ? "" : "overflow-y-auto px-3 sm:px-6 py-4"}`}>
           {tab === "settings" && <SettingsPanel theme={theme} toggleTheme={toggleTheme} t={t} locale={locale} setLocale={setLocale} availableLocales={availableLocales} localeLabels={LOCALE_LABELS} />}
           {tab === "account" && <AccountPanel />}
           {tab === "libraries" && <LibrariesPanel modules={modules} expandedMod={expandedMod} setExpandedMod={setExpandedMod} t={t} locale={locale} onReload={reloadModules} />}
@@ -174,7 +174,16 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
   const [latestInfo, setLatestInfo] = useState<{ version: string; title: string; changelog: string; publishedAt: string; downloads: { standard: string; developer: string } } | null>(null);
   const [updateError, setUpdateError] = useState("");
   const [langOpen, setLangOpen] = useState(false);
+  const [platform, setPlatform] = useState("");
+  const [halCount, setHalCount] = useState(-1);
   const langRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    hap.system.capabilities?.().then((caps: any) => {
+      if (caps?.platform) setPlatform(`${caps.platform}/${caps.arch || ''}`);
+      if (caps?.modules) setHalCount(caps.modules.length);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -256,8 +265,10 @@ function SettingsPanel({ theme, toggleTheme, t, locale, setLocale, availableLoca
       <section>
         <h3 className="text-sm font-medium mb-3 opacity-60 uppercase tracking-wider">{t("settings.about")}</h3>
         <div className="space-y-2 text-sm opacity-70">
-          <div className="flex justify-between"><span>{t("settings.version")}</span><span>{currentVersion}</span></div>
-          <div className="flex justify-between"><span>{t("settings.framework")}</span><span>HiAppHub Host + React 19</span></div>
+          <div className="flex justify-between gap-2"><span className="shrink-0">{t("settings.version")}</span><span className="truncate text-right">{currentVersion}</span></div>
+          <div className="flex justify-between gap-2"><span className="shrink-0">{t("settings.framework")}</span><span className="truncate text-right">HiAppHub Host + React 19</span></div>
+          {platform && <div className="flex justify-between gap-2"><span className="shrink-0">平台</span><span className="truncate text-right">{platform}</span></div>}
+          {halCount >= 0 && <div className="flex justify-between gap-2"><span className="shrink-0">HAL 模块</span><span className="truncate text-right">{halCount}</span></div>}
           <div className="flex justify-between">
             <span>{t("settings.website")}</span>
             <a className="text-blue-500 hover:underline" href="https://hiapphub.com" target="_blank" rel="noreferrer">hiapphub.com</a>
@@ -502,7 +513,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
   return (
     <div className="flex h-full">
       {/* 左侧模块列表 */}
-      <div className="w-48 shrink-0 border-r flex flex-col" style={{ borderColor: "var(--fs-border)" }}>
+      <div className={`w-full sm:w-48 shrink-0 border-r flex flex-col ${selected ? "hidden sm:flex" : ""}`} style={{ borderColor: "var(--fs-border)" }}>
         <div className="px-2 py-2 border-b flex gap-1" style={{ borderColor: "var(--fs-border)" }}>
           <input
             className="text-xs px-2 py-1.5 rounded border outline-none flex-1 min-w-0"
@@ -562,7 +573,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
       </div>
 
       {/* 右侧详情 */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 relative" ref={detailScrollRef} onScroll={handleDetailScroll}>
+      <div className={`flex-1 overflow-y-auto px-3 sm:px-5 py-4 relative ${!selected ? "hidden sm:block" : ""}`} ref={detailScrollRef} onScroll={handleDetailScroll}>
         {!selected ? (
           <div className="text-sm opacity-40 py-8 text-center">{t("settings.select_lib")}</div>
         ) : (
@@ -570,6 +581,9 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
           <div className="flex-1 min-w-0 space-y-4">
             {/* 头部 */}
             <div className="flex items-start gap-3">
+              <button className="sm:hidden shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 mt-1" onClick={() => setExpandedMod(null)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
               <span className="text-3xl">{selected.icon ?? "📦"}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -579,9 +593,9 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
                     <CopyIcon text={buildModuleText(selected, t, locale)} title={t("settings.copy_all")} />
                   </div>
                 </div>
-                <div className="flex items-baseline justify-between mt-0.5">
+                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mt-0.5 gap-0.5">
                   <span className="text-xs opacity-60">{i18nText(selected.description, selected.descriptions, locale)}</span>
-                  <span className="text-[10px] font-mono opacity-40 shrink-0 ml-2">{selected.uuid ?? ""}</span>
+                  <span className="text-[10px] font-mono opacity-40 shrink-0 hidden sm:inline">{selected.uuid ?? ""}</span>
                 </div>
               </div>
             </div>
@@ -856,7 +870,7 @@ function LibrariesPanel({ modules, expandedMod, setExpandedMod, t, locale, onRel
             )}
           </div>
           {/* 悬浮目录导航 - sticky */}
-          <div className="w-28 shrink-0 sticky top-0 self-start max-h-[80vh] overflow-y-auto text-[10px] border-l pl-2" style={{ borderColor: "var(--fs-border)" }}>
+          <div className="hidden sm:block w-28 shrink-0 sticky top-0 self-start max-h-[80vh] overflow-y-auto text-[10px] border-l pl-2" style={{ borderColor: "var(--fs-border)" }}>
             <div className="flex flex-col gap-0.5 py-2">
               {(() => {
                 const groups = new Map<string, FnDesc[]>();
