@@ -30,7 +30,7 @@ interface HapBridgeSystem {
   rollbackHap(appId: string): Promise<{ appId: string; version?: string; rolledBack: boolean }>;
   checkForUpdates(): Promise<{ updates: any[]; offline?: boolean; error?: string }>;
   downloadUpdate(url: string, appId: string): Promise<{ appId: string; version: string; backedUp: boolean }>;
-  capabilities?(): Promise<{ features?: { multiWindow?: boolean } }>;
+  capabilities?(): Promise<{ features?: { multiWindow?: boolean; customTitleBar?: boolean } }>;
 }
 
 interface HapBridgeWindow {

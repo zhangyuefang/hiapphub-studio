@@ -104,6 +104,7 @@ export function App() {
   const [progressLogs, setProgressLogs] = useState<string[]>([]);
   const [progressError, setProgressError] = useState('');
   const [progressDone, setProgressDone] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
   const serverStarted = useRef(false);
 
   const kvGet = async (k: string) => { try { const v = await (window as any).hap?.db?.get?.(k); return v ? JSON.parse(v) : null; } catch { return null; } };
@@ -152,7 +153,15 @@ export function App() {
     return () => { void id; };
   }, [openTabs]);
 
-  useEffect(() => { runEnvCheck(); }, []);
+  useEffect(() => {
+    window.hap?.system?.capabilities?.().then((caps: any) => {
+      if (caps?.platform === 'ohos') {
+        setView('welcome');
+      } else {
+        runEnvCheck();
+      }
+    }).catch(() => runEnvCheck());
+  }, []);
 
   async function runEnvCheck() {
     setEnvChecking(true);
@@ -200,6 +209,8 @@ export function App() {
       kvSet('devtools_last_ws', { dir, tabs: [] });
     } else {
       console.warn('[workspace] not found:', dir);
+      setToastMsg(`${t('workspace.not_found')}\n${dir}`);
+      setTimeout(() => setToastMsg(''), 5000);
     }
   };
 
@@ -792,6 +803,7 @@ export function App() {
         waitingLabel={t('progress.waiting')}
         onClose={() => setProgressOpen(false)}
       />
+      {toastMsg && <div className="toast-msg">{toastMsg}</div>}
     </div>
   );
 }
