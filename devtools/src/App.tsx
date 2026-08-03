@@ -105,6 +105,7 @@ export function App() {
   const [progressError, setProgressError] = useState('');
   const [progressDone, setProgressDone] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [openProjOverlay, setOpenProjOverlay] = useState(false);
   const serverStarted = useRef(false);
 
   const kvGet = async (k: string) => { try { const v = await (window as any).hap?.db?.get?.(k); return v ? JSON.parse(v) : null; } catch { return null; } };
@@ -676,6 +677,11 @@ export function App() {
               <div className="proj-toolbar-left">
                 <button className="proj-toolbar-btn" onClick={handleStartAddProject}><Plus size={14} /> {t('project.add')}</button>
                 <button className="proj-toolbar-btn" disabled={!wsConfig.projects.length || openTabs.length >= wsConfig.projects.length} onClick={async () => {
+                    const canCreate = typeof (window as any).hap?.window?.create === 'function';
+                    if (!canCreate) {
+                      setOpenProjOverlay(true);
+                      return;
+                    }
                     const projData = encodeURIComponent(JSON.stringify(wsConfig.projects));
                     const openedData = encodeURIComponent(JSON.stringify(openTabs));
                     try {
@@ -685,9 +691,11 @@ export function App() {
                         label: 'open-project', decorations: true, resizable: false, modal: true,
                         hiddenTitle: true, titleBarStyle: 'overlay',
                       });
+                      if (!r) { setOpenProjOverlay(true); return; }
                       console.log('[open-project] child:', r);
                     } catch (e: any) {
                       console.error('[open-project] error:', e?.message || e);
+                      setOpenProjOverlay(true);
                     }
                   }}>
                   <FolderOpen size={14} /> {t('project.open')}
@@ -804,6 +812,23 @@ export function App() {
         onClose={() => setProgressOpen(false)}
       />
       {toastMsg && <div className="toast-msg">{toastMsg}</div>}
+      {openProjOverlay && wsConfig && (
+        <div className="open-proj-overlay" onClick={() => setOpenProjOverlay(false)}>
+          <div className="open-proj-panel" onClick={e => e.stopPropagation()}>
+            <div className="open-proj-title">{t('project.open')}<button className="open-proj-close" onClick={() => setOpenProjOverlay(false)}><X size={14}/></button></div>
+            <div className="open-proj-list">
+              {wsConfig.projects.filter((p: any) => !openTabs.includes(p.id)).map((p: any) => (
+                <div key={p.id} className="open-proj-item" onClick={() => { openProjectTab(p.id); setOpenProjOverlay(false); }}>
+                  <Package size={16}/> <span>{p.displayName || p.id}</span>
+                </div>
+              ))}
+              {wsConfig.projects.filter((p: any) => !openTabs.includes(p.id)).length === 0 && (
+                <div className="open-proj-empty">{t('project.empty')}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
