@@ -249,5 +249,25 @@
   "window.maximize": "最大化",
   "window.restore": "还原",
   "window.close": "关闭",
-  "account.error": "操作失败"
+  "account.error": "操作失败",
+
+  "nav.discover": "发现",
+  "nav.categories": "分类",
+  "nav.rankings": "排行",
+  "nav.installed": "已安装",
+  "nav.me": "我的",
+  "nav.settings": "设置",
+  "nav.expand": "展开侧边栏",
+  "nav.collapse": "收起侧边栏",
+
+  "search.placeholder": "搜索应用...",
+  "search.results_count": "{{count}} 个结果",
+
+  "discover.featured": "精选推荐",
+
+  "installed.all": "全部",
+  "installed.updates": "有更新",
+  "installed.empty": "暂无已安装应用",
+  "installed.empty_desc": "在商店中发现并安装应用",
+  "installed.no_updates": "所有应用已是最新"
 }

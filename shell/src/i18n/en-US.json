@@ -249,5 +249,25 @@
   "window.maximize": "Maximize",
   "window.restore": "Restore",
   "window.close": "Close",
-  "account.error": "Error"
+  "account.error": "Error",
+
+  "nav.discover": "Discover",
+  "nav.categories": "Categories",
+  "nav.rankings": "Rankings",
+  "nav.installed": "Installed",
+  "nav.me": "Me",
+  "nav.settings": "Settings",
+  "nav.expand": "Expand sidebar",
+  "nav.collapse": "Collapse sidebar",
+
+  "search.placeholder": "Search apps...",
+  "search.results_count": "{{count}} results",
+
+  "discover.featured": "Featured",
+
+  "installed.all": "All",
+  "installed.updates": "Updates",
+  "installed.empty": "No installed apps",
+  "installed.empty_desc": "Discover and install apps from the store",
+  "installed.no_updates": "All apps are up to date"
 }
