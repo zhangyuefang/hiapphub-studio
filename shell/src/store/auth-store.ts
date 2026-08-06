@@ -94,7 +94,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await saveAuthData({ accessToken, refreshToken, user: { id: "", username: null, email: null, name: null } });
       set({ isLoggedIn: true, isLoading: false });
-      await get().fetchProfile();
+      try {
+        await get().fetchProfile();
+      } catch {
+        set({ isLoggedIn: true });
+      }
     } catch (e: any) {
       set({ isLoading: false, error: e.message || "Login failed" });
       throw e;
@@ -111,9 +115,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const profile = await apiFetch<UserInfo>("/user/profile");
       localStorage.setItem("shell_user", JSON.stringify(profile));
       set({ user: profile, isLoggedIn: true });
-    } catch {
-      set({ user: null, isLoggedIn: false });
-      clearAuthData();
+    } catch (e: any) {
+      const hasToken = !!localStorage.getItem("shell_token");
+      if (hasToken && e?.message?.includes("401") === false) {
+        set({ user: null, isLoggedIn: true });
+      } else {
+        set({ user: null, isLoggedIn: false });
+        clearAuthData();
+      }
     }
   },
 

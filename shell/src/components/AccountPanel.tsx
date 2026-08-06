@@ -98,6 +98,8 @@ function DeviceFlowPanel({ t, theme, onBack }: {
       if (!mountedRef.current) return;
       setUserCode(res.userCode);
       deviceCodeRef.current = res.deviceCode;
+      const authUrl = `${getWebBase()}/device-auth?code=${res.userCode}`;
+      window.open(authUrl, "_blank");
       const intervalMs = Math.max(res.interval * 1000, 3000);
 
       expireRef.current = setTimeout(() => {
@@ -119,13 +121,17 @@ function DeviceFlowPanel({ t, theme, onBack }: {
             cleanup();
             const data = await tokenRes.json();
             if (!mountedRef.current) return;
-            setStep("done");
-            await loginWithTokens(data.accessToken, data.refreshToken);
-            try {
-              await hap.window.focus();
-            } catch { /* Bridge not available */ }
+            if (data.accessToken && data.refreshToken) {
+              setStep("done");
+              await loginWithTokens(data.accessToken, data.refreshToken);
+              try { await hap.window.focus(); } catch {}
+            } else {
+              console.error("[device-auth] token response missing fields:", data);
+            }
+          } else {
+            console.warn("[device-auth] unexpected status:", tokenRes.status);
           }
-        } catch { /* retry next interval */ }
+        } catch (e) { console.error("[device-auth] poll error:", e); }
       }, intervalMs);
     } catch (e: any) {
       if (mountedRef.current) { setStep("error"); setError(e.message || t("account.device_error")); }

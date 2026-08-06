@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "pack": "node ../../packages/hap-cli/dist/index.js pack . -o hiapphub-shell.hap"
+    "pack": "node ../../packages/hap-cli/dist/index.js pack . -o hiapphub-shell.hapk"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.0",

@@ -64,13 +64,20 @@ export default function App() {
         setIsFullscreen(await hap.window.isFullscreen());
       } catch {}
     });
-    const dlId = hap.event.on("deep-link", (url: any) => {
+    const dlHandler = (url: any) => {
       const raw = typeof url === "string" ? url : String(url);
-      const match = raw.match(/^hiapphub:\/\/tool\/([^/?#]+)/);
-      if (match) {
-        hap.system.openApp(match[1]).catch((e: any) => console.error("deep-link open failed:", e));
+      const m = raw.match(/^hiapphub:\/\/(?:install|tool)\/([^/?#]+)/);
+      if (m) {
+        hap.system.openApp(m[1]).catch((e: any) => console.error("deep-link open failed:", e));
       }
-    });
+    };
+    const dlId = hap.event.on("deep-link", dlHandler);
+    const pending = (window as any).__pendingDeepLinks;
+    if (pending?.length) {
+      (window as any).__pendingDeepLinks = [];
+      (window as any).__dlDone = true;
+      pending.forEach((u: string) => dlHandler(u));
+    }
     return () => {
       unlisten.then((fn) => fn());
       hap.event.off("deep-link", dlId);
