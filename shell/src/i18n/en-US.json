@@ -264,6 +264,11 @@
   "search.results_count": "{{count}} results",
 
   "discover.featured": "Featured",
+  "discover.popular": "Popular",
+  "discover.newest": "New Releases",
+  "discover.view_more": "View More",
+
+  "error.network_retry": "Retry",
 
   "installed.all": "All",
   "installed.updates": "Updates",

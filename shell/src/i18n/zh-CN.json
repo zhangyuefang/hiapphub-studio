@@ -264,6 +264,11 @@
   "search.results_count": "{{count}} 个结果",
 
   "discover.featured": "精选推荐",
+  "discover.popular": "热门下载",
+  "discover.newest": "最新上架",
+  "discover.view_more": "查看更多",
+
+  "error.network_retry": "重试",
 
   "installed.all": "全部",
   "installed.updates": "有更新",

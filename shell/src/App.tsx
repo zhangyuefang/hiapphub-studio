@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, useParams } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
 import { useI18n, loadExternalLocales } from "@/i18n";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -20,6 +20,11 @@ function PageFallback() {
       <div className="w-5 h-5 border-2 border-[var(--fs-primary)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
+}
+
+function AppDetailPlaceholder() {
+  const { uuid } = useParams();
+  return <div className="p-6 text-sm" style={{ color: "var(--fs-text-secondary)" }}>App Detail: {uuid}</div>;
 }
 
 function AppLayout() {
@@ -65,6 +70,7 @@ function AppLayout() {
               <Route path="/me" element={<MePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/app/:uuid" element={<AppDetailPlaceholder />} />
             </Routes>
           </Suspense>
         </main>
