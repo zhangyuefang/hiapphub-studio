@@ -310,18 +310,25 @@ export function App() {
 
   const handleFromTemplate = async () => {
     const clients = await getWsClients();
-    const hasCreator = clients.some(c => c.role === 'creator' || c.role === 'runner');
-    if (hasCreator) {
+    const hasRunner = clients.some(c => c.role === 'creator' || c.role === 'runner');
+    if (hasRunner) {
       wsSendToRole('runner', { type: 'create-project' });
       wsSendToRole('creator', { type: 'create-project' });
     } else {
       try {
-        await (window as any).hap?.system?.openApp?.('hap-dev-runner', {
-          entry: 'index.html#/create-project',
-        });
-      } catch (e: any) {
-        console.error('[DevTools] openApp error:', e?.message);
-      }
+        await (window as any).hap?.system?.openApp?.('hap-dev-runner');
+      } catch {}
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        if (attempts > 15) { clearInterval(poll); return; }
+        const cls = await getWsClients();
+        if (cls.some(c => c.role === 'runner' || c.role === 'creator')) {
+          clearInterval(poll);
+          wsSendToRole('runner', { type: 'create-project' });
+          wsSendToRole('creator', { type: 'create-project' });
+        }
+      }, 500);
     }
   };
 
