@@ -294,5 +294,11 @@
   "installed.empty": "Nenhum app instalado",
   "installed.empty_desc": "Descubra e instale apps da loja",
   "installed.no_updates": "Todos os apps estão atualizados",
-  "installed.update_btn": "Atualizar"
+  "installed.update_btn": "Atualizar",
+  "rating.write": "Escrever avaliação",
+  "rating.submit": "Enviar",
+  "rating.cancel": "Cancelar",
+  "rating.comment_placeholder": "Escreva sua avaliação...",
+  "rating.empty": "Nenhuma avaliação ainda",
+  "rating.load_more": "Carregar mais"
 }

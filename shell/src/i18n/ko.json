@@ -294,5 +294,11 @@
   "installed.empty": "설치된 앱 없음",
   "installed.empty_desc": "스토어에서 앱을 찾아 설치하세요",
   "installed.no_updates": "모든 앱이 최신입니다",
-  "installed.update_btn": "업데이트"
+  "installed.update_btn": "업데이트",
+  "rating.write": "리뷰 작성",
+  "rating.submit": "제출",
+  "rating.cancel": "취소",
+  "rating.comment_placeholder": "리뷰를 작성하세요...",
+  "rating.empty": "아직 리뷰가 없습니다",
+  "rating.load_more": "더보기"
 }

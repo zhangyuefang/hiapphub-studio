@@ -294,5 +294,11 @@
   "installed.empty": "Нет установленных приложений",
   "installed.empty_desc": "Найдите и установите приложения из магазина",
   "installed.no_updates": "Все приложения обновлены",
-  "installed.update_btn": "Обновить"
+  "installed.update_btn": "Обновить",
+  "rating.write": "Написать отзыв",
+  "rating.submit": "Отправить",
+  "rating.cancel": "Отмена",
+  "rating.comment_placeholder": "Напишите ваш отзыв...",
+  "rating.empty": "Отзывов пока нет",
+  "rating.load_more": "Загрузить ещё"
 }

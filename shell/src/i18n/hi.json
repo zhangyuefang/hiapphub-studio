@@ -294,5 +294,11 @@
   "installed.empty": "कोई इंस्टॉल ऐप नहीं",
   "installed.empty_desc": "स्टोर से ऐप खोजें और इंस्टॉल करें",
   "installed.no_updates": "सभी ऐप अपडेट हैं",
-  "installed.update_btn": "अपडेट"
+  "installed.update_btn": "अपडेट",
+  "rating.write": "समीक्षा लिखें",
+  "rating.submit": "जमा करें",
+  "rating.cancel": "रद्द करें",
+  "rating.comment_placeholder": "अपनी समीक्षा लिखें...",
+  "rating.empty": "अभी कोई समीक्षा नहीं",
+  "rating.load_more": "और लोड करें"
 }

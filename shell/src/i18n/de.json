@@ -294,5 +294,11 @@
   "installed.empty": "Keine installierten Apps",
   "installed.empty_desc": "Entdecken und installieren Sie Apps aus dem Store",
   "installed.no_updates": "Alle Apps sind aktuell",
-  "installed.update_btn": "Aktualisieren"
+  "installed.update_btn": "Aktualisieren",
+  "rating.write": "Bewertung schreiben",
+  "rating.submit": "Absenden",
+  "rating.cancel": "Abbrechen",
+  "rating.comment_placeholder": "Schreiben Sie Ihre Bewertung...",
+  "rating.empty": "Noch keine Bewertungen",
+  "rating.load_more": "Mehr laden"
 }

@@ -294,5 +294,11 @@
   "installed.empty": "沒有已安裝的應用",
   "installed.empty_desc": "從商店探索並安裝應用",
   "installed.no_updates": "所有應用均為最新",
-  "installed.update_btn": "更新"
+  "installed.update_btn": "更新",
+  "rating.write": "寫評論",
+  "rating.submit": "提交",
+  "rating.cancel": "取消",
+  "rating.comment_placeholder": "寫下你的評價...",
+  "rating.empty": "暫無評價",
+  "rating.load_more": "載入更多"
 }

@@ -4,6 +4,7 @@ import { useI18n } from "@/i18n";
 import { useAppStore } from "@/store/app-store";
 import { useDownloadStore } from "@/store/download-store";
 import { apiFetch, getServerBase } from "@/lib/api";
+import { RatingSection } from "@/components/app/RatingSection";
 
 interface AppVersion {
   id: string;
@@ -215,22 +216,7 @@ export default function AppDetailPage() {
       )}
 
       {/* Ratings */}
-      {app.ratings.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold mb-2">{t("rating.title")}</h2>
-          <div className="space-y-3">
-            {app.ratings.slice(0, 5).map((r) => (
-              <div key={r.id} className="text-[12px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-amber-500">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
-                  <span style={{ color: "var(--fs-text-secondary)" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
-                </div>
-                {r.comment && <p className="mt-0.5" style={{ color: "var(--fs-text-secondary)" }}>{r.comment}</p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <RatingSection appUuid={app.uuid} initialRatings={app.ratings} avgRating={app.avgRating} ratingCount={app.ratingCount} />
 
       {/* App info */}
       <section>

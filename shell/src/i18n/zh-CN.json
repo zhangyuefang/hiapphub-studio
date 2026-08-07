@@ -250,7 +250,6 @@
   "window.restore": "还原",
   "window.close": "关闭",
   "account.error": "操作失败",
-
   "nav.discover": "发现",
   "nav.categories": "分类",
   "nav.rankings": "排行",
@@ -259,27 +258,21 @@
   "nav.settings": "设置",
   "nav.expand": "展开侧边栏",
   "nav.collapse": "收起侧边栏",
-
   "search.placeholder": "搜索应用...",
   "search.results_count": "{{count}} 个结果",
   "search.no_results": "未找到匹配应用",
   "search.no_results_tip": "换个关键词试试",
-
   "rankings.download": "下载榜",
   "rankings.rating": "好评榜",
   "rankings.new": "新品榜",
-
   "discover.featured": "精选推荐",
   "discover.popular": "热门下载",
   "discover.newest": "最新上架",
   "discover.view_more": "查看更多",
   "discover.app_count": "{{count}} 款应用",
-
   "categories.all": "全部",
   "categories.view_all": "查看全部",
-
   "error.network_retry": "重试",
-
   "detail.install": "安装",
   "detail.open": "打开",
   "detail.queued": "排队中",
@@ -294,14 +287,18 @@
   "detail.license": "许可证",
   "detail.homepage": "主页",
   "detail.source_code": "源码",
-
   "rating.title": "用户评分",
   "rating.count": "{{count}} 条评价",
-
   "installed.all": "全部",
   "installed.updates": "有更新",
   "installed.empty": "暂无已安装应用",
   "installed.empty_desc": "在商店中发现并安装应用",
   "installed.no_updates": "所有应用已是最新",
-  "installed.update_btn": "更新"
+  "installed.update_btn": "更新",
+  "rating.write": "写评论",
+  "rating.submit": "提交",
+  "rating.cancel": "取消",
+  "rating.comment_placeholder": "写下你的评价...",
+  "rating.empty": "暂无评价",
+  "rating.load_more": "加载更多"
 }

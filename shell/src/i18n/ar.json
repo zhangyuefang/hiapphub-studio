@@ -294,5 +294,11 @@
   "installed.empty": "لا توجد تطبيقات مثبتة",
   "installed.empty_desc": "اكتشف وثبّت تطبيقات من المتجر",
   "installed.no_updates": "جميع التطبيقات محدّثة",
-  "installed.update_btn": "تحديث"
+  "installed.update_btn": "تحديث",
+  "rating.write": "كتابة مراجعة",
+  "rating.submit": "إرسال",
+  "rating.cancel": "إلغاء",
+  "rating.comment_placeholder": "اكتب مراجعتك...",
+  "rating.empty": "لا توجد مراجعات بعد",
+  "rating.load_more": "تحميل المزيد"
 }

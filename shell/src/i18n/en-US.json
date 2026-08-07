@@ -250,7 +250,6 @@
   "window.restore": "Restore",
   "window.close": "Close",
   "account.error": "Error",
-
   "nav.discover": "Discover",
   "nav.categories": "Categories",
   "nav.rankings": "Rankings",
@@ -259,27 +258,21 @@
   "nav.settings": "Settings",
   "nav.expand": "Expand sidebar",
   "nav.collapse": "Collapse sidebar",
-
   "search.placeholder": "Search apps...",
   "search.results_count": "{{count}} results",
   "search.no_results": "No apps found",
   "search.no_results_tip": "Try different keywords",
-
   "rankings.download": "Downloads",
   "rankings.rating": "Top Rated",
   "rankings.new": "New Releases",
-
   "discover.featured": "Featured",
   "discover.popular": "Popular",
   "discover.newest": "New Releases",
   "discover.view_more": "View More",
   "discover.app_count": "{{count}} apps",
-
   "categories.all": "All",
   "categories.view_all": "View All",
-
   "error.network_retry": "Retry",
-
   "detail.install": "Install",
   "detail.open": "Open",
   "detail.queued": "Queued",
@@ -294,14 +287,18 @@
   "detail.license": "License",
   "detail.homepage": "Homepage",
   "detail.source_code": "Source Code",
-
   "rating.title": "Ratings",
   "rating.count": "{{count}} reviews",
-
   "installed.all": "All",
   "installed.updates": "Updates",
   "installed.empty": "No installed apps",
   "installed.empty_desc": "Discover and install apps from the store",
   "installed.no_updates": "All apps are up to date",
-  "installed.update_btn": "Update"
+  "installed.update_btn": "Update",
+  "rating.write": "Write a Review",
+  "rating.submit": "Submit",
+  "rating.cancel": "Cancel",
+  "rating.comment_placeholder": "Write your review...",
+  "rating.empty": "No reviews yet",
+  "rating.load_more": "Load More"
 }

@@ -294,5 +294,11 @@
   "installed.empty": "インストール済みアプリなし",
   "installed.empty_desc": "ストアからアプリを見つけてインストール",
   "installed.no_updates": "すべてのアプリが最新です",
-  "installed.update_btn": "アップデート"
+  "installed.update_btn": "アップデート",
+  "rating.write": "レビューを書く",
+  "rating.submit": "送信",
+  "rating.cancel": "キャンセル",
+  "rating.comment_placeholder": "レビューを書く...",
+  "rating.empty": "まだレビューはありません",
+  "rating.load_more": "もっと見る"
 }

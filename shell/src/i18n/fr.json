@@ -294,5 +294,11 @@
   "installed.empty": "Aucune app installée",
   "installed.empty_desc": "Découvrez et installez des apps",
   "installed.no_updates": "Toutes les apps sont à jour",
-  "installed.update_btn": "Mettre à jour"
+  "installed.update_btn": "Mettre à jour",
+  "rating.write": "Écrire un avis",
+  "rating.submit": "Envoyer",
+  "rating.cancel": "Annuler",
+  "rating.comment_placeholder": "Écrivez votre avis...",
+  "rating.empty": "Aucun avis",
+  "rating.load_more": "Charger plus"
 }
