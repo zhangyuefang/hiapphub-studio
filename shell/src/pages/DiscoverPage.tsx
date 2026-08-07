@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n";
 import { useStoreStore } from "@/store/store-store";
 import { AppCard, AppListItem } from "@/components/app/AppCard";
+import { BannerCarousel } from "@/components/app/BannerCarousel";
 
 export default function DiscoverPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { featured, popular, newest, discoverLoading, discoverError, fetchDiscover } = useStoreStore();
+  const { featured, popular, newest, banners, discoverLoading, discoverError, fetchDiscover } = useStoreStore();
 
   useEffect(() => { fetchDiscover(); }, []);
 
@@ -33,6 +34,9 @@ export default function DiscoverPage() {
 
   return (
     <div className="p-6 space-y-8 max-w-5xl">
+      {/* Banners */}
+      {banners.length > 0 && <BannerCarousel banners={banners} />}
+
       {/* Featured */}
       {featured.length > 0 && (
         <section>

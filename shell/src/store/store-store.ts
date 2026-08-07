@@ -28,10 +28,22 @@ export interface UpdateInfo {
   fileSize: number;
 }
 
+export interface BannerItem {
+  id: string;
+  title: string;
+  titleI18n: Record<string, string> | null;
+  subtitle: string | null;
+  subtitleI18n: Record<string, string> | null;
+  imageUrl: string;
+  linkType: string;
+  linkTarget: string;
+}
+
 interface StoreState {
   featured: AppSummary[];
   popular: AppSummary[];
   newest: AppSummary[];
+  banners: BannerItem[];
   discoverLoading: boolean;
   discoverError: string | null;
   discoverFetchedAt: number;
@@ -49,6 +61,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   featured: [],
   popular: [],
   newest: [],
+  banners: [],
   discoverLoading: false,
   discoverError: null,
   discoverFetchedAt: 0,
@@ -62,15 +75,17 @@ export const useStoreStore = create<StoreState>((set, get) => ({
 
     set({ discoverLoading: true, discoverError: null });
     try {
-      const [featuredRes, popularRes, newestRes] = await Promise.all([
+      const [featuredRes, popularRes, newestRes, bannersRes] = await Promise.all([
         apiFetch<{ list: AppSummary[] }>("/apps/featured"),
         apiFetch<{ list: AppSummary[] }>("/apps?sort=popular&pageSize=6"),
         apiFetch<{ list: AppSummary[] }>("/apps?sort=newest&pageSize=6"),
+        apiFetch<{ list: BannerItem[] }>("/apps/banners").catch(() => ({ list: [] as BannerItem[] })),
       ]);
       set({
         featured: featuredRes.list,
         popular: popularRes.list,
         newest: newestRes.list,
+        banners: bannersRes.list,
         discoverLoading: false,
         discoverFetchedAt: now,
       });
