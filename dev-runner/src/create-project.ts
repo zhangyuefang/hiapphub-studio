@@ -16,6 +16,8 @@ type ProgressFn = (step: string) => void;
 export async function createProject(params: CreateProjectParams, onProgress: ProgressFn = () => {}) {
   const { templateId, appId, name, targetDir, description, version, author, serverUrl } = params;
 
+  if (!hap?.hal) throw new Error('Bridge 未就绪，请确认运行环境');
+
   const dirExists = await hal('fs', 'exists', { path: targetDir });
   if (dirExists) {
     const entries: string[] = await hal('fs', 'read_dir', { path: targetDir });

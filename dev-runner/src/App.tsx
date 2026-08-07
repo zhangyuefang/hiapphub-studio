@@ -54,6 +54,7 @@ export function App() {
       setRoute('settings');
     } else if (!wl || wl === 'main') {
       setRoute('main');
+      connectDevTools('runner');
     }
   }, []);
 
