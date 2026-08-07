@@ -6,6 +6,7 @@ import { useI18n, loadExternalLocales } from "@/i18n";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Toast } from "@/components/Toast";
+import { DownloadIndicator } from "@/components/app/DownloadIndicator";
 
 const DiscoverPage = lazy(() => import("@/pages/DiscoverPage"));
 const CategoriesPage = lazy(() => import("@/pages/CategoriesPage"));
@@ -83,6 +84,7 @@ function AppLayout() {
         </main>
       </div>
       <Toast />
+      <DownloadIndicator />
     </div>
   );
 }

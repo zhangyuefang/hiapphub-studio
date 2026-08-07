@@ -280,6 +280,8 @@
   "detail.open": "Open",
   "detail.queued": "Queued",
   "detail.retry": "Retry",
+  "download.active": "Downloading",
+  "download.in_progress": "Downloading...",
   "detail.screenshots": "Screenshots",
   "detail.introduction": "About",
   "detail.changelog": "Version History",

@@ -280,6 +280,8 @@
   "detail.open": "打开",
   "detail.queued": "排队中",
   "detail.retry": "重试",
+  "download.active": "下载中",
+  "download.in_progress": "下载中...",
   "detail.screenshots": "截图预览",
   "detail.introduction": "应用介绍",
   "detail.changelog": "版本记录",
