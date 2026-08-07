@@ -42,6 +42,7 @@ body {
 
 ::-webkit-scrollbar {
   width: 6px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -52,4 +53,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--fs-text-secondary);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
