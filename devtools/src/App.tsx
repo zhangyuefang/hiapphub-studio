@@ -308,6 +308,23 @@ export function App() {
     }
   };
 
+  const handleFromTemplate = async () => {
+    const clients = await getWsClients();
+    const hasCreator = clients.some(c => c.role === 'creator' || c.role === 'runner');
+    if (hasCreator) {
+      wsSendToRole('runner', { type: 'create-project' });
+      wsSendToRole('creator', { type: 'create-project' });
+    } else {
+      try {
+        await (window as any).hap?.system?.openApp?.('hap-dev-runner', {
+          entry: 'index.html#/create-project',
+        });
+      } catch (e: any) {
+        console.error('[DevTools] openApp error:', e?.message);
+      }
+    }
+  };
+
   const validateProjId = (v: string) => {
     setProjId(v);
     if (v && !ID_REGEX.test(v)) setIdError(t('wizard.id_error'));
@@ -698,7 +715,7 @@ export function App() {
             <div className="proj-toolbar">
               <div className="proj-toolbar-left">
                 <button className="proj-toolbar-btn" onClick={handleStartAddProject}><Plus size={14} /> {t('project.add')}</button>
-                <button className="proj-toolbar-btn" onClick={() => wsSendToRole('runner', { type: 'create-project' })}><LayoutTemplate size={14} /> {t('project.from_template')}</button>
+                <button className="proj-toolbar-btn" onClick={handleFromTemplate}><LayoutTemplate size={14} /> {t('project.from_template')}</button>
                 <button className="proj-toolbar-btn" disabled={!wsConfig.projects.length || openTabs.length >= wsConfig.projects.length} onClick={async () => {
                     const canCreate = typeof (window as any).hap?.window?.create === 'function';
                     if (!canCreate) {

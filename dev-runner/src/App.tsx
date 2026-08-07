@@ -127,9 +127,16 @@ export function App() {
   }
 
   return (
-    <div className="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#888', fontSize: 13, gap: 8, padding: 20, textAlign: 'center' }}>
-      <div style={{ fontSize: 16, fontWeight: 500, color: '#555' }}>HAP Dev Runner</div>
+    <div className="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fs-text-secondary)', fontSize: 13, gap: 12, padding: 20, textAlign: 'center' }}>
+      <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--fs-text)' }}>HAP Dev Runner</div>
       <div>请从 DevTools 启动项目以使用预览功能</div>
+      <button
+        className="tpl-submit-btn"
+        style={{ marginTop: 8, fontSize: 12, padding: '7px 16px' }}
+        onClick={() => { setRoute('create-project'); setSelectedTemplate(null); setProgress(''); }}
+      >
+        从模板创建项目
+      </button>
     </div>
   );
 }
