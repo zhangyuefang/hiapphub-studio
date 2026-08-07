@@ -284,6 +284,7 @@ export async function startServer(): Promise<boolean> {
       startCallbackPolling();
       startInternalPolling();
       startRunnerWatch();
+      startWsMessagePolling();
       setStatus('Servers running (HTTP:' + API_PORT + ' WS:' + WS_PORT + ' Internal:' + PORT + ')');
       return true;
     }
@@ -467,6 +468,34 @@ function setStatus(msg: string) {
 
 export function getPorts() { return { http: PORT, ws: WS_PORT, api: API_PORT }; }
 
+type WsMsgHandler = (msg: { type: string; [key: string]: any }, from: { role?: string; clientId?: string }) => void;
+let wsMessageHandler: WsMsgHandler | null = null;
+let wsMessagePollTimer: ReturnType<typeof setInterval> | null = null;
+
+export function onWsMessage(handler: WsMsgHandler) {
+  wsMessageHandler = handler;
+}
+
+function startWsMessagePolling() {
+  if (wsMessagePollTimer) return;
+  wsMessagePollTimer = setInterval(async () => {
+    try {
+      const msgs = await halServer('poll_ws_messages', { limit: 10 });
+      if (!Array.isArray(msgs) || msgs.length === 0) return;
+      for (const m of msgs) {
+        try {
+          const parsed = typeof m.message === 'string' ? JSON.parse(m.message) : m.message;
+          wsMessageHandler?.(parsed, { role: m.role, clientId: m.client_id });
+        } catch {}
+      }
+    } catch {}
+  }, 200);
+}
+
+function stopWsMessagePolling() {
+  if (wsMessagePollTimer) { clearInterval(wsMessagePollTimer); wsMessagePollTimer = null; }
+}
+
 export async function restartServer(httpPort?: number, wsPort?: number) {
   await stopServer();
   if (httpPort && httpPort > 0) PORT = httpPort;
@@ -479,6 +508,7 @@ export async function stopServer() {
   if (callbackPollTimer) { clearInterval(callbackPollTimer); callbackPollTimer = null; }
   if (internalPollTimer) { clearInterval(internalPollTimer); internalPollTimer = null; }
   if (runnerWatchTimer) { clearInterval(runnerWatchTimer); runnerWatchTimer = null; }
+  stopWsMessagePolling();
   knownRunners.clear();
   try {
     await halServer('stop');

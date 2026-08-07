@@ -4,7 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus, LayoutTemplate } from 'lucide-react';
 import { t, setLocale, getLocale, SUPPORTED_LOCALES, LOCALE_LABELS } from './i18n';
 import { setTheme, getTheme, ThemeMode } from './theme';
-import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, getWsClients } from './server';
+import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, getWsClients, onWsMessage } from './server';
 import { setupTray, destroyTray } from './tray';
 import { addProject, createWorkspace, runPnpmInstall, readWorkspace, saveWorkspace, WorkspaceConfig, ProjectType, ID_REGEX } from './scaffold';
 import { ProjectEditor } from './ProjectEditor';
@@ -120,6 +120,11 @@ export function App() {
         if (ok) console.log('[DevTools] server started');
       });
       setupTray();
+      onWsMessage((msg) => {
+        if (msg.type === 'project-created' && msg.manifestPath) {
+          launchCreatedProject(msg.manifestPath);
+        }
+      });
       kvGet('devtools_auto_open').then(v => {
         if (v) {
           setAutoOpen(true);
@@ -284,6 +289,23 @@ export function App() {
     setProjStep(1);
     setIdError('');
     setView('add-project');
+  };
+
+  const launchCreatedProject = async (manifestPath: string) => {
+    try {
+      const hfs = (window as any).hap?.fs;
+      if (!hfs) return;
+      const raw = await hfs.readTextFile(manifestPath);
+      const manifest = JSON.parse(raw);
+      const projectDir = manifestPath.replace(/\/manifest\.json$/, '');
+      if (wsConfig && wsDir) {
+        const cfg = await readWorkspace(wsDir);
+        if (cfg) setWsConfig(cfg);
+      }
+      (window as any).__devtools__?.openProject?.(manifest.id);
+    } catch (e: any) {
+      console.error('[DevTools] launchCreatedProject error:', e?.message);
+    }
   };
 
   const validateProjId = (v: string) => {
