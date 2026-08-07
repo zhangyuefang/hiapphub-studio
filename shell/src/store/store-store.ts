@@ -39,11 +39,33 @@ export interface BannerItem {
   linkTarget: string;
 }
 
+export interface CollectionItem {
+  id: string;
+  appUuid: string;
+  sortOrder: number;
+  app: AppSummary | null;
+}
+
+export interface AppCollection {
+  id: string;
+  type: string;
+  title: string;
+  titleI18n: Record<string, string> | null;
+  subtitle: string | null;
+  subtitleI18n: Record<string, string> | null;
+  coverImage: string | null;
+  description: string | null;
+  descI18n: Record<string, string> | null;
+  layout: string;
+  items: CollectionItem[];
+}
+
 interface StoreState {
   featured: AppSummary[];
   popular: AppSummary[];
   newest: AppSummary[];
   banners: BannerItem[];
+  collections: AppCollection[];
   discoverLoading: boolean;
   discoverError: string | null;
   discoverFetchedAt: number;
@@ -62,6 +84,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   popular: [],
   newest: [],
   banners: [],
+  collections: [],
   discoverLoading: false,
   discoverError: null,
   discoverFetchedAt: 0,
@@ -75,17 +98,19 @@ export const useStoreStore = create<StoreState>((set, get) => ({
 
     set({ discoverLoading: true, discoverError: null });
     try {
-      const [featuredRes, popularRes, newestRes, bannersRes] = await Promise.all([
+      const [featuredRes, popularRes, newestRes, bannersRes, collectionsRes] = await Promise.all([
         apiFetch<{ list: AppSummary[] }>("/apps/featured"),
         apiFetch<{ list: AppSummary[] }>("/apps?sort=popular&pageSize=6"),
         apiFetch<{ list: AppSummary[] }>("/apps?sort=newest&pageSize=6"),
         apiFetch<{ list: BannerItem[] }>("/apps/banners").catch(() => ({ list: [] as BannerItem[] })),
+        apiFetch<{ list: AppCollection[] }>("/apps/collections").catch(() => ({ list: [] as AppCollection[] })),
       ]);
       set({
         featured: featuredRes.list,
         popular: popularRes.list,
         newest: newestRes.list,
         banners: bannersRes.list,
+        collections: collectionsRes.list,
         discoverLoading: false,
         discoverFetchedAt: now,
       });

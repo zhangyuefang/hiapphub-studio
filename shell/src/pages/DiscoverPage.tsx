@@ -4,11 +4,12 @@ import { useI18n } from "@/i18n";
 import { useStoreStore } from "@/store/store-store";
 import { AppCard, AppListItem } from "@/components/app/AppCard";
 import { BannerCarousel } from "@/components/app/BannerCarousel";
+import { CollectionSection } from "@/components/app/CollectionSection";
 
 export default function DiscoverPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { featured, popular, newest, banners, discoverLoading, discoverError, fetchDiscover } = useStoreStore();
+  const { featured, popular, newest, banners, collections, discoverLoading, discoverError, fetchDiscover } = useStoreStore();
 
   useEffect(() => { fetchDiscover(); }, []);
 
@@ -36,6 +37,9 @@ export default function DiscoverPage() {
     <div className="p-6 space-y-8 max-w-5xl">
       {/* Banners */}
       {banners.length > 0 && <BannerCarousel banners={banners} />}
+
+      {/* Collections */}
+      {collections.length > 0 && <CollectionSection collections={collections} />}
 
       {/* Featured */}
       {featured.length > 0 && (

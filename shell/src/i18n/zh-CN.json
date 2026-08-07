@@ -273,6 +273,7 @@
   "discover.popular": "热门下载",
   "discover.newest": "最新上架",
   "discover.view_more": "查看更多",
+  "discover.app_count": "{{count}} 款应用",
 
   "error.network_retry": "重试",
 

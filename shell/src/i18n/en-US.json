@@ -273,6 +273,7 @@
   "discover.popular": "Popular",
   "discover.newest": "New Releases",
   "discover.view_more": "View More",
+  "discover.app_count": "{{count}} apps",
 
   "error.network_retry": "Retry",
 

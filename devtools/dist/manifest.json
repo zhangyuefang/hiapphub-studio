@@ -43,27 +43,27 @@
   "dependencies": {
     "hal": [
       {
-        "id": "websocket", "uuid": "a1b2c3d4-1000-4000-8000-000000000011", "minVersion": "1.0.0",
+        "id": "websocket", "uuid": "8d4b1e99-0b14-49d0-8a94-5d41099a379b", "minVersion": "1.0.0",
         "name": { "zh-CN": "WebSocket 客户端与服务端模块", "en-US": "WebSocket client and server module", "zh-TW": "WebSocket 模組", "ja": "WebSocketモジュール", "ko": "WebSocket 모듈", "es": "Módulo WebSocket", "fr": "Module WebSocket", "de": "WebSocket-Modul", "pt-BR": "Módulo WebSocket", "ru": "Модуль WebSocket", "ar": "وحدة WebSocket", "hi": "WebSocket मॉड्यूल" }
       },
       {
-        "id": "net", "uuid": "a1b2c3d4-1000-4000-8000-000000000013", "minVersion": "1.0.0",
+        "id": "net", "uuid": "69d70c75-3ffa-478e-8021-91a187ac34e0", "minVersion": "1.0.0",
         "name": { "zh-CN": "低级网络模块", "en-US": "Low-level network module", "zh-TW": "網路模組", "ja": "ネットワークモジュール", "ko": "네트워크 모듈", "es": "Módulo de red", "fr": "Module réseau", "de": "Netzwerk-Modul", "pt-BR": "Módulo de rede", "ru": "Сетевой модуль", "ar": "وحدة الشبكة", "hi": "नेटवर्क मॉड्यूल" }
       },
       {
-        "id": "system", "uuid": "a1b2c3d4-2000-4000-8000-000000000002", "minVersion": "1.0.0",
+        "id": "system", "uuid": "573192a1-f1e9-4aa6-92ea-5f7c91cb5a03", "minVersion": "1.0.0",
         "name": { "zh-CN": "系统信息模块", "en-US": "System information module", "zh-TW": "系統資訊模組", "ja": "システム情報モジュール", "ko": "시스템 정보 모듈", "es": "Módulo de información del sistema", "fr": "Module d'information système", "de": "Systeminformationsmodul", "pt-BR": "Módulo de informações do sistema", "ru": "Модуль системной информации", "ar": "وحدة معلومات النظام", "hi": "सिस्टम जानकारी मॉड्यूल" }
       },
       {
-        "id": "fs", "uuid": "a1b2c3d4-4000-4000-8000-000000000004", "minVersion": "1.0.0",
+        "id": "fs", "uuid": "5c5f3474-892e-497e-b180-0d0d9a3d69a8", "minVersion": "1.0.0",
         "name": { "zh-CN": "文件系统模块", "en-US": "File system module", "zh-TW": "檔案系統模組", "ja": "ファイルシステムモジュール", "ko": "파일 시스템 모듈", "es": "Módulo de sistema de archivos", "fr": "Module système de fichiers", "de": "Dateisystem-Modul", "pt-BR": "Módulo de sistema de arquivos", "ru": "Модуль файловой системы", "ar": "وحدة نظام الملفات", "hi": "फ़ाइल सिस्टम मॉड्यूल" }
       },
       {
-        "id": "process", "uuid": "a1b2c3d4-1000-4000-8000-000000000025", "minVersion": "1.0.0",
+        "id": "process", "uuid": "c20ed222-8668-43b6-aeaa-5a110a6b6263", "minVersion": "1.0.0",
         "name": { "zh-CN": "进程管理模块", "en-US": "Process management module", "zh-TW": "進程管理模組", "ja": "プロセス管理モジュール", "ko": "프로세스 관리 모듈", "es": "Módulo de gestión de procesos", "fr": "Module de gestion de processus", "de": "Prozessverwaltungsmodul", "pt-BR": "Módulo de gerenciamento de processos", "ru": "Модуль управления процессами", "ar": "وحدة إدارة العمليات", "hi": "प्रोसेस प्रबंधन मॉड्यूल" }
       },
       {
-        "id": "dialog", "uuid": "a1b2c3d4-1000-4000-8000-000000000015", "minVersion": "1.0.0",
+        "id": "dialog", "uuid": "3c142e50-ac04-4a18-83d1-d8f566b3f783", "minVersion": "1.0.0",
         "name": { "zh-CN": "原生对话框模块", "en-US": "Native dialog module", "zh-TW": "對話框模組", "ja": "ダイアログモジュール", "ko": "대화상자 모듈", "es": "Módulo de diálogos", "fr": "Module de dialogues", "de": "Dialog-Modul", "pt-BR": "Módulo de diálogos", "ru": "Модуль диалогов", "ar": "وحدة مربعات الحوار", "hi": "डायलॉग मॉड्यूल" }
       }
     ]
