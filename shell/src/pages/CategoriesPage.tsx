@@ -129,7 +129,10 @@ export default function CategoriesPage() {
           onClick={() => handleChipClick("__all__")}
           label={t("categories.all")}
         />
-        {categories.map((cat) => (
+        {categories.filter((cat) => {
+          const row = rows.get(cat.slug);
+          return row && row.apps.length > 0;
+        }).map((cat) => (
           <ChipButton
             key={cat.id}
             active={activeSlug === cat.slug}
