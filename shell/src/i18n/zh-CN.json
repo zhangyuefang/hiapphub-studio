@@ -270,6 +270,20 @@
 
   "error.network_retry": "重试",
 
+  "detail.install": "安装",
+  "detail.open": "打开",
+  "detail.screenshots": "截图预览",
+  "detail.introduction": "应用介绍",
+  "detail.changelog": "版本记录",
+  "detail.app_info": "应用信息",
+  "detail.permissions": "权限",
+  "detail.license": "许可证",
+  "detail.homepage": "主页",
+  "detail.source_code": "源码",
+
+  "rating.title": "用户评分",
+  "rating.count": "{{count}} 条评价",
+
   "installed.all": "全部",
   "installed.updates": "有更新",
   "installed.empty": "暂无已安装应用",

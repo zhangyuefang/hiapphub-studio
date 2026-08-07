@@ -270,6 +270,20 @@
 
   "error.network_retry": "Retry",
 
+  "detail.install": "Install",
+  "detail.open": "Open",
+  "detail.screenshots": "Screenshots",
+  "detail.introduction": "About",
+  "detail.changelog": "Version History",
+  "detail.app_info": "App Info",
+  "detail.permissions": "Permissions",
+  "detail.license": "License",
+  "detail.homepage": "Homepage",
+  "detail.source_code": "Source Code",
+
+  "rating.title": "Ratings",
+  "rating.count": "{{count}} reviews",
+
   "installed.all": "All",
   "installed.updates": "Updates",
   "installed.empty": "No installed apps",
