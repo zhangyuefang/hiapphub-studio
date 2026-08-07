@@ -1,6 +1,6 @@
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/store/app-store";
-import { getWebBase } from "@/lib/api";
+import { getServerBase } from "@/lib/api";
 import type { AppSummary } from "@/store/store-store";
 
 function hashCode(s: string): number {
@@ -11,7 +11,7 @@ function hashCode(s: string): number {
 
 function AppIcon({ icon, appId, name, size = 48 }: { icon: string | null; appId: string; name: string; size?: number }) {
   if (icon && (icon.startsWith("http") || icon.startsWith("/"))) {
-    const src = icon.startsWith("http") ? icon : `${getWebBase()}${icon}`;
+    const src = icon.startsWith("http") ? icon : `${getServerBase()}${icon}`;
     return <img src={src} className="rounded-xl object-cover" style={{ width: size, height: size }} alt={name} loading="lazy" />;
   }
   if (icon && !icon.startsWith("http") && !icon.startsWith("/")) {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n";
-import { getWebBase } from "@/lib/api";
+import { getServerBase } from "@/lib/api";
 
 interface Banner {
   id: string;
@@ -40,7 +40,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
       {banners.map((banner, i) => {
         const title = banner.titleI18n?.[locale] ?? banner.title;
         const subtitle = banner.subtitleI18n?.[locale] ?? banner.subtitle;
-        const imgSrc = banner.imageUrl.startsWith("http") ? banner.imageUrl : `${getWebBase()}${banner.imageUrl}`;
+        const imgSrc = banner.imageUrl.startsWith("http") ? banner.imageUrl : `${getServerBase()}${banner.imageUrl}`;
         return (
           <div
             key={banner.id}

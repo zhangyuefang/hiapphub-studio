@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n";
-import { getWebBase } from "@/lib/api";
+import { getServerBase } from "@/lib/api";
 import { AppCard } from "@/components/app/AppCard";
 import type { AppCollection } from "@/store/store-store";
 
 function resolveImg(url: string | null): string {
   if (!url) return "";
-  return url.startsWith("http") ? url : `${getWebBase()}${url}`;
+  return url.startsWith("http") ? url : `${getServerBase()}${url}`;
 }
 
 function isImageUrl(icon: string | null): boolean {

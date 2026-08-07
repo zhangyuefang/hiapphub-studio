@@ -71,3 +71,7 @@ export function getWebBase() {
     ? "http://127.0.0.1:5500"
     : "https://hiapphub.com";
 }
+
+export function getServerBase() {
+  return API_BASE.replace(/\/api$/, "");
+}

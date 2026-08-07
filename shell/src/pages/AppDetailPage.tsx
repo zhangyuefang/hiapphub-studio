@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/store/app-store";
 import { useDownloadStore } from "@/store/download-store";
-import { apiFetch, getWebBase } from "@/lib/api";
+import { apiFetch, getServerBase } from "@/lib/api";
 
 interface AppVersion {
   id: string;
@@ -51,7 +51,7 @@ function hashCode(s: string): number {
 
 function DetailIcon({ icon, appId, name }: { icon: string | null; appId: string; name: string }) {
   if (icon) {
-    const src = icon.startsWith("http") ? icon : `${getWebBase()}${icon}`;
+    const src = icon.startsWith("http") ? icon : `${getServerBase()}${icon}`;
     return <img src={src} className="rounded-2xl object-cover w-16 h-16" alt={name} />;
   }
   const hue = hashCode(appId) % 360;
@@ -179,7 +179,7 @@ export default function AppDetailPage() {
             {app.screenshots.map((s) => (
               <img
                 key={s.id}
-                src={s.url.startsWith("http") ? s.url : `${getWebBase()}${s.url}`}
+                src={s.url.startsWith("http") ? s.url : `${getServerBase()}${s.url}`}
                 className="h-40 rounded-lg object-cover shrink-0"
                 alt={s.caption || ""}
                 loading="lazy"
