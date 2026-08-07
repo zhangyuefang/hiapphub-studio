@@ -8,9 +8,9 @@ import type { AppSummary } from "@/store/store-store";
 interface Category {
   id: string;
   slug: string;
-  name: string;
-  nameI18n: Record<string, string> | null;
+  names: Record<string, string> | null;
   icon: string | null;
+  sortOrder?: number;
   appCount?: number;
 }
 
@@ -134,8 +134,8 @@ export default function CategoriesPage() {
             key={cat.id}
             active={activeSlug === cat.slug}
             onClick={() => handleChipClick(cat.slug)}
-            label={cat.nameI18n?.[locale] ?? cat.name}
-            emoji={CATEGORY_EMOJIS[cat.slug] || "📁"}
+            label={cat.names?.[locale] ?? cat.names?.en ?? cat.slug}
+            emoji={cat.icon || CATEGORY_EMOJIS[cat.slug] || "📁"}
           />
         ))}
       </div>
@@ -144,7 +144,7 @@ export default function CategoriesPage() {
       {filterMode ? (
         <div>
           <h2 className="text-base font-semibold mb-3" style={{ color: "var(--fs-text)" }}>
-            {categories.find((c) => c.slug === activeSlug)?.nameI18n?.[locale] ?? activeSlug}
+            {categories.find((c) => c.slug === activeSlug)?.names?.[locale] ?? activeSlug}
           </h2>
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
             {filterApps.map((app) => (
@@ -163,7 +163,7 @@ export default function CategoriesPage() {
         <div className="space-y-6">
           {Array.from(rows.entries()).map(([slug, row]) => {
             if (row.apps.length === 0) return null;
-            const displayName = row.category.nameI18n?.[locale] ?? row.category.name;
+            const displayName = row.category.names?.[locale] ?? row.category.names?.en ?? row.category.slug;
             return (
               <section
                 key={slug}
@@ -171,7 +171,7 @@ export default function CategoriesPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold" style={{ color: "var(--fs-text)" }}>
-                    {CATEGORY_EMOJIS[slug] || "📁"} {displayName}
+                    {row.category.icon || CATEGORY_EMOJIS[slug] || "📁"} {displayName}
                   </h3>
                   <button
                     className="text-[12px] font-medium hover:underline"

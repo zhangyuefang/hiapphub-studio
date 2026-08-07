@@ -8,11 +8,12 @@ import type { AppSummary } from "@/store/store-store";
 export default function CategoryListPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [apps, setApps] = useState<AppSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [catName, setCatName] = useState<string>(slug || "");
   const observerRef = useRef<HTMLDivElement>(null);
 
   const fetchPage = useCallback(async (p: number) => {
@@ -25,7 +26,15 @@ export default function CategoryListPage() {
     setLoading(false);
   }, [slug]);
 
-  useEffect(() => { setApps([]); setPage(1); setLoading(true); fetchPage(1); }, [slug]);
+  useEffect(() => {
+    setApps([]); setPage(1); setLoading(true); fetchPage(1);
+    apiFetch<{ list: { slug: string; names: Record<string, string> | null }[] }>("/apps/categories")
+      .then((res) => {
+        const cat = res.list.find((c) => c.slug === slug);
+        if (cat?.names) setCatName(cat.names[locale] ?? cat.names.en ?? (slug || ""));
+      })
+      .catch(() => {});
+  }, [slug, locale]);
 
   useEffect(() => {
     if (!observerRef.current || !hasMore || loading) return;
@@ -43,7 +52,7 @@ export default function CategoryListPage() {
       <button onClick={() => navigate(-1)} className="text-sm mb-3 flex items-center gap-1" style={{ color: "var(--fs-text-secondary)" }}>
         ← {t("plugin.back")}
       </button>
-      <h1 className="text-lg font-semibold mb-4">{slug}</h1>
+      <h1 className="text-lg font-semibold mb-4">{catName}</h1>
       {loading && apps.length === 0 ? (
         <div className="flex items-center justify-center h-40">
           <div className="w-5 h-5 border-2 border-[var(--fs-primary)] border-t-transparent rounded-full animate-spin" />
