@@ -275,6 +275,9 @@
   "discover.view_more": "查看更多",
   "discover.app_count": "{{count}} 款应用",
 
+  "categories.all": "全部",
+  "categories.view_all": "查看全部",
+
   "error.network_retry": "重试",
 
   "detail.install": "安装",

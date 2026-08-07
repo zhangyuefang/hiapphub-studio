@@ -275,6 +275,9 @@
   "discover.view_more": "View More",
   "discover.app_count": "{{count}} apps",
 
+  "categories.all": "All",
+  "categories.view_all": "View All",
+
   "error.network_retry": "Retry",
 
   "detail.install": "Install",
