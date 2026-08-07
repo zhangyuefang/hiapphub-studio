@@ -34,7 +34,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-5xl">
+    <div className="p-6 space-y-8">
       {/* Banners */}
       {banners.length > 0 && <BannerCarousel banners={banners} />}
 
@@ -47,8 +47,8 @@ export default function DiscoverPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">{t("discover.featured")}</h2>
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-            {featured.slice(0, 12).map((app) => (
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+            {featured.slice(0, 8).map((app) => (
               <AppCard key={app.uuid} app={app} onClick={() => navigate(`/app/${app.uuid}`)} />
             ))}
           </div>
@@ -80,7 +80,7 @@ export default function DiscoverPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">{t("discover.newest")}</h2>
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
             {newest.map((app) => (
               <AppCard key={app.uuid} app={app} onClick={() => navigate(`/app/${app.uuid}`)} />
             ))}
