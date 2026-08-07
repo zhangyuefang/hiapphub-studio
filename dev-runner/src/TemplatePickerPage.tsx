@@ -45,7 +45,7 @@ export function TemplatePickerPage({ onSelect, serverUrl }: Props) {
       const res = await fetch(`${serverUrl}/api/templates`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setTemplates(data.list || []);
+      setTemplates(data.templates || []);
     } catch (e: any) {
       setError(e.message || '加载失败');
     }

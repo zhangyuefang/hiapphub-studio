@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "pack": "node ../../packages/hap-cli/dist/index.js pack . -o devtools.hapk"
+    "pack": "cp manifest.json dist/ && node ../../packages/hap-cli/dist/index.js pack dist -o hiapphub-devtools.hapk"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.20",

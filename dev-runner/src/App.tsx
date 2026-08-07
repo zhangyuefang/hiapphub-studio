@@ -21,7 +21,7 @@ interface SelectedTemplate {
   components: string[];
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3000';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
 
 export function App() {
   const [route, setRoute] = useState<Route>('main');
