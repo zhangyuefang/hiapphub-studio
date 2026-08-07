@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus } from 'lucide-react';
+import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus, LayoutTemplate } from 'lucide-react';
 import { t, setLocale, getLocale, SUPPORTED_LOCALES, LOCALE_LABELS } from './i18n';
 import { setTheme, getTheme, ThemeMode } from './theme';
 import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, getWsClients } from './server';
@@ -676,6 +676,7 @@ export function App() {
             <div className="proj-toolbar">
               <div className="proj-toolbar-left">
                 <button className="proj-toolbar-btn" onClick={handleStartAddProject}><Plus size={14} /> {t('project.add')}</button>
+                <button className="proj-toolbar-btn" onClick={() => wsSendToRole('runner', { type: 'create-project' })}><LayoutTemplate size={14} /> {t('project.from_template')}</button>
                 <button className="proj-toolbar-btn" disabled={!wsConfig.projects.length || openTabs.length >= wsConfig.projects.length} onClick={async () => {
                     const canCreate = typeof (window as any).hap?.window?.create === 'function';
                     if (!canCreate) {
