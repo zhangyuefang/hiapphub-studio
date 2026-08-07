@@ -278,6 +278,8 @@
 
   "detail.install": "Install",
   "detail.open": "Open",
+  "detail.queued": "Queued",
+  "detail.retry": "Retry",
   "detail.screenshots": "Screenshots",
   "detail.introduction": "About",
   "detail.changelog": "Version History",

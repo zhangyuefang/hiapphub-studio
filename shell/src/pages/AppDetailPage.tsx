@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/store/app-store";
+import { useDownloadStore } from "@/store/download-store";
 import { apiFetch, getWebBase } from "@/lib/api";
 
 interface AppVersion {
@@ -112,6 +113,25 @@ export default function AppDetailPage() {
   const latestVersion = app.versions[0];
   const isInstalled = plugins.some((p) => p.manifest.id === app.appId);
 
+  const downloadTask = useDownloadStore((s) => s.getTask(app.uuid));
+  const enqueue = useDownloadStore((s) => s.enqueue);
+
+  const handleInstall = () => {
+    if (isInstalled) { hap.system.openApp(app.appId); return; }
+    if (downloadTask && (downloadTask.status === "downloading" || downloadTask.status === "queued")) return;
+    if (!latestVersion) return;
+    const artifact = latestVersion.artifacts?.find((a) => a.type === "hapk" && a.platform === "cross-platform") || null;
+    const fileUrl = artifact?.fileUrl || latestVersion.hapFileUrl || "";
+    if (!fileUrl) return;
+    enqueue({ uuid: app.uuid, appId: app.appId, name: displayName, version: latestVersion.version, fileUrl, fileSize: artifact?.fileSize || latestVersion.hapFileSize, isUpdate: false });
+  };
+
+  const btnLabel = isInstalled ? t("detail.open")
+    : downloadTask?.status === "downloading" ? `${downloadTask.progress}%`
+    : downloadTask?.status === "queued" ? t("detail.queued")
+    : downloadTask?.status === "error" ? t("detail.retry")
+    : t("detail.install");
+
   return (
     <div className="max-w-3xl p-6 space-y-6">
       {/* Back + Header */}
@@ -143,11 +163,12 @@ export default function AppDetailPage() {
           className="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
           style={isInstalled
             ? { border: "1.5px solid var(--fs-success)", color: "var(--fs-success)" }
+            : downloadTask?.status === "error" ? { background: "var(--fs-error)", color: "#fff" }
             : { background: "var(--fs-primary)", color: "#fff" }
           }
-          onClick={() => isInstalled ? hap.system.openApp(app.appId) : undefined}
+          onClick={downloadTask?.status === "error" ? () => useDownloadStore.getState().retry(app.uuid) : handleInstall}
         >
-          {isInstalled ? t("detail.open") : t("detail.install")}
+          {btnLabel}
         </button>
       </div>
 
