@@ -44,7 +44,10 @@
   "permissions": [
     "fs.read",
     "fs.write",
-    "system.info"
+    "system.info",
+    "http",
+    "dialog.directory",
+    "archive"
   ],
   "dependencies": {
     "hal": [
@@ -66,6 +69,24 @@
           "ar": "وحدة نظام الملفات",
           "hi": "फ़ाइल सिस्टम मॉड्यूल"
         }
+      },
+      {
+        "id": "http",
+        "uuid": "b3e4a1c2-d567-4890-abcd-1234567890ab",
+        "minVersion": "1.0.0",
+        "name": { "zh-CN": "HTTP 客户端模块", "en-US": "HTTP client module" }
+      },
+      {
+        "id": "dialog",
+        "uuid": "3c142e50-ac04-4a18-83d1-d8f566b3f783",
+        "minVersion": "1.0.0",
+        "name": { "zh-CN": "原生对话框模块", "en-US": "Native dialog module" }
+      },
+      {
+        "id": "archive",
+        "uuid": "e7f8a9b0-c1d2-3456-7890-abcdef012345",
+        "minVersion": "1.0.0",
+        "name": { "zh-CN": "归档压缩模块", "en-US": "Archive module" }
       },
       {
         "id": "system",
