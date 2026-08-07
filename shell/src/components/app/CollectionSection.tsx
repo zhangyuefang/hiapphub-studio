@@ -9,6 +9,29 @@ function resolveImg(url: string | null): string {
   return url.startsWith("http") ? url : `${getWebBase()}${url}`;
 }
 
+function isImageUrl(icon: string | null): boolean {
+  if (!icon) return false;
+  return icon.startsWith("http") || icon.startsWith("/");
+}
+
+function renderIcon(icon: string | null, name: string, _locale: string, size: number) {
+  if (icon && isImageUrl(icon)) {
+    return <img src={resolveImg(icon)} className={`rounded-lg object-cover`} style={{ width: size, height: size }} alt="" loading="lazy" />;
+  }
+  if (icon) {
+    return (
+      <div className="flex items-center justify-center rounded-lg" style={{ width: size, height: size, background: "var(--fs-bg-secondary)" }}>
+        <span style={{ fontSize: size * 0.5 }}>{icon}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg bg-gray-300 flex items-center justify-center font-bold text-white" style={{ width: size, height: size, fontSize: size * 0.35 }}>
+      {name[0]?.toUpperCase()}
+    </div>
+  );
+}
+
 function SceneCard({ collection }: { collection: AppCollection }) {
   const navigate = useNavigate();
   const { locale } = useI18n();
@@ -26,13 +49,7 @@ function SceneCard({ collection }: { collection: AppCollection }) {
       <div className="flex gap-2 mt-3">
         {apps.slice(0, 4).map((app) => (
           <button key={app.uuid} className="flex flex-col items-center gap-1" onClick={() => navigate(`/app/${app.uuid}`)}>
-            {app.icon ? (
-              <img src={resolveImg(app.icon)} className="w-10 h-10 rounded-lg object-cover" alt="" loading="lazy" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-gray-300 flex items-center justify-center text-sm font-bold text-white">
-                {(app.names?.[locale] ?? app.name)[0]?.toUpperCase()}
-              </div>
-            )}
+            {renderIcon(app.icon, app.names?.[locale] ?? app.name, locale, 40)}
             <span className="text-[10px] w-10 text-center truncate" style={{ color: "var(--fs-text-secondary)" }}>
               {app.names?.[locale] ?? app.name}
             </span>
@@ -53,12 +70,19 @@ function StoryCard({ collection }: { collection: AppCollection }) {
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer border" style={{ borderColor: "var(--fs-border)" }}>
-      {coverSrc && (
-        <div className="relative aspect-video">
+      {coverSrc ? (
+        <div className="relative overflow-hidden" style={{ height: 200 }}>
           <img src={coverSrc} className="w-full h-full object-cover" alt={title} loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
           <div className="absolute bottom-3 left-4 right-4 text-white">
             <h3 className="text-base font-semibold" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{title}</h3>
+            {subtitle && <p className="text-xs opacity-80 mt-0.5">{subtitle}</p>}
+          </div>
+        </div>
+      ) : (
+        <div className="relative overflow-hidden" style={{ height: 140, background: "linear-gradient(135deg, var(--fs-primary), #667eea)" }}>
+          <div className="absolute bottom-3 left-4 right-4 text-white">
+            <h3 className="text-base font-semibold">{title}</h3>
             {subtitle && <p className="text-xs opacity-80 mt-0.5">{subtitle}</p>}
           </div>
         </div>
@@ -67,13 +91,7 @@ function StoryCard({ collection }: { collection: AppCollection }) {
         <div className="flex items-center gap-3 px-4 py-3" style={{ background: "var(--fs-bg-secondary)" }}>
           {apps.slice(0, 4).map((app) => (
             <button key={app.uuid} className="flex items-center gap-2" onClick={() => navigate(`/app/${app.uuid}`)}>
-              {app.icon ? (
-                <img src={resolveImg(app.icon)} className="w-8 h-8 rounded-lg object-cover" alt="" loading="lazy" />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center text-xs font-bold text-white">
-                  {(app.names?.[locale] ?? app.name)[0]?.toUpperCase()}
-                </div>
-              )}
+              {renderIcon(app.icon, app.names?.[locale] ?? app.name, locale, 32)}
               <span className="text-[11px] font-medium hidden sm:inline" style={{ color: "var(--fs-text)" }}>
                 {app.names?.[locale] ?? app.name}
               </span>
@@ -136,13 +154,7 @@ function DynamicSection({ collection }: { collection: AppCollection }) {
         <div className="space-y-1">
           {apps.map((app) => (
             <button key={app.uuid} className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-black/[0.03] transition-colors" onClick={() => navigate(`/app/${app.uuid}`)}>
-              {app.icon ? (
-                <img src={resolveImg(app.icon)} className="w-9 h-9 rounded-lg object-cover" alt="" loading="lazy" />
-              ) : (
-                <div className="w-9 h-9 rounded-lg bg-gray-300 flex items-center justify-center text-sm font-bold text-white">
-                  {(app.names?.[locale] ?? app.name)[0]?.toUpperCase()}
-                </div>
-              )}
+              {renderIcon(app.icon, app.names?.[locale] ?? app.name, locale, 36)}
               <span className="text-[13px] font-medium truncate" style={{ color: "var(--fs-text)" }}>{app.names?.[locale] ?? app.name}</span>
             </button>
           ))}

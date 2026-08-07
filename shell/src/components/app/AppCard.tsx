@@ -10,9 +10,16 @@ function hashCode(s: string): number {
 }
 
 function AppIcon({ icon, appId, name, size = 48 }: { icon: string | null; appId: string; name: string; size?: number }) {
-  if (icon) {
+  if (icon && (icon.startsWith("http") || icon.startsWith("/"))) {
     const src = icon.startsWith("http") ? icon : `${getWebBase()}${icon}`;
     return <img src={src} className="rounded-xl object-cover" style={{ width: size, height: size }} alt={name} loading="lazy" />;
+  }
+  if (icon && !icon.startsWith("http") && !icon.startsWith("/")) {
+    return (
+      <div className="flex items-center justify-center rounded-xl" style={{ width: size, height: size, background: "var(--fs-bg-secondary)" }}>
+        <span style={{ fontSize: size * 0.5 }}>{icon}</span>
+      </div>
+    );
   }
   const hue = hashCode(appId) % 360;
   return (
