@@ -81,17 +81,11 @@ export default function CategoriesPage() {
       setFilterMode(false);
       return;
     }
-    if (activeSlug === slug && !filterMode) {
-      setFilterMode(true);
-      setFilterApps([]);
-      setFilterPage(1);
-      loadFilterApps(slug, 1);
-      return;
-    }
     setActiveSlug(slug);
-    setFilterMode(false);
-    const el = rowRefs.current.get(slug);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setFilterMode(true);
+    setFilterApps([]);
+    setFilterPage(1);
+    loadFilterApps(slug, 1);
   };
 
   const loadFilterApps = async (slug: string, page: number) => {
