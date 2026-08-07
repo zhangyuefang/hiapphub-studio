@@ -316,19 +316,10 @@ export function App() {
       wsSendToRole('creator', { type: 'create-project' });
     } else {
       try {
-        await (window as any).hap?.system?.openApp?.('hap-dev-runner');
+        await (window as any).hap?.system?.openApp?.('hap-dev-runner', {
+          hash: '#/create-project',
+        });
       } catch {}
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        if (attempts > 15) { clearInterval(poll); return; }
-        const cls = await getWsClients();
-        if (cls.some(c => c.role === 'runner' || c.role === 'creator')) {
-          clearInterval(poll);
-          wsSendToRole('runner', { type: 'create-project' });
-          wsSendToRole('creator', { type: 'create-project' });
-        }
-      }, 500);
     }
   };
 

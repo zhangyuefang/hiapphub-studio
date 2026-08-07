@@ -95,7 +95,7 @@ export function App() {
   if (route === 'create-project') {
     if (progress === 'done') {
       return (
-        <div className="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text)', fontSize: 13, gap: 8, padding: 20, textAlign: 'center' }}>
+        <div className="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fs-text)', fontSize: 13, gap: 8, padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 500 }}>项目创建成功</div>
           <div>DevTools 将自动打开预览</div>
         </div>
