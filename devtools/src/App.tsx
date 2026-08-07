@@ -9,8 +9,11 @@ import { setupTray, destroyTray } from './tray';
 import { addProject, createWorkspace, runPnpmInstall, readWorkspace, saveWorkspace, WorkspaceConfig, ProjectType, ID_REGEX } from './scaffold';
 import { ProjectEditor } from './ProjectEditor';
 import { ProgressDialog, ProgressStep } from './ProgressDialog';
+import { TemplatePickerPage } from './TemplatePickerPage';
+import { ProjectCreateForm } from './ProjectCreateForm';
+import { createProject, type CreateProjectParams } from './create-project';
 
-type AppView = 'env-check' | 'welcome' | 'project' | 'create-workspace' | 'add-project';
+type AppView = 'env-check' | 'welcome' | 'project' | 'create-workspace' | 'add-project' | 'template-picker';
 
 function initDragDialog(el: HTMLElement | null) {
   if (!el || el.dataset.dragInit) return;
@@ -106,6 +109,8 @@ export function App() {
   const [progressDone, setProgressDone] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [openProjOverlay, setOpenProjOverlay] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [tplProgress, setTplProgress] = useState('');
   const serverStarted = useRef(false);
 
   const kvGet = async (k: string) => { try { const v = await (window as any).hap?.db?.get?.(k); return v ? JSON.parse(v) : null; } catch { return null; } };
@@ -308,19 +313,10 @@ export function App() {
     }
   };
 
-  const handleFromTemplate = async () => {
-    const clients = await getWsClients();
-    const hasRunner = clients.some(c => c.role === 'creator' || c.role === 'runner');
-    if (hasRunner) {
-      wsSendToRole('runner', { type: 'create-project' });
-      wsSendToRole('creator', { type: 'create-project' });
-    } else {
-      try {
-        await (window as any).hap?.system?.openApp?.('hap-dev-runner', {
-          hash: '#/create-project',
-        });
-      } catch {}
-    }
+  const handleFromTemplate = () => {
+    setSelectedTemplate(null);
+    setTplProgress('');
+    setView('template-picker');
   };
 
   const validateProjId = (v: string) => {
@@ -704,6 +700,35 @@ export function App() {
               </div>
             )}
           </div>
+        </main>
+      )}
+
+      {view === 'template-picker' && (
+        <main className="main-content">
+          {tplProgress === 'done' ? (
+            <div className="center-view" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
+              <CheckCircle size={32} style={{ color: 'var(--accent)' }} />
+              <p style={{ fontSize: 14 }}>项目创建成功</p>
+              <button className="wizard-create-btn" onClick={() => setView(wsConfig ? 'project' : 'welcome')}>返回</button>
+            </div>
+          ) : selectedTemplate ? (
+            <ProjectCreateForm
+              template={selectedTemplate}
+              serverUrl={import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}
+              progress={tplProgress}
+              onSubmit={async (params: CreateProjectParams) => {
+                setTplProgress('downloading');
+                await createProject(params, (step) => setTplProgress(step));
+              }}
+              onBack={() => setSelectedTemplate(null)}
+            />
+          ) : (
+            <TemplatePickerPage
+              serverUrl={import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}
+              onSelect={(tpl) => setSelectedTemplate(tpl)}
+              onBack={() => setView(wsConfig ? 'project' : 'welcome')}
+            />
+          )}
         </main>
       )}
 
