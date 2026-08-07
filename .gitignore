@@ -1,0 +1,3 @@
+*.hapk
+dist/
+node_modules/
