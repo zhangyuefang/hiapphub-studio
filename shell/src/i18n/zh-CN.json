@@ -296,5 +296,6 @@
   "installed.updates": "有更新",
   "installed.empty": "暂无已安装应用",
   "installed.empty_desc": "在商店中发现并安装应用",
-  "installed.no_updates": "所有应用已是最新"
+  "installed.no_updates": "所有应用已是最新",
+  "installed.update_btn": "更新"
 }

@@ -296,5 +296,6 @@
   "installed.updates": "Updates",
   "installed.empty": "No installed apps",
   "installed.empty_desc": "Discover and install apps from the store",
-  "installed.no_updates": "All apps are up to date"
+  "installed.no_updates": "All apps are up to date",
+  "installed.update_btn": "Update"
 }
