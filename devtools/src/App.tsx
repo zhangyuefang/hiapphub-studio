@@ -627,6 +627,7 @@ export function App() {
           pendingRestore={pendingRestore}
           onOpen={handleOpen}
           onCreate={handleCreateWorkspace}
+          onFromTemplate={handleFromTemplate}
           onRestore={(dir, cfg, tabs) => {
             setWsDir(dir);
             setWsConfig(cfg);
@@ -871,10 +872,11 @@ export function App() {
   );
 }
 
-function WelcomeView({ pendingRestore, onOpen, onCreate, onRestore, readWorkspace }: {
+function WelcomeView({ pendingRestore, onOpen, onCreate, onFromTemplate, onRestore, readWorkspace }: {
   pendingRestore: React.RefObject<{ dir: string; tabs: string[] } | null>;
   onOpen: () => void;
   onCreate: () => void;
+  onFromTemplate: () => void;
   onRestore: (dir: string, cfg: WorkspaceConfig, tabs: string[]) => void;
   readWorkspace: (dir: string) => Promise<WorkspaceConfig | null>;
 }) {
@@ -903,6 +905,9 @@ function WelcomeView({ pendingRestore, onOpen, onCreate, onRestore, readWorkspac
           </button>
           <button className="welcome-btn" onClick={onCreate}>
             <FilePlus size={20} /><span>{t('workspace.create')}</span>
+          </button>
+          <button className="welcome-btn" onClick={onFromTemplate}>
+            <LayoutTemplate size={20} /><span>{t('project.from_template')}</span>
           </button>
         </div>
       </div>
