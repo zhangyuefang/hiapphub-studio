@@ -1,46 +1,22 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAppStore } from "@/store/app-store";
+import { useStoreStore, type UpdateInfo } from "@/store/store-store";
 import { useDownloadStore } from "@/store/download-store";
 import { useI18n } from "@/i18n";
 import { ToolGrid } from "@/components/ToolGrid";
-import { apiFetch } from "@/lib/api";
-
-interface UpdateInfo {
-  appId: string;
-  uuid: string;
-  name: string;
-  currentVersion: string;
-  latestVersion: string;
-  fileUrl: string;
-  fileSize: number;
-}
 
 export default function InstalledPage() {
   const { plugins, category, setCategory } = useAppStore();
   const { t, locale } = useI18n();
   const [tab, setTab] = useState<"all" | "updates">("all");
-  const [updates, setUpdates] = useState<UpdateInfo[]>([]);
-  const [checking, setChecking] = useState(false);
+  const updates = useStoreStore((s) => s.updates);
+  const checkUpdates = useStoreStore((s) => s.checkUpdates);
   const enqueue = useDownloadStore((s) => s.enqueue);
 
-  const checkUpdates = useCallback(async () => {
-    if (plugins.length === 0) return;
-    setChecking(true);
-    try {
-      const installed = plugins.map((p) => ({ appId: p.manifest.id, version: p.manifest.version }));
-      const res = await apiFetch<{ updates: UpdateInfo[] }>("/apps/check-updates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apps: installed }),
-      });
-      setUpdates(res.updates || []);
-    } catch {
-      setUpdates([]);
-    }
-    setChecking(false);
-  }, [plugins]);
-
-  useEffect(() => { checkUpdates(); }, [checkUpdates]);
+  useEffect(() => {
+    const installed = plugins.map((p) => ({ appId: p.manifest.id, version: p.manifest.version }));
+    checkUpdates(installed);
+  }, [plugins, checkUpdates]);
 
   const categories = useMemo(() => {
     const map = new Map<string, number>();
@@ -121,11 +97,7 @@ export default function InstalledPage() {
           )
         ) : (
           <div className="space-y-2 pt-2">
-            {checking ? (
-              <div className="flex items-center justify-center h-40">
-                <div className="w-5 h-5 border-2 border-[var(--fs-primary)] border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : updates.length === 0 ? (
+            {updates.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-gray-400">
                 <p className="text-sm">{t("installed.no_updates")}</p>
               </div>

@@ -18,6 +18,16 @@ export interface AppSummary {
   publishedAt: string | null;
 }
 
+export interface UpdateInfo {
+  appId: string;
+  uuid: string;
+  name: string;
+  currentVersion: string;
+  latestVersion: string;
+  fileUrl: string;
+  fileSize: number;
+}
+
 interface StoreState {
   featured: AppSummary[];
   popular: AppSummary[];
@@ -26,7 +36,11 @@ interface StoreState {
   discoverError: string | null;
   discoverFetchedAt: number;
 
+  updates: UpdateInfo[];
+  updatesCheckedAt: number;
+
   fetchDiscover: () => Promise<void>;
+  checkUpdates: (installed: { appId: string; version: string }[]) => Promise<void>;
 }
 
 const DISCOVER_TTL = 5 * 60 * 1000;
@@ -38,6 +52,9 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   discoverLoading: false,
   discoverError: null,
   discoverFetchedAt: 0,
+
+  updates: [],
+  updatesCheckedAt: 0,
 
   fetchDiscover: async () => {
     const now = Date.now();
@@ -59,6 +76,22 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       });
     } catch (e: any) {
       set({ discoverLoading: false, discoverError: e.message || "Failed to load" });
+    }
+  },
+
+  checkUpdates: async (installed) => {
+    if (installed.length === 0) { set({ updates: [] }); return; }
+    const now = Date.now();
+    if (now - get().updatesCheckedAt < DISCOVER_TTL && get().updatesCheckedAt > 0) return;
+    try {
+      const res = await apiFetch<{ updates: UpdateInfo[] }>("/apps/check-updates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apps: installed }),
+      });
+      set({ updates: res.updates || [], updatesCheckedAt: now });
+    } catch {
+      set({ updates: [] });
     }
   },
 }));

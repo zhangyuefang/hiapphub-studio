@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
+import { useStoreStore } from "@/store/store-store";
 import { useI18n, loadExternalLocales } from "@/i18n";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
@@ -27,6 +28,7 @@ function PageFallback() {
 function AppLayout() {
   const { theme } = useAppStore();
   const { locale, setLocale } = useI18n();
+  const updateCount = useStoreStore((s) => s.updates.length);
 
   useEffect(() => {
     const saved = localStorage.getItem("shell_locale");
@@ -56,7 +58,7 @@ function AppLayout() {
     <div className="flex flex-col h-screen select-none" data-theme={theme}>
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        <Sidebar updateBadge={updateCount} />
         <main className="flex-1 overflow-y-auto">
           <Suspense fallback={<PageFallback />}>
             <Routes>
