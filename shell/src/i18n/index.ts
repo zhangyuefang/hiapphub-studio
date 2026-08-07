@@ -96,6 +96,13 @@ export const useI18n = create<I18nState>((set, get) => ({
   },
 }));
 
+if (savedLocale && !builtinLocales[savedLocale] && lazyLocaleLoaders[savedLocale]) {
+  lazyLocaleLoaders[savedLocale]().then((mod) => {
+    builtinLocales[savedLocale] = mod.default;
+    useI18n.setState({ translations: mod.default });
+  }).catch(() => {});
+}
+
 /**
  * 从 Rust 侧读取 ~/.hiapphub/locales/ 下的 JSON 文件，
  * 注册为可用语言包。Shell 启动时调用。
