@@ -73,6 +73,8 @@ export default function AppDetailPage() {
   const navigate = useNavigate();
   const { t, locale } = useI18n();
   const { plugins } = useAppStore();
+  const downloadTask = useDownloadStore((s) => s.tasks.find((t) => t.uuid === uuid));
+  const enqueue = useDownloadStore((s) => s.enqueue);
   const [app, setApp] = useState<AppDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +114,6 @@ export default function AppDetailPage() {
   const displayIntro = app.introductions?.[locale] ?? app.introduction ?? displayDesc;
   const latestVersion = app.versions[0];
   const isInstalled = plugins.some((p) => p.manifest.id === app.appId);
-
-  const downloadTask = useDownloadStore((s) => s.getTask(app.uuid));
-  const enqueue = useDownloadStore((s) => s.enqueue);
 
   const handleInstall = () => {
     if (isInstalled) { hap.system.openApp(app.appId); return; }
