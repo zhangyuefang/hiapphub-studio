@@ -26,15 +26,22 @@ function PageFallback() {
 }
 
 function AppLayout() {
-  const { theme } = useAppStore();
+  const { theme, plugins } = useAppStore();
   const { locale, setLocale } = useI18n();
   const updateCount = useStoreStore((s) => s.updates.length);
+  const checkUpdates = useStoreStore((s) => s.checkUpdates);
 
   useEffect(() => {
     const saved = localStorage.getItem("shell_locale");
     if (saved && saved !== locale) setLocale(saved);
     loadExternalLocales();
   }, []);
+
+  useEffect(() => {
+    if (plugins.length === 0) return;
+    const installed = plugins.map((p) => ({ appId: p.manifest.id, version: p.manifest.version }));
+    checkUpdates(installed);
+  }, [plugins, checkUpdates]);
 
   useEffect(() => {
     const dlHandler = (url: any) => {
