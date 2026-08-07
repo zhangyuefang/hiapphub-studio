@@ -14,6 +14,7 @@ const MePage = lazy(() => import("@/pages/MePage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const SearchPage = lazy(() => import("@/pages/SearchPage"));
 const AppDetailPage = lazy(() => import("@/pages/AppDetailPage"));
+const CategoryListPage = lazy(() => import("@/pages/CategoryListPage"));
 
 function PageFallback() {
   return (
@@ -67,6 +68,7 @@ function AppLayout() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/app/:uuid" element={<AppDetailPage />} />
+              <Route path="/category/:slug" element={<CategoryListPage />} />
             </Routes>
           </Suspense>
         </main>

@@ -262,6 +262,12 @@
 
   "search.placeholder": "Search apps...",
   "search.results_count": "{{count}} results",
+  "search.no_results": "No apps found",
+  "search.no_results_tip": "Try different keywords",
+
+  "rankings.download": "Downloads",
+  "rankings.rating": "Top Rated",
+  "rankings.new": "New Releases",
 
   "discover.featured": "Featured",
   "discover.popular": "Popular",
