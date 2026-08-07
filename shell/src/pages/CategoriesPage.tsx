@@ -39,6 +39,7 @@ export default function CategoriesPage() {
   const [filterTotal, setFilterTotal] = useState(0);
   const [filterLoading, setFilterLoading] = useState(false);
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const filterSlugRef = useRef<string>("");
 
   useEffect(() => {
     apiFetch<{ list: Category[] }>("/apps/categories")
@@ -79,12 +80,14 @@ export default function CategoriesPage() {
     if (slug === "__all__") {
       setActiveSlug("__all__");
       setFilterMode(false);
+      filterSlugRef.current = "";
       return;
     }
     setActiveSlug(slug);
     setFilterMode(true);
     setFilterApps([]);
     setFilterPage(1);
+    filterSlugRef.current = slug;
     loadFilterApps(slug, 1);
   };
 
@@ -92,6 +95,7 @@ export default function CategoriesPage() {
     setFilterLoading(true);
     try {
       const res = await apiFetch<{ list: AppSummary[]; total: number }>(`/apps?category=${slug}&page=${page}&pageSize=20&sort=popular`);
+      if (filterSlugRef.current !== slug) return;
       setFilterApps((prev) => page === 1 ? res.list : [...prev, ...res.list]);
       setFilterTotal(res.total);
       setFilterPage(page);
