@@ -2,6 +2,8 @@ const hap = (window as any).hap;
 
 export interface CreateProjectParams {
   templateId: string;
+  templateSlug?: string;
+  templateVersion?: string;
   appId: string;
   name: string;
   targetDir: string;
@@ -13,8 +15,10 @@ export interface CreateProjectParams {
 
 type ProgressFn = (step: string) => void;
 
+const CACHE_DIR = '/tmp/hiapphub-template-cache';
+
 export async function createProject(params: CreateProjectParams, onProgress: ProgressFn = () => {}) {
-  const { templateId, appId, name, targetDir, description, version, author, serverUrl } = params;
+  const { templateId, templateSlug, templateVersion, appId, name, targetDir, description, version, author, serverUrl } = params;
 
   if (!hap?.hal) throw new Error('Bridge 未就绪，请确认运行环境');
 
@@ -27,31 +31,14 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   }
 
   onProgress('downloading');
-  const tmpPath = `${targetDir}/.tmp-template.tgz`;
-  try {
-    await hal('http', 'download', {
-      url: `${serverUrl}/api/templates/${templateId}/download`,
-      dest_path: tmpPath,
-    });
-  } catch (e: any) {
-    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
-    throw new Error(`模板下载失败: ${e.message || '网络错误'}`);
-  }
-
-  const fileInfo: any = await hal('fs', 'metadata', { path: tmpPath }).catch(() => null);
-  if (!fileInfo || fileInfo.size < 100) {
-    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
-    throw new Error('模板下载失败: 文件无效（可能服务器限流或网络异常）');
-  }
+  const tgzPath = await downloadWithCache(templateId, templateSlug, templateVersion, serverUrl);
 
   onProgress('extracting');
   try {
-    await hal('archive', 'extract_auto', { archive_path: tmpPath, dest_dir: targetDir });
+    await hal('archive', 'extract_auto', { archive_path: tgzPath, dest_dir: targetDir });
   } catch (e: any) {
-    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
     throw new Error(`模板解压失败: ${e.message || '解压错误'}`);
   }
-  await hal('fs', 'remove', { path: tmpPath });
 
   const hasIndex = await hal('fs', 'exists', { path: `${targetDir}/index.html` });
   if (!hasIndex) {
@@ -94,6 +81,42 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   if (metaExists) await hal('fs', 'remove', { path: metaPath });
 
   onProgress('done');
+}
+
+async function downloadWithCache(
+  templateId: string,
+  slug: string | undefined,
+  version: string | undefined,
+  serverUrl: string,
+): Promise<string> {
+  await hal('fs', 'mkdir', { path: CACHE_DIR, recursive: true });
+
+  const cacheKey = slug && version ? `${slug}-${version}` : templateId;
+  const cachePath = `${CACHE_DIR}/${cacheKey}.tgz`;
+
+  const cached = await hal('fs', 'exists', { path: cachePath });
+  if (cached) {
+    const info: any = await hal('fs', 'metadata', { path: cachePath }).catch(() => null);
+    if (info && info.size > 100) return cachePath;
+  }
+
+  try {
+    await hal('http', 'download', {
+      url: `${serverUrl}/api/templates/${templateId}/download`,
+      dest_path: cachePath,
+    });
+  } catch (e: any) {
+    try { await hal('fs', 'remove', { path: cachePath }); } catch {}
+    throw new Error(`模板下载失败: ${e.message || '网络错误'}`);
+  }
+
+  const fileInfo: any = await hal('fs', 'metadata', { path: cachePath }).catch(() => null);
+  if (!fileInfo || fileInfo.size < 100) {
+    try { await hal('fs', 'remove', { path: cachePath }); } catch {}
+    throw new Error('模板下载失败: 文件无效（可能服务器限流或网络异常）');
+  }
+
+  return cachePath;
 }
 
 async function hal(mod: string, fn: string, params: Record<string, unknown>): Promise<any> {
