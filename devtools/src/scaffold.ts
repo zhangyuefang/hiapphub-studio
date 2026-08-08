@@ -169,7 +169,7 @@ export async function addProject(
   onLog?: ProgressCallback,
 ): Promise<string> {
   if (!ID_REGEX.test(projectId)) {
-    throw new Error(`Invalid project ID: only a-z, 0-9, - allowed, must start with letter`);
+    throw new Error('项目ID 格式不正确：仅允许小写字母、数字、连字符，且必须以字母开头');
   }
 
   const root = `${workspaceDir}${SEP}apps${SEP}${projectId}`;

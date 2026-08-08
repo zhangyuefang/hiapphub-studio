@@ -68,7 +68,7 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
     setError('');
     try {
       const res = await fetch(`${serverUrl}/api/templates?pageSize=100&sort=name`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`模板服务请求失败 (${res.status})`);
       const data = await res.json();
       const list = (data.templates || []).sort(
         (a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.templateCode.localeCompare(b.templateCode)
