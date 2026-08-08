@@ -20,7 +20,7 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
 
   const dirExists = await hal('fs', 'exists', { path: targetDir });
   if (dirExists) {
-    const entries: string[] = await hal('fs', 'read_dir', { path: targetDir });
+    const entries: any[] = await hal('fs', 'list_dir', { path: targetDir });
     if (entries.length > 0) throw new Error('目标目录不为空，请选择空目录');
   } else {
     await hal('fs', 'mkdir', { path: targetDir, recursive: true });
@@ -30,11 +30,11 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   const tmpPath = `${targetDir}/.tmp-template.tgz`;
   await hal('http', 'download', {
     url: `${serverUrl}/api/templates/${templateId}/download`,
-    dest: tmpPath,
+    dest_path: tmpPath,
   });
 
   onProgress('extracting');
-  await hal('archive', 'extract', { path: tmpPath, dest: targetDir });
+  await hal('archive', 'extract_auto', { archive_path: tmpPath, dest_dir: targetDir });
   await hal('fs', 'remove', { path: tmpPath });
 
   onProgress('configuring');
@@ -45,7 +45,7 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   let excludeFromReplace = ['node_modules/**', 'dist/**', '**/*.png', '**/*.jpg', '**/*.woff*'];
 
   if (metaExists) {
-    const raw = await hal('fs', 'read_text', { path: metaPath });
+    const raw = await hal('fs', 'read_text_file', { path: metaPath });
     try {
       const meta = JSON.parse(raw);
       if (meta.replacePatterns) replacePatterns = meta.replacePatterns;
@@ -55,6 +55,11 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
 
   onProgress('replacing');
   const replacements: Record<string, string> = {
+    '{{APP_ID}}': appId,
+    '{{APP_NAME}}': name,
+    '{{DESCRIPTION}}': description || '',
+    '{{VERSION}}': version || '1.0.0',
+    '{{AUTHOR}}': author || '',
     '{{appId}}': appId,
     '{{name}}': name,
     '{{description}}': description || '',
@@ -80,24 +85,24 @@ async function replaceInDir(
   patterns: string[],
   excludes: string[],
 ) {
-  const names: string[] = await hal('fs', 'read_dir', { path: dir });
+  const entries: any[] = await hal('fs', 'list_dir', { path: dir });
 
-  for (const name of names) {
-    const fullPath = `${dir}/${name}`;
+  for (const entry of entries) {
+    const name = entry.name as string;
+    const fullPath = entry.path as string;
 
     if (shouldExclude(name, excludes)) continue;
 
-    const meta = await hal('fs', 'stat', { path: fullPath });
-    if (meta.is_dir) {
+    if (entry.is_dir) {
       await replaceInDir(fullPath, replacements, patterns, excludes);
     } else if (matchesPattern(name, patterns)) {
-      const content = await hal('fs', 'read_text', { path: fullPath });
+      const content = await hal('fs', 'read_text_file', { path: fullPath });
       let replaced = content;
       for (const [key, val] of Object.entries(replacements)) {
         replaced = replaced.replaceAll(key, val);
       }
       if (replaced !== content) {
-        await hal('fs', 'write_text', { path: fullPath, content: replaced });
+        await hal('fs', 'write_text_file', { path: fullPath, content: replaced });
       }
     }
   }
@@ -125,7 +130,7 @@ async function generateManifest(targetDir: string, params: CreateProjectParams) 
   let manifest: Record<string, unknown> = {};
   if (exists) {
     try {
-      manifest = JSON.parse(await hal('fs', 'read_text', { path: manifestPath }));
+      manifest = JSON.parse(await hal('fs', 'read_text_file', { path: manifestPath }));
     } catch {}
   }
 
@@ -136,7 +141,7 @@ async function generateManifest(targetDir: string, params: CreateProjectParams) 
   if (params.author) manifest.author = params.author;
   if (!manifest.entry) manifest.entry = 'index.html';
 
-  await hal('fs', 'write_text', {
+  await hal('fs', 'write_text_file', {
     path: manifestPath,
     content: JSON.stringify(manifest, null, 2),
   });

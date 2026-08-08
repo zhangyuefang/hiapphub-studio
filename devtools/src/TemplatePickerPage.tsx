@@ -117,7 +117,7 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
           >
             <div className="tpl-card-thumb">
               {tpl.thumbnail ? (
-                <img src={tpl.thumbnail} alt="" />
+                <img src={tpl.thumbnail.startsWith('http') ? tpl.thumbnail : `${serverUrl}${tpl.thumbnail}`} alt="" />
               ) : (
                 <div className="tpl-card-placeholder">
                   <Layers size={24} />

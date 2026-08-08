@@ -39,7 +39,7 @@
   "entry": "index.html",
   "category": "developer",
   "minShellVersion": "0.1.0",
-  "permissions": ["http", "fs.read", "fs.write", "storage", "system.info", "dialog.file", "dialog.directory", "notification"],
+  "permissions": ["http", "fs.read", "fs.write", "storage", "system.info", "dialog.file", "dialog.directory", "notification", "archive"],
   "dependencies": {
     "hal": [
       {
@@ -65,6 +65,14 @@
       {
         "id": "dialog", "uuid": "3c142e50-ac04-4a18-83d1-d8f566b3f783", "minVersion": "1.0.0",
         "name": { "zh-CN": "原生对话框模块", "en-US": "Native dialog module", "zh-TW": "對話框模組", "ja": "ダイアログモジュール", "ko": "대화상자 모듈", "es": "Módulo de diálogos", "fr": "Module de dialogues", "de": "Dialog-Modul", "pt-BR": "Módulo de diálogos", "ru": "Модуль диалогов", "ar": "وحدة مربعات الحوار", "hi": "डायलॉग मॉड्यूल" }
+      },
+      {
+        "id": "http", "uuid": "f1a2b3c4-d5e6-7890-abcd-ef1234567890", "minVersion": "1.0.0",
+        "name": { "zh-CN": "HTTP 客户端模块", "en-US": "HTTP client module" }
+      },
+      {
+        "id": "archive", "uuid": "a9b8c7d6-e5f4-3210-fedc-ba0987654321", "minVersion": "1.0.0",
+        "name": { "zh-CN": "压缩归档模块", "en-US": "Archive module" }
       }
     ]
   },

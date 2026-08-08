@@ -7,13 +7,11 @@ import { setTheme, getTheme, ThemeMode } from './theme';
 import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, getWsClients, onWsMessage } from './server';
 import { setupTray, destroyTray } from './tray';
 import { addProject, createWorkspace, runPnpmInstall, readWorkspace, saveWorkspace, WorkspaceConfig, ProjectType, ID_REGEX } from './scaffold';
+import { createProject } from './create-project';
 import { ProjectEditor } from './ProjectEditor';
 import { ProgressDialog, ProgressStep } from './ProgressDialog';
-import { TemplatePickerPage } from './TemplatePickerPage';
-import { ProjectCreateForm } from './ProjectCreateForm';
-import { createProject, type CreateProjectParams } from './create-project';
 
-type AppView = 'env-check' | 'welcome' | 'project' | 'create-workspace' | 'add-project' | 'template-picker';
+type AppView = 'env-check' | 'welcome' | 'project' | 'create-workspace' | 'add-project';
 
 function initDragDialog(el: HTMLElement | null) {
   if (!el || el.dataset.dragInit) return;
@@ -89,9 +87,10 @@ export function App() {
   const [wsDisplayName, setWsDisplayName] = useState('');
   const [projId, setProjId] = useState('');
   const [projType, setProjType] = useState<ProjectType>('hap');
-  const [projStep, setProjStep] = useState<1 | 2>(1);
+  const [projStep, setProjStep] = useState<1 | 2 | 3>(1);
   const [idError, setIdError] = useState('');
-  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [wizardTemplates, setWizardTemplates] = useState<any[]>([]);
+  const [wizardSelectedTpl, setWizardSelectedTpl] = useState<any>(null);  const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [wsNameDraft, setWsNameDraft] = useState('');
@@ -109,8 +108,6 @@ export function App() {
   const [progressDone, setProgressDone] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [openProjOverlay, setOpenProjOverlay] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [tplProgress, setTplProgress] = useState('');
   const serverStarted = useRef(false);
 
   const kvGet = async (k: string) => { try { const v = await (window as any).hap?.db?.get?.(k); return v ? JSON.parse(v) : null; } catch { return null; } };
@@ -279,7 +276,9 @@ export function App() {
       setIdError('');
       setTimeout(() => {
         setProgressOpen(false);
+        setWizardSelectedTpl(null);
         setView('add-project');
+        fetchTemplates();
       }, 1800);
     } catch (e: any) {
       console.error('[workspace] create failed:', e?.message || e);
@@ -288,12 +287,25 @@ export function App() {
     }
   };
 
+  const fetchTemplates = (retries = 2) => {
+    const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
+    fetch(`${serverUrl}/api/templates?pageSize=100&sort=name`)
+      .then(r => r.json())
+      .then(d => {
+        const list = (d.templates || []).sort((a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.templateCode.localeCompare(b.templateCode));
+        setWizardTemplates(list);
+      })
+      .catch(() => { if (retries > 0) setTimeout(() => fetchTemplates(retries - 1), 2000); else setWizardTemplates([]); });
+  };
+
   const handleStartAddProject = () => {
     setProjId('');
     setProjType('hap');
     setProjStep(1);
     setIdError('');
+    setWizardSelectedTpl(null);
     setView('add-project');
+    fetchTemplates();
   };
 
   const launchCreatedProject = async (manifestPath: string) => {
@@ -311,12 +323,6 @@ export function App() {
     } catch (e: any) {
       console.error('[DevTools] launchCreatedProject error:', e?.message);
     }
-  };
-
-  const handleFromTemplate = () => {
-    setSelectedTemplate(null);
-    setTplProgress('');
-    setView('template-picker');
   };
 
   const validateProjId = (v: string) => {
@@ -341,24 +347,48 @@ export function App() {
     ]);
 
     try {
-      await addProject(wsDir, projId, projType, undefined, addLog);
-      setProgressSteps([
-        { label: t('progress.step_proj_files'), status: 'done' },
-        { label: t('progress.step_install'), status: 'active' },
-      ]);
-      addLog('');
-      const ok = await runPnpmInstall(wsDir, addLog);
-      if (!ok) {
-        setProgressSteps([
-          { label: t('progress.step_proj_files'), status: 'done' },
-          { label: t('progress.step_install'), status: 'error' },
-        ]);
-        setProgressError(t('progress.install_fail'));
-      } else {
+      if (wizardSelectedTpl) {
+        const targetDir = `${wsDir}/packages/${projId}`;
+        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
+        await createProject({
+          templateId: wizardSelectedTpl.id,
+          appId: projId,
+          name: projId,
+          targetDir,
+          serverUrl,
+        }, (step) => addLog(step));
+        const cfg = await readWorkspace(wsDir);
+        if (cfg) {
+          const exists = cfg.projects.some((p: any) => p.id === projId);
+          if (!exists) {
+            cfg.projects.push({ id: projId, type: 'hap', path: `packages/${projId}` });
+            await saveWorkspace(wsDir, cfg);
+          }
+        }
         setProgressSteps([
           { label: t('progress.step_proj_files'), status: 'done' },
           { label: t('progress.step_install'), status: 'done' },
         ]);
+      } else {
+        await addProject(wsDir, projId, projType, undefined, addLog);
+        setProgressSteps([
+          { label: t('progress.step_proj_files'), status: 'done' },
+          { label: t('progress.step_install'), status: 'active' },
+        ]);
+        addLog('');
+        const ok = await runPnpmInstall(wsDir, addLog);
+        if (!ok) {
+          setProgressSteps([
+            { label: t('progress.step_proj_files'), status: 'done' },
+            { label: t('progress.step_install'), status: 'error' },
+          ]);
+          setProgressError(t('progress.install_fail'));
+        } else {
+          setProgressSteps([
+            { label: t('progress.step_proj_files'), status: 'done' },
+            { label: t('progress.step_install'), status: 'done' },
+          ]);
+        }
       }
       setProgressDone(true);
       const cfg = await readWorkspace(wsDir);
@@ -623,7 +653,6 @@ export function App() {
           pendingRestore={pendingRestore}
           onOpen={handleOpen}
           onCreate={handleCreateWorkspace}
-          onFromTemplate={handleFromTemplate}
           onRestore={(dir, cfg, tabs) => {
             setWsDir(dir);
             setWsConfig(cfg);
@@ -657,9 +686,9 @@ export function App() {
       )}
 
       {view === 'add-project' && (
-        <main className="main-content center-view">
-          <div className="wizard">
-            <button className="wizard-back" onClick={() => setView('project')}>
+        <main className={`main-content ${projStep === 1 ? 'tpl-select-view' : 'center-view'}`}>
+          <div className={`wizard${projStep === 1 ? ' wizard-tpl' : ''}`}>
+            <button className="wizard-back" onClick={() => setView(wsConfig?.projects?.length ? 'project' : 'welcome')}>
               <ArrowLeft size={16} /> {t('wizard.back')}
             </button>
             <h2>{t('wizard.add_project')}</h2>
@@ -667,21 +696,42 @@ export function App() {
 
             {projStep === 1 && (
               <div className="wizard-step">
-                <label className="wizard-label">{t('wizard.type_label')}</label>
-                <div className="wizard-types">
-                  <button className={`wizard-type-btn ${projType === 'hap' ? 'active' : ''}`} onClick={() => setProjType('hap')}>
-                    <Package size={24} />
-                    <span className="wizard-type-name">HAP {t('wizard.type_app')}</span>
-                    <span className="wizard-type-desc">{t('wizard.type_app_desc')}</span>
-                  </button>
-                  <button className={`wizard-type-btn ${projType === 'hpl' ? 'active' : ''}`} onClick={() => setProjType('hpl')}>
-                    <Library size={24} />
-                    <span className="wizard-type-name">HPL {t('wizard.type_lib')}</span>
-                    <span className="wizard-type-desc">{t('wizard.type_lib_desc')}</span>
-                  </button>
+                <label className="wizard-label">选择模板</label>
+                <div className="tpl-grid">
+                  <div
+                    className={`tpl-card${!wizardSelectedTpl ? ' tpl-card-selected' : ''}`}
+                    onClick={() => { setWizardSelectedTpl(null); setProjType('hap'); }}
+                  >
+                    <div className="tpl-card-thumb">
+                      <div className="tpl-card-placeholder"><Package size={24} /></div>
+                    </div>
+                    <div className="tpl-card-body">
+                      <div className="tpl-card-code">空白</div>
+                      <div className="tpl-card-name">空白项目</div>
+                      <div className="tpl-card-desc">基础 HAP 框架，从零开始</div>
+                    </div>
+                  </div>
+                  {wizardTemplates.map((tpl: any) => (
+                    <div
+                      key={tpl.id}
+                      className={`tpl-card${wizardSelectedTpl?.id === tpl.id ? ' tpl-card-selected' : ''}`}
+                      onClick={() => { setWizardSelectedTpl(tpl); setProjType('hap'); }}
+                    >
+                      <div className="tpl-card-thumb">
+                        {tpl.thumbnail ? <img src={tpl.thumbnail.startsWith('http') ? tpl.thumbnail : `${import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}${tpl.thumbnail}`} alt="" /> : <div className="tpl-card-placeholder"><LayoutTemplate size={24} /></div>}
+                      </div>
+                      <div className="tpl-card-body">
+                        <div className="tpl-card-code">{tpl.templateCode}</div>
+                        <div className="tpl-card-name">{tpl.name}</div>
+                        <div className="tpl-card-desc">{tpl.description}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <button className="wizard-next" onClick={() => setProjStep(2)}>{t('wizard.next')}</button>
               </div>
+            )}
+            {projStep === 1 && (
+              <button className="wizard-next wizard-next-fixed" onClick={() => setProjStep(2)}>{t('wizard.next')}</button>
             )}
 
             {projStep === 2 && (
@@ -703,35 +753,6 @@ export function App() {
         </main>
       )}
 
-      {view === 'template-picker' && (
-        <main className="main-content">
-          {tplProgress === 'done' ? (
-            <div className="center-view" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
-              <CheckCircle size={32} style={{ color: 'var(--accent)' }} />
-              <p style={{ fontSize: 14 }}>项目创建成功</p>
-              <button className="wizard-create-btn" onClick={() => setView(wsConfig ? 'project' : 'welcome')}>返回</button>
-            </div>
-          ) : selectedTemplate ? (
-            <ProjectCreateForm
-              template={selectedTemplate}
-              serverUrl={import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}
-              progress={tplProgress}
-              onSubmit={async (params: CreateProjectParams) => {
-                setTplProgress('downloading');
-                await createProject(params, (step) => setTplProgress(step));
-              }}
-              onBack={() => setSelectedTemplate(null)}
-            />
-          ) : (
-            <TemplatePickerPage
-              serverUrl={import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}
-              onSelect={(tpl) => setSelectedTemplate(tpl)}
-              onBack={() => setView(wsConfig ? 'project' : 'welcome')}
-            />
-          )}
-        </main>
-      )}
-
       {view === 'project' && wsConfig && (() => {
         const activeProj = wsConfig.projects.find(p => p.id === activeTab);
         return (
@@ -739,7 +760,6 @@ export function App() {
             <div className="proj-toolbar">
               <div className="proj-toolbar-left">
                 <button className="proj-toolbar-btn" onClick={handleStartAddProject}><Plus size={14} /> {t('project.add')}</button>
-                <button className="proj-toolbar-btn" onClick={handleFromTemplate}><LayoutTemplate size={14} /> {t('project.from_template')}</button>
                 <button className="proj-toolbar-btn" disabled={!wsConfig.projects.length || openTabs.length >= wsConfig.projects.length} onClick={async () => {
                     const canCreate = typeof (window as any).hap?.window?.create === 'function';
                     if (!canCreate) {
@@ -851,6 +871,7 @@ export function App() {
                   projectId={activeProj.id}
                   projectType={activeProj.type}
                   workspaceDir={wsDir}
+                  projectPath={activeProj.path}
                 />
               )}
             </div>
@@ -897,11 +918,10 @@ export function App() {
   );
 }
 
-function WelcomeView({ pendingRestore, onOpen, onCreate, onFromTemplate, onRestore, readWorkspace }: {
+function WelcomeView({ pendingRestore, onOpen, onCreate, onRestore, readWorkspace }: {
   pendingRestore: React.RefObject<{ dir: string; tabs: string[] } | null>;
   onOpen: () => void;
   onCreate: () => void;
-  onFromTemplate: () => void;
   onRestore: (dir: string, cfg: WorkspaceConfig, tabs: string[]) => void;
   readWorkspace: (dir: string) => Promise<WorkspaceConfig | null>;
 }) {
@@ -930,9 +950,6 @@ function WelcomeView({ pendingRestore, onOpen, onCreate, onFromTemplate, onResto
           </button>
           <button className="welcome-btn" onClick={onCreate}>
             <FilePlus size={20} /><span>{t('workspace.create')}</span>
-          </button>
-          <button className="welcome-btn" onClick={onFromTemplate}>
-            <LayoutTemplate size={20} /><span>{t('project.from_template')}</span>
           </button>
         </div>
       </div>

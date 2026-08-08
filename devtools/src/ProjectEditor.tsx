@@ -7,6 +7,7 @@ interface Props {
   projectId: string;
   projectType: 'hap' | 'hpl';
   workspaceDir: string;
+  projectPath?: string;
 }
 
 type PageId = 'info' | 'build' | 'build_win';
@@ -16,12 +17,12 @@ function hal(mod: string, fn: string, params?: Record<string, any>): Promise<any
   return (window as any).hap?.hal?.(mod, fn, params || {});
 }
 
-export function ProjectEditor({ projectId, projectType, workspaceDir }: Props) {
+export function ProjectEditor({ projectId, projectType, workspaceDir, projectPath }: Props) {
   const [manifest, setManifest] = useState<HapManifestData | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activePage, setActivePage] = useState<PageId>('info');
-  const projectDir = `${workspaceDir}/apps/${projectId}`;
+  const projectDir = projectPath ? `${workspaceDir}/${projectPath}` : `${workspaceDir}/apps/${projectId}`;
 
   const [viteStatus, setViteStatus] = useState<ViteStatus>('stopped');
   const [vitePid, setVitePid] = useState<number | null>(null);
@@ -196,6 +197,31 @@ export function ProjectEditor({ projectId, projectType, workspaceDir }: Props) {
     setViteLog([]);
     appendLog(t('run.starting'));
     try {
+      const hasPkg = await hal('fs', 'exists', { path: `${projectDir}/package.json` });
+      if (!hasPkg) {
+        appendLog('静态项目，启动本地服务');
+        const mp = `${projectDir}/manifest.json`;
+        const mExists = await hal('fs', 'exists', { path: mp });
+        if (!mExists) { setViteStatus('error'); appendLog('manifest.json 不存在'); return; }
+        const port = 9100 + Math.floor(Math.random() * 900);
+        const handle = await hal('process', 'spawn', {
+          command: 'python3',
+          args: ['-m', 'http.server', String(port)],
+          cwd: projectDir,
+        });
+        const pid = handle?.pid || handle;
+        if (typeof pid === 'number') {
+          setVitePid(pid); vitePidRef.current = pid;
+          setViteStatus('running');
+          appendLog(`已启动本地服务 (PID: ${pid}, port: ${port})`);
+          detectedUrlRef.current = `http://localhost:${port}`;
+          setTimeout(() => triggerLoadApp(`http://localhost:${port}`), 800);
+        } else {
+          setViteStatus('error');
+          appendLog('启动失败');
+        }
+        return;
+      }
       const npmResult = await hal('process', 'which', { command: 'pnpm' });
       const cmd = npmResult ? 'pnpm' : 'npx';
       const args = cmd === 'pnpm' ? ['dev'] : ['vite'];
