@@ -302,6 +302,8 @@ export function App() {
         const targetDir = `${wsDir}/packages/${projId}`;
         await createProject({
           templateId: wizardSelectedTpl.id,
+          templateSlug: wizardSelectedTpl.slug,
+          templateVersion: wizardSelectedTpl.version,
           appId: projId,
           name: projId,
           targetDir,
