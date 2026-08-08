@@ -4,6 +4,7 @@ export interface CreateProjectParams {
   templateId: string;
   templateSlug?: string;
   templateVersion?: string;
+  templateHash?: string;
   appId: string;
   name: string;
   targetDir: string;
@@ -18,7 +19,7 @@ type ProgressFn = (step: string) => void;
 const CACHE_DIR = '/tmp/hiapphub-template-cache';
 
 export async function createProject(params: CreateProjectParams, onProgress: ProgressFn = () => {}) {
-  const { templateId, templateSlug, templateVersion, appId, name, targetDir, description, version, author, serverUrl } = params;
+  const { templateId, templateSlug, templateVersion, templateHash, appId, name, targetDir, description, version, author, serverUrl } = params;
 
   if (!hap?.hal) throw new Error('Bridge 未就绪，请确认运行环境');
 
@@ -31,7 +32,7 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   }
 
   onProgress('downloading');
-  const tgzPath = await downloadWithCache(templateId, templateSlug, templateVersion, serverUrl);
+  const tgzPath = await downloadWithCache(templateId, templateSlug, templateVersion, templateHash, serverUrl);
 
   onProgress('extracting');
   try {
@@ -88,11 +89,12 @@ async function downloadWithCache(
   templateId: string,
   slug: string | undefined,
   version: string | undefined,
+  hash: string | undefined,
   serverUrl: string,
 ): Promise<string> {
   await hal('fs', 'mkdir', { path: CACHE_DIR, recursive: true });
 
-  const cacheKey = slug && version ? `${slug}-${version}` : templateId;
+  const cacheKey = slug && hash ? `${slug}-${hash.slice(0, 12)}` : slug && version ? `${slug}-${version}` : templateId;
   const cachePath = `${CACHE_DIR}/${cacheKey}.tgz`;
 
   const cached = await hal('fs', 'exists', { path: cachePath });

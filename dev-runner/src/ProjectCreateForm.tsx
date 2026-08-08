@@ -67,6 +67,7 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
         templateId: template.id,
         templateSlug: template.slug,
         templateVersion: template.version,
+        templateHash: (template as any).packageHash,
         appId: appId.trim(),
         name: name.trim(),
         targetDir: targetDir.trim(),

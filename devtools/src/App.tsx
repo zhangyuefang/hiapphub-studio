@@ -304,6 +304,7 @@ export function App() {
           templateId: wizardSelectedTpl.id,
           templateSlug: wizardSelectedTpl.slug,
           templateVersion: wizardSelectedTpl.version,
+          templateHash: wizardSelectedTpl.packageHash,
           appId: projId,
           name: projId,
           targetDir,
