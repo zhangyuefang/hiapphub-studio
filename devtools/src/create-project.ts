@@ -38,6 +38,12 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
     throw new Error(`模板下载失败: ${e.message || '网络错误'}`);
   }
 
+  const fileInfo: any = await hal('fs', 'metadata', { path: tmpPath }).catch(() => null);
+  if (!fileInfo || fileInfo.size < 100) {
+    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
+    throw new Error('模板下载失败: 文件无效（可能服务器限流或网络异常）');
+  }
+
   onProgress('extracting');
   try {
     await hal('archive', 'extract_auto', { archive_path: tmpPath, dest_dir: targetDir });
@@ -46,6 +52,11 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
     throw new Error(`模板解压失败: ${e.message || '解压错误'}`);
   }
   await hal('fs', 'remove', { path: tmpPath });
+
+  const hasIndex = await hal('fs', 'exists', { path: `${targetDir}/index.html` });
+  if (!hasIndex) {
+    throw new Error('模板解压异常: 缺少 index.html，请重试');
+  }
 
   onProgress('configuring');
   const metaPath = `${targetDir}/meta.json`;
