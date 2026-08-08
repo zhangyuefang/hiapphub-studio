@@ -28,13 +28,23 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
 
   onProgress('downloading');
   const tmpPath = `${targetDir}/.tmp-template.tgz`;
-  await hal('http', 'download', {
-    url: `${serverUrl}/api/templates/${templateId}/download`,
-    dest_path: tmpPath,
-  });
+  try {
+    await hal('http', 'download', {
+      url: `${serverUrl}/api/templates/${templateId}/download`,
+      dest_path: tmpPath,
+    });
+  } catch (e: any) {
+    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
+    throw new Error(`模板下载失败: ${e.message || '网络错误'}`);
+  }
 
   onProgress('extracting');
-  await hal('archive', 'extract_auto', { archive_path: tmpPath, dest_dir: targetDir });
+  try {
+    await hal('archive', 'extract_auto', { archive_path: tmpPath, dest_dir: targetDir });
+  } catch (e: any) {
+    try { await hal('fs', 'remove', { path: tmpPath }); } catch {}
+    throw new Error(`模板解压失败: ${e.message || '解压错误'}`);
+  }
   await hal('fs', 'remove', { path: tmpPath });
 
   onProgress('configuring');
