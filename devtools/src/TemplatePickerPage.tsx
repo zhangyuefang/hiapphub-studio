@@ -6,12 +6,34 @@ interface Template {
   slug: string;
   templateCode: string;
   name: string;
+  names?: Record<string, string>;
   description: string;
+  descriptions?: Record<string, string>;
   category: string;
   thumbnail: string;
   version: string;
   tags: string[];
   components: string[];
+}
+
+function getLocale(): string {
+  return navigator.language || 'zh-CN';
+}
+
+function i18nName(tpl: Template): string {
+  const locale = getLocale();
+  if (tpl.names?.[locale]) return tpl.names[locale];
+  if (locale.startsWith('zh') && tpl.names?.['zh-CN']) return tpl.names['zh-CN'];
+  if (tpl.names?.en) return tpl.names.en;
+  return tpl.name;
+}
+
+function i18nDesc(tpl: Template): string {
+  const locale = getLocale();
+  if (tpl.descriptions?.[locale]) return tpl.descriptions[locale];
+  if (locale.startsWith('zh') && tpl.descriptions?.['zh-CN']) return tpl.descriptions['zh-CN'];
+  if (tpl.descriptions?.en) return tpl.descriptions.en;
+  return tpl.description;
 }
 
 const CATEGORIES = [
@@ -141,8 +163,8 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
             </div>
             <div className="tpl-card-body">
               <div className="tpl-card-code">{tpl.templateCode}</div>
-              <div className="tpl-card-name">{tpl.name}</div>
-              <div className="tpl-card-desc">{tpl.description}</div>
+              <div className="tpl-card-name">{i18nName(tpl)}</div>
+              <div className="tpl-card-desc">{i18nDesc(tpl)}</div>
               <div className="tpl-card-meta">
                 <span className="tpl-card-version">v{tpl.version}</span>
                 {tpl.tags?.slice(0, 2).map(tag => (
@@ -179,8 +201,8 @@ function TemplatePreviewModal({ template, thumbnailUrl, onSelect, onClose }: {
           </div>
           <div className="tpl-preview-info">
             <span className="tpl-preview-code">{template.templateCode}</span>
-            <h3 className="tpl-preview-name">{template.name}</h3>
-            <p className="tpl-preview-desc">{template.description}</p>
+            <h3 className="tpl-preview-name">{i18nName(template)}</h3>
+            <p className="tpl-preview-desc">{i18nDesc(template)}</p>
           </div>
         </div>
 
