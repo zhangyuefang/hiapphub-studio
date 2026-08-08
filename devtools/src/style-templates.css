@@ -1,0 +1,155 @@
+/* Template Picker */
+.tpl-picker { display: flex; flex-direction: column; height: 100%; padding: 16px; overflow: hidden; }
+.tpl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.tpl-title { font-size: 15px; font-weight: 600; margin: 0; }
+.tpl-search { position: relative; }
+.tpl-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--fs-text-secondary); }
+.tpl-search-input {
+  background: var(--fs-bg-secondary); border: 1px solid var(--fs-border);
+  color: var(--fs-text); padding: 5px 8px 5px 26px; border-radius: 6px;
+  font-size: 12px; outline: none; width: 160px;
+}
+.tpl-search-input:focus { border-color: var(--fs-accent); }
+.tpl-categories { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.tpl-cat-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--fs-bg-secondary); border: 1px solid var(--fs-border);
+  color: var(--fs-text-secondary); padding: 4px 10px; border-radius: 12px;
+  font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.tpl-cat-btn:hover { background: var(--fs-hover); color: var(--fs-text); }
+.tpl-cat-btn.active { background: var(--fs-accent); color: #fff; border-color: var(--fs-accent); }
+.tpl-status { text-align: center; padding: 32px 0; font-size: 12px; color: var(--fs-text-secondary); }
+.tpl-error { color: var(--fs-error); }
+.tpl-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, 200px); gap: 12px;
+  justify-content: center; padding-bottom: 8px;
+}
+@media (max-width: 500px) { .tpl-grid { grid-template-columns: repeat(auto-fill, 180px); } }
+.tpl-card {
+  border: 1px solid var(--fs-border); border-radius: 8px;
+  overflow: hidden; cursor: pointer; transition: all 0.15s;
+  background: var(--fs-bg);
+}
+.tpl-card:hover { border-color: var(--fs-accent); box-shadow: 0 2px 8px rgba(37,99,235,0.1); transform: translateY(-1px); }
+.tpl-card-selected { border-color: var(--fs-accent); box-shadow: 0 0 0 2px var(--fs-accent); }
+.tpl-card-thumb {
+  width: 100%; aspect-ratio: 16/10; background: var(--fs-bg-secondary);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.tpl-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.tpl-card-placeholder { color: var(--fs-text-secondary); opacity: 0.4; }
+.tpl-card-body { padding: 8px 10px; }
+.tpl-card-code { font-size: 10px; color: var(--fs-accent); font-weight: 600; margin-bottom: 2px; }
+.tpl-card-name { font-size: 12px; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tpl-card-desc { font-size: 10px; color: var(--fs-text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+.tpl-card-meta { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.tpl-card-version { font-size: 9px; color: var(--fs-text-secondary); }
+.tpl-card-tag { font-size: 9px; background: var(--fs-bg-secondary); color: var(--fs-text-secondary); padding: 1px 5px; border-radius: 3px; }
+.tpl-form-page { display: flex; flex-direction: column; height: 100%; padding: 16px; overflow-y: auto; }
+.tpl-form-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.tpl-back-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; color: var(--fs-text-secondary);
+  cursor: pointer; font-size: 12px; padding: 4px;
+}
+.tpl-back-btn:hover { color: var(--fs-text); }
+.tpl-form-title { font-size: 14px; font-weight: 600; margin: 0; }
+.tpl-progress {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; margin-bottom: 12px; border-radius: 6px;
+  background: var(--fs-bg-secondary); font-size: 12px; color: var(--fs-accent);
+}
+.tpl-spin { animation: tpl-spin 1s linear infinite; }
+@keyframes tpl-spin { to { transform: rotate(360deg); } }
+.tpl-form { display: flex; flex-direction: column; gap: 12px; }
+.tpl-field { display: flex; flex-direction: column; gap: 4px; }
+.tpl-label { font-size: 11px; font-weight: 500; color: var(--fs-text-secondary); }
+.tpl-label em { color: var(--fs-error); font-style: normal; }
+.tpl-field input {
+  background: var(--fs-bg-secondary); border: 1px solid var(--fs-border);
+  color: var(--fs-text); padding: 7px 10px; border-radius: 6px;
+  font-size: 12px; outline: none;
+}
+.tpl-field input:focus { border-color: var(--fs-accent); }
+.tpl-field input:disabled { opacity: 0.6; }
+.tpl-dir-row { display: flex; gap: 4px; }
+.tpl-dir-input { flex: 1; }
+.tpl-dir-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--fs-bg-secondary); border: 1px solid var(--fs-border);
+  color: var(--fs-text); padding: 6px 10px; border-radius: 6px; cursor: pointer;
+}
+.tpl-dir-btn:hover { background: var(--fs-hover); }
+.tpl-field-row { display: flex; gap: 8px; }
+.tpl-field-half { flex: 1; }
+.tpl-submit-btn {
+  background: var(--fs-accent); color: #fff; border: none;
+  padding: 9px 16px; border-radius: 6px; font-size: 13px;
+  font-weight: 500; cursor: pointer; margin-top: 4px;
+}
+.tpl-submit-btn:hover:not(:disabled) { background: var(--fs-accent-hover); }
+.tpl-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Preview button on card */
+.tpl-card-thumb { position: relative; }
+.tpl-card-preview-btn {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(0,0,0,0.5); color: #fff; border: none;
+  width: 22px; height: 22px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0; transition: opacity 0.15s;
+}
+.tpl-card:hover .tpl-card-preview-btn { opacity: 1; }
+.tpl-card-preview-btn:hover { background: rgba(0,0,0,0.7); }
+
+/* Preview modal */
+.tpl-preview-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5); display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.tpl-preview-modal {
+  background: var(--fs-bg); border-radius: 12px;
+  width: 100%; max-width: 480px; max-height: 80vh;
+  overflow-y: auto; padding: 20px; position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.tpl-preview-close {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; color: var(--fs-text-secondary);
+  cursor: pointer; padding: 4px; border-radius: 4px;
+}
+.tpl-preview-close:hover { background: var(--fs-hover); color: var(--fs-text); }
+.tpl-preview-header { display: flex; gap: 16px; margin-bottom: 16px; }
+.tpl-preview-thumb {
+  width: 120px; height: 75px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--fs-border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--fs-bg-secondary);
+}
+.tpl-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.tpl-preview-info { flex: 1; min-width: 0; }
+.tpl-preview-code { font-size: 10px; font-weight: 600; color: var(--fs-accent); }
+.tpl-preview-name { font-size: 15px; font-weight: 600; color: var(--fs-text); margin: 2px 0 6px; }
+.tpl-preview-desc { font-size: 12px; color: var(--fs-text-secondary); line-height: 1.4; }
+.tpl-preview-section { margin-bottom: 14px; }
+.tpl-preview-section h4 { font-size: 11px; font-weight: 600; color: var(--fs-text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+.tpl-preview-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpl-preview-chip {
+  font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  background: var(--fs-bg-secondary); border: 1px solid var(--fs-border);
+  color: var(--fs-text);
+}
+.tpl-preview-chip.tag { background: var(--fs-accent); color: #fff; border-color: transparent; opacity: 0.8; }
+.tpl-preview-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 14px; border-top: 1px solid var(--fs-border);
+}
+.tpl-preview-version { font-size: 11px; color: var(--fs-text-secondary); }
+.tpl-preview-select-btn {
+  background: var(--fs-accent); color: #fff; border: none;
+  padding: 8px 16px; border-radius: 6px; font-size: 12px;
+  font-weight: 500; cursor: pointer;
+}
+.tpl-preview-select-btn:hover { background: var(--fs-accent-hover); }
