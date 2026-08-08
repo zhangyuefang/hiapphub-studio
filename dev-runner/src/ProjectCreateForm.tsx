@@ -65,6 +65,8 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
     try {
       await onSubmit({
         templateId: template.id,
+        templateSlug: template.slug,
+        templateVersion: template.version,
         appId: appId.trim(),
         name: name.trim(),
         targetDir: targetDir.trim(),
