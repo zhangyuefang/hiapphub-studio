@@ -37,6 +37,7 @@ export async function createProject(params: CreateProjectParams, onProgress: Pro
   try {
     await hal('archive', 'extract_auto', { archive_path: tgzPath, dest_dir: targetDir });
   } catch (e: any) {
+    try { await hal('fs', 'remove', { path: tgzPath }); } catch {}
     throw new Error(`模板解压失败: ${e.message || '解压错误'}`);
   }
 
