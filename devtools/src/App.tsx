@@ -4,7 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus, LayoutTemplate } from 'lucide-react';
 import { t, setLocale, getLocale, SUPPORTED_LOCALES, LOCALE_LABELS } from './i18n';
 import { setTheme, getTheme, ThemeMode } from './theme';
-import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, getWsClients, onWsMessage } from './server';
+import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, onWsMessage } from './server';
 import { setupTray, destroyTray } from './tray';
 import { addProject, createWorkspace, runPnpmInstall, readWorkspace, saveWorkspace, WorkspaceConfig, ProjectType, ID_REGEX } from './scaffold';
 import { createProject } from './create-project';
@@ -266,7 +266,6 @@ export function App() {
       if (!hfs) return;
       const raw = await hfs.readTextFile(manifestPath);
       const manifest = JSON.parse(raw);
-      const projectDir = manifestPath.replace(/\/manifest\.json$/, '');
       if (wsConfig && wsDir) {
         const cfg = await readWorkspace(wsDir);
         if (cfg) setWsConfig(cfg);
