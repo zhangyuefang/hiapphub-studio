@@ -120,16 +120,20 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
       </div>
 
       <div className="tpl-categories">
-        {CATEGORIES.map(c => (
-          <button
-            key={c.key}
-            className={`tpl-cat-btn${category === c.key ? ' active' : ''}`}
-            onClick={() => setCategory(c.key)}
-          >
-            <c.icon size={12} />
-            <span>{c.label}</span>
-          </button>
-        ))}
+        {CATEGORIES.map(c => {
+          const count = c.key ? templates.filter(t => t.category === c.key).length : templates.length;
+          return (
+            <button
+              key={c.key}
+              className={`tpl-cat-btn${category === c.key ? ' active' : ''}`}
+              onClick={() => setCategory(c.key)}
+            >
+              <c.icon size={12} />
+              <span>{c.label}</span>
+              {count > 0 && <span className="tpl-cat-count">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {loading && <div className="tpl-status">加载中...</div>}

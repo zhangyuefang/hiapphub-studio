@@ -306,6 +306,7 @@ input[type="checkbox"] {
 }
 .tpl-cat-btn:hover { background: var(--fs-hover); color: var(--fs-text); }
 .tpl-cat-btn.active { background: var(--fs-accent); color: #fff; border-color: var(--fs-accent); }
+.tpl-cat-count { font-size: 10px; opacity: 0.7; margin-left: 2px; }
 .tpl-status { text-align: center; padding: 32px 0; font-size: 12px; color: var(--fs-text-secondary); }
 .tpl-error { color: var(--fs-error); }
 .tpl-grid {
