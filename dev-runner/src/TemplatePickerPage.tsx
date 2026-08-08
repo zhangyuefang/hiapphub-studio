@@ -11,6 +11,7 @@ interface Template {
   descriptions?: Record<string, string>;
   category: string;
   thumbnail: string;
+  screenshots?: string[];
   version: string;
   tags: string[];
   components: string[];
@@ -205,6 +206,17 @@ function TemplatePreviewModal({ template, thumbnailUrl, onSelect, onClose }: {
             <p className="tpl-preview-desc">{i18nDesc(template)}</p>
           </div>
         </div>
+
+        {template.screenshots && template.screenshots.length > 0 && (
+          <div className="tpl-preview-section">
+            <h4>截图预览</h4>
+            <div className="tpl-preview-screenshots">
+              {template.screenshots.map((s, i) => (
+                <img key={i} src={s.startsWith('http') ? s : `${location.origin}${s}`} alt={`screenshot ${i+1}`} className="tpl-preview-shot" />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="tpl-preview-section">
           <h4>包含组件</h4>

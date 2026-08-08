@@ -4,7 +4,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 
 const FIXTURES_DIR = path.join(__dirname, '.fixtures');
-const TPL_TGZ = path.resolve(__dirname, '../../../website/server/uploads/templates/blank/blank-1.0.0.tgz');
+const TPL_TGZ = path.resolve(__dirname, '../../../website/server/uploads/templates/blank-starter/blank-starter-1.0.0.tgz');
 
 describe('create-project logic (offline simulation)', () => {
   const targetDir = path.join(FIXTURES_DIR, 'test-project');

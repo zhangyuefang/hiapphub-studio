@@ -423,6 +423,8 @@ input[type="checkbox"] {
 .tpl-preview-desc { font-size: 12px; color: var(--fs-text-secondary); line-height: 1.4; }
 .tpl-preview-section { margin-bottom: 14px; }
 .tpl-preview-section h4 { font-size: 11px; font-weight: 600; color: var(--fs-text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+.tpl-preview-screenshots { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.tpl-preview-shot { height: 100px; border-radius: 6px; border: 1px solid var(--fs-border); object-fit: cover; flex-shrink: 0; }
 .tpl-preview-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .tpl-preview-chip {
   font-size: 11px; padding: 3px 8px; border-radius: 4px;
