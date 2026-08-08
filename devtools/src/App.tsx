@@ -11,6 +11,8 @@ import { createProject } from './create-project';
 import { ProjectEditor } from './ProjectEditor';
 import { ProgressDialog, ProgressStep } from './ProgressDialog';
 
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
+
 type AppView = 'env-check' | 'welcome' | 'project' | 'create-workspace' | 'add-project';
 
 function initDragDialog(el: HTMLElement | null) {
@@ -288,8 +290,7 @@ export function App() {
   };
 
   const fetchTemplates = (retries = 2) => {
-    const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
-    fetch(`${serverUrl}/api/templates?pageSize=100&sort=name`)
+    fetch(`${SERVER_URL}/api/templates?pageSize=100&sort=name`)
       .then(r => r.json())
       .then(d => {
         const list = (d.templates || []).sort((a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.templateCode.localeCompare(b.templateCode));
@@ -349,13 +350,12 @@ export function App() {
     try {
       if (wizardSelectedTpl) {
         const targetDir = `${wsDir}/packages/${projId}`;
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102';
         await createProject({
           templateId: wizardSelectedTpl.id,
           appId: projId,
           name: projId,
           targetDir,
-          serverUrl,
+          serverUrl: SERVER_URL,
         }, (step) => addLog(step));
         const cfg = await readWorkspace(wsDir);
         if (cfg) {
@@ -718,7 +718,7 @@ export function App() {
                       onClick={() => { setWizardSelectedTpl(tpl); setProjType('hap'); }}
                     >
                       <div className="tpl-card-thumb">
-                        {tpl.thumbnail ? <img src={tpl.thumbnail.startsWith('http') ? tpl.thumbnail : `${import.meta.env.VITE_SERVER_URL || 'http://127.0.0.1:3102'}${tpl.thumbnail}`} alt="" /> : <div className="tpl-card-placeholder"><LayoutTemplate size={24} /></div>}
+                        {tpl.thumbnail ? <img src={tpl.thumbnail.startsWith('http') ? tpl.thumbnail : `${SERVER_URL}${tpl.thumbnail}`} alt="" /> : <div className="tpl-card-placeholder"><LayoutTemplate size={24} /></div>}
                       </div>
                       <div className="tpl-card-body">
                         <div className="tpl-card-code">{tpl.templateCode}</div>

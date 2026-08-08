@@ -46,8 +46,8 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
 
   async function handleSelectDir() {
     try {
-      const dir = await hap?.hal?.('dialog', 'select_folder', { title: '选择项目目录' });
-      if (dir) setTargetDir(dir);
+      const dirs = await hap?.hal?.('dialog', 'open_directory', { title: '选择项目目录' });
+      if (dirs && dirs.length > 0) setTargetDir(dirs[0]);
     } catch (e: any) {
       setError(e.message || '选择目录失败');
     }

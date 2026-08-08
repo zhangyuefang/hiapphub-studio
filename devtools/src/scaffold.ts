@@ -3,7 +3,7 @@ export type ProjectType = 'hap' | 'hpl';
 
 export interface WorkspaceConfig {
   name: string;
-  projects: { id: string; type: ProjectType; displayName?: string }[];
+  projects: { id: string; type: ProjectType; displayName?: string; path?: string }[];
   created: string;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Layers, Briefcase, User, Wrench, Palette } from 'lucide-react';
+import { Search, Layers, Briefcase, User, Wrench, Palette, X, Eye } from 'lucide-react';
 
 interface Template {
   id: string;
@@ -34,6 +34,7 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [previewTpl, setPreviewTpl] = useState<Template | null>(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -43,10 +44,13 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${serverUrl}/api/templates`);
+      const res = await fetch(`${serverUrl}/api/templates?pageSize=100&sort=name`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setTemplates(data.templates || []);
+      const list = (data.templates || []).sort(
+        (a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.templateCode.localeCompare(b.templateCode)
+      );
+      setTemplates(list);
     } catch (e: any) {
       setError(e.message || '加载失败');
     }
@@ -68,13 +72,17 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
     return list;
   }, [templates, category, search]);
 
+  function getThumbnailUrl(thumbnail: string): string {
+    if (!thumbnail) return '';
+    if (thumbnail.startsWith('http')) return thumbnail;
+    return `${serverUrl}${thumbnail}`;
+  }
+
   return (
     <div className="tpl-picker">
       <div className="tpl-header">
         {onBack && (
-          <button className="tpl-back-btn" onClick={onBack} style={{ marginRight: 8 }}>
-            ← 返回
-          </button>
+          <button className="tpl-back-btn" onClick={onBack}>← 返回</button>
         )}
         <h2 className="tpl-title">创建新项目</h2>
         <div className="tpl-search">
@@ -117,12 +125,19 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
           >
             <div className="tpl-card-thumb">
               {tpl.thumbnail ? (
-                <img src={tpl.thumbnail.startsWith('http') ? tpl.thumbnail : `${serverUrl}${tpl.thumbnail}`} alt="" />
+                <img src={getThumbnailUrl(tpl.thumbnail)} alt="" />
               ) : (
                 <div className="tpl-card-placeholder">
                   <Layers size={24} />
                 </div>
               )}
+              <button
+                className="tpl-card-preview-btn"
+                onClick={(e) => { e.stopPropagation(); setPreviewTpl(tpl); }}
+                title="预览"
+              >
+                <Eye size={12} />
+              </button>
             </div>
             <div className="tpl-card-body">
               <div className="tpl-card-code">{tpl.templateCode}</div>
@@ -137,6 +152,62 @@ export function TemplatePickerPage({ onSelect, onBack, serverUrl }: Props) {
             </div>
           </div>
         ))}
+      </div>
+
+      {previewTpl && (
+        <TemplatePreviewModal
+          template={previewTpl}
+          thumbnailUrl={getThumbnailUrl(previewTpl.thumbnail)}
+          onSelect={() => { setPreviewTpl(null); onSelect(previewTpl); }}
+          onClose={() => setPreviewTpl(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TemplatePreviewModal({ template, thumbnailUrl, onSelect, onClose }: {
+  template: Template; thumbnailUrl: string; onSelect: () => void; onClose: () => void;
+}) {
+  return (
+    <div className="tpl-preview-overlay" onClick={onClose}>
+      <div className="tpl-preview-modal" onClick={e => e.stopPropagation()}>
+        <button className="tpl-preview-close" onClick={onClose}><X size={16} /></button>
+        <div className="tpl-preview-header">
+          <div className="tpl-preview-thumb">
+            {thumbnailUrl ? <img src={thumbnailUrl} alt="" /> : <Layers size={48} />}
+          </div>
+          <div className="tpl-preview-info">
+            <span className="tpl-preview-code">{template.templateCode}</span>
+            <h3 className="tpl-preview-name">{template.name}</h3>
+            <p className="tpl-preview-desc">{template.description}</p>
+          </div>
+        </div>
+
+        <div className="tpl-preview-section">
+          <h4>包含组件</h4>
+          <div className="tpl-preview-chips">
+            {template.components.map(c => (
+              <span key={c} className="tpl-preview-chip">{c}</span>
+            ))}
+          </div>
+        </div>
+
+        {template.tags.length > 0 && (
+          <div className="tpl-preview-section">
+            <h4>标签</h4>
+            <div className="tpl-preview-chips">
+              {template.tags.map(t => (
+                <span key={t} className="tpl-preview-chip tag">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="tpl-preview-footer">
+          <span className="tpl-preview-version">v{template.version}</span>
+          <button className="tpl-preview-select-btn" onClick={onSelect}>使用此模板</button>
+        </div>
       </div>
     </div>
   );
