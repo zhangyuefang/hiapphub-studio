@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, FolderOpen, Loader2 } from 'lucide-react';
-import type { CreateProjectParams } from './create-project';
+import type { CreateProjectParams, ProjectConfig } from './create-project';
+import { LocalePicker } from './LocalePicker';
 
 const hap = (window as any).hap;
 
@@ -30,8 +31,10 @@ const PROGRESS_LABELS: Record<string, string> = {
   extracting: '解压文件...',
   configuring: '读取配置...',
   replacing: '替换变量...',
+  injecting: '注入功能模块...',
   done: '完成',
 };
+
 
 export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onBack }: Props) {
   const [appId, setAppId] = useState(`com.example.${template.slug}`);
@@ -41,6 +44,11 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
   const [version, setVersion] = useState('1.0.0');
   const [author, setAuthor] = useState('');
   const [error, setError] = useState('');
+  const [cfgTitleBar, setCfgTitleBar] = useState<'system' | 'custom'>('system');
+  const [cfgI18nEnabled, setCfgI18nEnabled] = useState(false);
+  const [cfgI18nLocales, setCfgI18nLocales] = useState<string[]>(['zh-CN', 'en-US']);
+  const [cfgI18nFollowSystem, setCfgI18nFollowSystem] = useState(true);
+  const [cfgThemeEnabled, setCfgThemeEnabled] = useState(false);
 
   const busy = !!progress;
 
@@ -62,6 +70,12 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
     if (!name.trim()) { setError('应用名称不能为空'); return; }
     if (!targetDir.trim()) { setError('请选择目标目录'); return; }
 
+    const config: ProjectConfig = {
+      titleBar: cfgTitleBar,
+      i18n: cfgI18nEnabled ? { enabled: true, locales: cfgI18nLocales, defaultLocale: cfgI18nLocales[0] || 'zh-CN', followSystem: cfgI18nFollowSystem } : null,
+      theme: cfgThemeEnabled ? { enabled: true } : null,
+    };
+
     try {
       await onSubmit({
         templateId: template.id,
@@ -75,6 +89,7 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
         version: version.trim() || '1.0.0',
         author: author.trim(),
         serverUrl,
+        config,
       });
     } catch (e: any) {
       setError(e.message || '创建失败');
@@ -134,6 +149,31 @@ export function ProjectCreateForm({ template, serverUrl, progress, onSubmit, onB
           <label className="tpl-field tpl-field-half">
             <span className="tpl-label">作者</span>
             <input value={author} onChange={e => setAuthor(e.target.value)} disabled={busy} placeholder="可选" />
+          </label>
+        </div>
+
+        <div className="tpl-config-section">
+          <div className="tpl-config-title">标题栏</div>
+          <div className="tpl-radio-group">
+            <label className="tpl-radio"><input type="radio" checked={cfgTitleBar === 'system'} onChange={() => setCfgTitleBar('system')} disabled={busy} /> 系统标题栏</label>
+            <label className="tpl-radio"><input type="radio" checked={cfgTitleBar === 'custom'} onChange={() => setCfgTitleBar('custom')} disabled={busy} /> 自定义标题栏（拖拽+控制按钮）</label>
+          </div>
+        </div>
+
+        <div className="tpl-config-section">
+          <label className="tpl-config-title">
+            <input type="checkbox" checked={cfgI18nEnabled} onChange={e => setCfgI18nEnabled(e.target.checked)} disabled={busy} />
+            启用多语言支持
+          </label>
+          {cfgI18nEnabled && (
+            <LocalePicker locales={cfgI18nLocales} onChange={setCfgI18nLocales} followSystem={cfgI18nFollowSystem} onFollowSystemChange={setCfgI18nFollowSystem} disabled={busy} />
+          )}
+        </div>
+
+        <div className="tpl-config-section">
+          <label className="tpl-config-title">
+            <input type="checkbox" checked={cfgThemeEnabled} onChange={e => setCfgThemeEnabled(e.target.checked)} disabled={busy} />
+            启用主题切换（浅色/深色/跟随系统）
           </label>
         </div>
 

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus, LayoutTemplate } from 'lucide-react';
+import { Languages, Sun, Moon, Monitor, Minus, Square, X, FolderOpen, FilePlus, CheckCircle, XCircle, Loader, ArrowLeft, Package, Library, Settings, Plus, LayoutTemplate, Download, Check } from 'lucide-react';
 import { t, setLocale, getLocale, SUPPORTED_LOCALES, LOCALE_LABELS } from './i18n';
 import { setTheme, getTheme, ThemeMode } from './theme';
 import { startServer, stopServer, wsBroadcast, wsSendToRole, hasPluginConnected, isWsServerRunning, getPorts, restartServer, onWsMessage } from './server';
 import { setupTray, destroyTray } from './tray';
 import { addProject, createWorkspace, runPnpmInstall, readWorkspace, saveWorkspace, WorkspaceConfig, ProjectType, ID_REGEX } from './scaffold';
 import { createProject } from './create-project';
+import { LocalePicker } from './LocalePicker';
 import { ProjectEditor } from './ProjectEditor';
 import { ProgressDialog, ProgressStep } from './ProgressDialog';
 import { WelcomeView } from './WelcomeView';
@@ -43,7 +44,15 @@ export function App() {
   const [projStep, setProjStep] = useState<1 | 2 | 3>(1);
   const [idError, setIdError] = useState('');
   const [wizardTemplates, setWizardTemplates] = useState<any[]>([]);
-  const [wizardSelectedTpl, setWizardSelectedTpl] = useState<any>(null);  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [wizardSelectedTpl, setWizardSelectedTpl] = useState<any>(null);
+  const [tplCacheStatus, setTplCacheStatus] = useState<Record<string, boolean>>({});
+  const [tplDownloading, setTplDownloading] = useState<string | null>(null);
+  const [cfgTitleBar, setCfgTitleBar] = useState<'system' | 'custom'>('system');
+  const [cfgI18nEnabled, setCfgI18nEnabled] = useState(false);
+  const [cfgI18nLocales, setCfgI18nLocales] = useState<string[]>(['zh-CN', 'en-US']);
+  const [cfgI18nFollowSystem, setCfgI18nFollowSystem] = useState(true);
+  const [cfgThemeEnabled, setCfgThemeEnabled] = useState(false);
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [wsNameDraft, setWsNameDraft] = useState('');
@@ -246,8 +255,66 @@ export function App() {
       .then(d => {
         const list = (d.templates || []).sort((a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.templateCode.localeCompare(b.templateCode));
         setWizardTemplates(list);
+        checkTplCache(list);
       })
       .catch(() => { if (retries > 0) setTimeout(() => fetchTemplates(retries - 1), 2000); else setWizardTemplates([]); });
+  };
+
+  const checkTplCache = async (templates: any[], retry = 3) => {
+    const hap = (window as any).hap;
+    if (!hap?.hal) {
+      if (retry > 0) setTimeout(() => checkTplCache(templates, retry - 1), 500);
+      return;
+    }
+    const CACHE_DIR = '/tmp/hiapphub-template-cache';
+    const status: Record<string, boolean> = {};
+    try {
+      const dirExists = await hap.hal('fs', 'exists', { path: CACHE_DIR });
+      if (!dirExists) {
+        for (const tpl of templates) status[tpl.id] = false;
+        setTplCacheStatus(status);
+        return;
+      }
+      const files: any[] = await hap.hal('fs', 'list_dir', { path: CACHE_DIR });
+      const fileNames = new Set((files || []).map((f: any) => f.name || ''));
+      for (const tpl of templates) {
+        const key1 = tpl.slug && tpl.packageHash ? `${tpl.slug}-${tpl.packageHash.slice(0, 12)}.tgz` : '';
+        const key2 = tpl.slug && tpl.version ? `${tpl.slug}-${tpl.version}.tgz` : '';
+        const key3 = `${tpl.id}.tgz`;
+        status[tpl.id] = !!(key1 && fileNames.has(key1)) || !!(key2 && fileNames.has(key2)) || fileNames.has(key3);
+      }
+    } catch {
+      for (const tpl of templates) status[tpl.id] = false;
+    }
+    setTplCacheStatus(status);
+  };
+
+  const preDownloadTpl = async (tpl: any) => {
+    const hap = (window as any).hap;
+    if (!hap?.hal || tplDownloading) return;
+    setTplDownloading(tpl.id);
+    const CACHE_DIR = '/tmp/hiapphub-template-cache';
+    const cacheKey = tpl.slug && tpl.packageHash
+      ? `${tpl.slug}-${tpl.packageHash.slice(0, 12)}`
+      : tpl.slug && tpl.version ? `${tpl.slug}-${tpl.version}` : tpl.id;
+    const cachePath = `${CACHE_DIR}/${cacheKey}.tgz`;
+    try {
+      await hap.hal('fs', 'mkdir', { path: CACHE_DIR, recursive: true });
+      await hap.hal('http', 'download', { url: `${SERVER_URL}/api/templates/${tpl.id}/download`, dest_path: cachePath });
+      const info: any = await hap.hal('fs', 'stat', { path: cachePath }).catch(() => null);
+      if (info && info.size > 100) {
+        setTplCacheStatus(prev => ({ ...prev, [tpl.id]: true }));
+      } else {
+        try { await hap.hal('fs', 'remove', { path: cachePath }); } catch {}
+        setToastMsg('下载失败：文件无效');
+        setTimeout(() => setToastMsg(''), 3000);
+      }
+    } catch (e: any) {
+      try { await hap.hal('fs', 'remove', { path: cachePath }); } catch {}
+      setToastMsg(`下载失败：${e?.message || '网络错误'}`);
+      setTimeout(() => setToastMsg(''), 3000);
+    }
+    setTplDownloading(null);
   };
 
   const handleStartAddProject = () => {
@@ -309,6 +376,11 @@ export function App() {
           name: projId,
           targetDir,
           serverUrl: SERVER_URL,
+          config: {
+            titleBar: cfgTitleBar,
+            i18n: cfgI18nEnabled ? { enabled: true, locales: cfgI18nLocales, defaultLocale: cfgI18nLocales[0] || 'zh-CN', followSystem: cfgI18nFollowSystem } : null,
+            theme: cfgThemeEnabled ? { enabled: true } : null,
+          },
         }, (step) => addLog(step));
         const cfg = await readWorkspace(wsDir);
         if (cfg) {
@@ -641,15 +713,19 @@ export function App() {
       {view === 'add-project' && (
         <main className={`main-content ${projStep === 1 ? 'tpl-select-view' : 'center-view'}`}>
           <div className={`wizard${projStep === 1 ? ' wizard-tpl' : ''}`}>
-            <button className="wizard-back" onClick={() => setView(wsConfig?.projects?.length ? 'project' : 'welcome')}>
-              <ArrowLeft size={16} /> {t('wizard.back')}
-            </button>
-            <h2>{t('wizard.add_project')}</h2>
-            <p className="wizard-dir">{wsDir}</p>
+            {projStep !== 1 && (
+              <>
+                <button className="wizard-back" onClick={() => setView(wsConfig?.projects?.length ? 'project' : 'welcome')}>
+                  <ArrowLeft size={16} /> {t('wizard.back')}
+                </button>
+                <h2>{t('wizard.add_project')}</h2>
+                <p className="wizard-dir">{wsDir}</p>
+              </>
+            )}
 
             {projStep === 1 && (
               <div className="wizard-step">
-                <label className="wizard-label">选择模板</label>
+                <h2 className="wizard-tpl-title">{t('wizard.select_template')}</h2>
                 <div className="tpl-grid">
                   <div
                     className={`tpl-card${!wizardSelectedTpl ? ' tpl-card-selected' : ''}`}
@@ -678,22 +754,57 @@ export function App() {
                         <div className="tpl-card-name">{tpl.name}</div>
                         <div className="tpl-card-desc">{tpl.description}</div>
                       </div>
+                      {tplCacheStatus[tpl.id] === false && (
+                        <button className="tpl-card-download" title="下载模板" onClick={(e) => { e.stopPropagation(); preDownloadTpl(tpl); }}>
+                          {tplDownloading === tpl.id ? <Loader size={14} className="spin" /> : <Download size={14} />}
+                        </button>
+                      )}
+                      {tplCacheStatus[tpl.id] === true && <span className="tpl-card-cached" title="已缓存"><Check size={12} /></span>}
                     </div>
                   ))}
                 </div>
               </div>
             )}
             {projStep === 1 && (
-              <button className="wizard-next wizard-next-fixed" onClick={() => setProjStep(2)}>{t('wizard.next')}</button>
+              <div className="wizard-actions wizard-actions-fixed">
+                <button className="wizard-back-btn" onClick={() => setView(wsConfig?.projects?.length ? 'project' : 'welcome')}>{t('wizard.back')}</button>
+                <button className="wizard-next-btn" onClick={() => setProjStep(2)}>{t('wizard.next')}</button>
+              </div>
             )}
 
             {projStep === 2 && (
-              <div className="wizard-step">
+              <div className="wizard-step wizard-config-step">
                 <label className="wizard-label">{t('wizard.id_label')}</label>
                 <input className="wizard-input" value={projId} onChange={e => validateProjId(e.target.value.toLowerCase())}
                   placeholder="my-app" autoFocus onKeyDown={e => { if (e.key === 'Enter' && projId && !idError) handleFinishAddProject(); }} />
                 {idError && <span className="wizard-error">{idError}</span>}
                 <p className="wizard-hint">{t('wizard.id_hint')}</p>
+
+                <div className="wizard-config-section">
+                  <label className="wizard-config-title">{t('wizard.cfg_titlebar')}</label>
+                  <div className="wizard-radio-group">
+                    <label className="wizard-radio"><input type="radio" checked={cfgTitleBar === 'system'} onChange={() => setCfgTitleBar('system')} /> {t('wizard.cfg_titlebar_system')}</label>
+                    <label className="wizard-radio"><input type="radio" checked={cfgTitleBar === 'custom'} onChange={() => setCfgTitleBar('custom')} /> {t('wizard.cfg_titlebar_custom')}</label>
+                  </div>
+                </div>
+
+                <div className="wizard-config-section">
+                  <label className="wizard-config-title">
+                    <input type="checkbox" checked={cfgI18nEnabled} onChange={e => setCfgI18nEnabled(e.target.checked)} />
+                    {t('wizard.cfg_i18n')}
+                  </label>
+                  {cfgI18nEnabled && (
+                    <LocalePicker locales={cfgI18nLocales} onChange={setCfgI18nLocales} followSystem={cfgI18nFollowSystem} onFollowSystemChange={setCfgI18nFollowSystem} />
+                  )}
+                </div>
+
+                <div className="wizard-config-section">
+                  <label className="wizard-config-title">
+                    <input type="checkbox" checked={cfgThemeEnabled} onChange={e => setCfgThemeEnabled(e.target.checked)} />
+                    {t('wizard.cfg_theme')}
+                  </label>
+                </div>
+
                 <div className="wizard-actions">
                   <button className="wizard-back-btn" onClick={() => setProjStep(1)}>{t('wizard.prev')}</button>
                   <button className="wizard-create-btn" disabled={!projId || !!idError || progressOpen} onClick={handleFinishAddProject}>

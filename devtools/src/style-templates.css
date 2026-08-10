@@ -156,3 +156,36 @@
   font-weight: 500; cursor: pointer;
 }
 .tpl-preview-select-btn:hover { background: var(--fs-accent-hover); }
+
+/* Wizard template title */
+.wizard-tpl-title { font-size: 18px; font-weight: 600; margin: 0 0 16px; text-align: center; }
+
+/* Fixed bottom actions bar for template step */
+.wizard-actions-fixed {
+  position: sticky; bottom: 0; display: flex; gap: 10px;
+  padding: 12px 0; margin-top: 12px; flex-shrink: 0;
+  background: var(--fs-bg); box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+.wizard-next-btn {
+  flex: 2; padding: 10px; border: none; border-radius: var(--fs-radius-md);
+  background: var(--fs-primary); color: #fff; cursor: pointer; font-size: 14px;
+}
+.wizard-next-btn:hover { opacity: 0.9; }
+
+/* Template card download/cache indicator */
+.tpl-card { position: relative; }
+.tpl-card-download {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  background: rgba(0,0,0,0.6); color: #fff; border: none;
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.tpl-card-download:hover { background: var(--fs-primary); }
+.tpl-card-cached {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: rgba(34,197,94,0.9); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; line-height: 1;
+}
