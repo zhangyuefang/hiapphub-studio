@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { SettingsPanel } from './SettingsPanel';
 import { TemplatePickerPage } from './TemplatePickerPage';
 import { ProjectCreateForm } from './ProjectCreateForm';
-import { DemoPage } from './DemoPage';
 import { createProject, CreateProjectParams } from './create-project';
 import { connectDevTools, onMessage, sendMessage, setWsPort } from './ws-client';
 import './style.css';
@@ -114,5 +113,5 @@ export function App() {
     );
   }
 
-  return <DemoPage />;
+  return null;
 }
