@@ -4,6 +4,8 @@ let PORT = 19767;
 let WS_PORT = 19768;
 let API_PORT = 19769;
 let serverRunning = false;
+const PORT_RETRY_STEP = 100;
+const PORT_MAX_RETRIES = 5;
 let callbackPollTimer: ReturnType<typeof setInterval> | null = null;
 let internalPollTimer: ReturnType<typeof setInterval> | null = null;
 let runnerWatchTimer: ReturnType<typeof setInterval> | null = null;
@@ -273,28 +275,37 @@ export function wsSendToRole(role: string, msg: object) {
 }
 
 export async function startServer(): Promise<boolean> {
-  try {
-    const result = await halServer('start', {
-      http_port: API_PORT,
-      ws_port: WS_PORT,
-      internal_port: PORT,
-    });
-    if (result?.token) {
-      serverRunning = true;
-      startCallbackPolling();
-      startInternalPolling();
-      startRunnerWatch();
-      startWsMessagePolling();
-      setStatus('Servers running (HTTP:' + API_PORT + ' WS:' + WS_PORT + ' Internal:' + PORT + ')');
-      return true;
+  const baseInternal = PORT, baseWs = WS_PORT, baseHttp = API_PORT;
+  for (let attempt = 0; attempt < PORT_MAX_RETRIES; attempt++) {
+    const offset = attempt * PORT_RETRY_STEP;
+    const tryInternal = baseInternal + offset;
+    const tryWs = baseWs + offset;
+    const tryHttp = baseHttp + offset;
+    try {
+      const result = await halServer('start', {
+        http_port: tryHttp,
+        ws_port: tryWs,
+        internal_port: tryInternal,
+      });
+      if (result?.token) {
+        PORT = tryInternal;
+        WS_PORT = tryWs;
+        API_PORT = tryHttp;
+        serverRunning = true;
+        startCallbackPolling();
+        startInternalPolling();
+        startRunnerWatch();
+        startWsMessagePolling();
+        setStatus('Servers running (HTTP:' + API_PORT + ' WS:' + WS_PORT + ' Internal:' + PORT + ')');
+        return true;
+      }
+    } catch (e: any) {
+      console.warn(`[server] port ${tryWs} unavailable, trying next offset...`, e?.message);
+      continue;
     }
-    setStatus('Server start returned unexpected: ' + JSON.stringify(result));
-    return false;
-  } catch (e: any) {
-    console.error('[server] start error:', e?.message || e);
-    setStatus('Server error: ' + (e?.message || e));
-    return false;
   }
+  setStatus('Server error: all port ranges exhausted');
+  return false;
 }
 
 function startCallbackPolling() {
@@ -397,7 +408,8 @@ function launchProjectInBackground(projectDir: string) {
       await hap.system.openApp('hap-dev-runner', {
         entry: url, appId: manifest.id || 'unknown',
         name: manifest.name || manifest.id || 'app',
-        devPort: port, manifestPath, windowConfig: win
+        devPort: port, manifestPath, windowConfig: win,
+        wsPort: WS_PORT,
       });
     } catch (e: any) { console.error('[projects/start bg]', e?.message); }
   }, 50);

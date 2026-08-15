@@ -7,8 +7,8 @@ type Translations = Record<string, string>;
 export type ShellLang = "zh-CN" | "en-US" | "zh-TW" | "ja" | "ko" | "es" | "fr" | "de" | "pt-BR" | "ru" | "ar" | "hi";
 
 export const SHELL_LANGS: { code: ShellLang; label: string; dir?: "rtl" }[] = [
-  { code: "zh-CN", label: "简体中文" },
   { code: "en-US", label: "English" },
+  { code: "zh-CN", label: "简体中文" },
   { code: "zh-TW", label: "繁體中文" },
   { code: "ja", label: "日本語" },
   { code: "ko", label: "한국어" },
@@ -50,8 +50,8 @@ const lazyLocaleLoaders: Record<string, () => Promise<{ default: Translations }>
 
 const dynamicLocales: Record<string, Translations> = {};
 
-const savedLocale = localStorage.getItem("shell_locale") || "zh-CN";
-const savedTranslations = builtinLocales[savedLocale] ?? zhCN;
+const savedLocale = localStorage.getItem("shell_locale") || "en-US";
+const savedTranslations = builtinLocales[savedLocale] ?? enUS;
 
 export const useI18n = create<I18nState>((set, get) => ({
   locale: savedLocale,

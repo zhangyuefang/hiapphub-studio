@@ -1,4 +1,4 @@
-const WS_PORT = 19768;
+let WS_PORT = 19768;
 const RETRY_DELAY = 3000;
 const MAX_RETRIES = 10;
 const CONNECT_TIMEOUT = 5000;
@@ -97,6 +97,10 @@ function scheduleRetry() {
 let _role = 'runner';
 let _appId = '';
 let _manifestPath = '';
+
+export function setWsPort(port: number) {
+  if (port > 0) WS_PORT = port;
+}
 
 export function connectDevTools(role?: string, appId?: string, manifestPath?: string) {
   if (ws || retryTimer) {

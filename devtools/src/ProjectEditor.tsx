@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Save, Check, ImageIcon, FolderOpen, Play, Square, Circle, RefreshCw } from 'lucide-react';
 import { t } from './i18n';
 import { readManifest, saveManifest, HapManifestData } from './scaffold';
+import { getPorts } from './server';
 
 interface Props {
   projectId: string;
@@ -177,7 +178,8 @@ export function ProjectEditor({ projectId, projectType, workspaceDir, projectPat
         name: m.name || m.id,
         devPort: port,
         manifestPath: projectDir + '/manifest.json',
-        windowConfig: win
+        windowConfig: win,
+        wsPort: getPorts().ws,
       });
       const hostPid = typeof hostResult === 'object' ? hostResult?.pid : (typeof hostResult === 'number' ? hostResult : undefined);
       appendLog(`[load-app] dev-runner launched (host PID: ${hostPid || 'unknown'})`);
@@ -377,7 +379,8 @@ function InfoPage({ manifest, projectDir, projectType, update, viteStatus, viteP
                           name: m.name || m.id,
                           devPort: port,
                           manifestPath: projectDir + '/manifest.json',
-                          windowConfig: win
+                          windowConfig: win,
+                          wsPort: getPorts().ws,
                         });
                         appendLog('[test] dev-runner launched');
                       } catch (e: any) { appendLog(`[test] ERROR: ${e?.message || e}`); }

@@ -49,7 +49,7 @@ export function App() {
   const [tplDownloading, setTplDownloading] = useState<string | null>(null);
   const [cfgTitleBar, setCfgTitleBar] = useState<'system' | 'custom'>('system');
   const [cfgI18nEnabled, setCfgI18nEnabled] = useState(false);
-  const [cfgI18nLocales, setCfgI18nLocales] = useState<string[]>(['zh-CN', 'en-US']);
+  const [cfgI18nLocales, setCfgI18nLocales] = useState<string[]>(['en-US', 'zh-CN']);
   const [cfgI18nFollowSystem, setCfgI18nFollowSystem] = useState(true);
   const [cfgThemeEnabled, setCfgThemeEnabled] = useState(false);
   const [openTabs, setOpenTabs] = useState<string[]>([]);
@@ -378,7 +378,7 @@ export function App() {
           serverUrl: SERVER_URL,
           config: {
             titleBar: cfgTitleBar,
-            i18n: cfgI18nEnabled ? { enabled: true, locales: cfgI18nLocales, defaultLocale: cfgI18nLocales[0] || 'zh-CN', followSystem: cfgI18nFollowSystem } : null,
+            i18n: cfgI18nEnabled ? { enabled: true, locales: cfgI18nLocales, defaultLocale: cfgI18nLocales[0] || 'en-US', followSystem: cfgI18nFollowSystem } : null,
             theme: cfgThemeEnabled ? { enabled: true } : null,
           },
         }, (step) => addLog(step));

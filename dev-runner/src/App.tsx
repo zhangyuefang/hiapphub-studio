@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { SettingsPanel } from './SettingsPanel';
 import { TemplatePickerPage } from './TemplatePickerPage';
 import { ProjectCreateForm } from './ProjectCreateForm';
+import { DemoPage } from './DemoPage';
 import { createProject, CreateProjectParams } from './create-project';
-import { connectDevTools, onMessage, sendMessage } from './ws-client';
+import { connectDevTools, onMessage, sendMessage, setWsPort } from './ws-client';
 import './style.css';
 
 type Route = 'main' | 'settings' | 'create-project' | 'create-form';
@@ -36,6 +37,9 @@ export function App() {
     const routeMatch = hash.match(/^#\/([^?]*)/);
     const routeName = routeMatch?.[1] || '';
     const params = new URLSearchParams(hash.replace(/^#\/?[^?]*\??/, ''));
+
+    const wsPortParam = params.get('wsPort');
+    if (wsPortParam) setWsPort(Number(wsPortParam));
 
     if (routeName === 'create-project') {
       setRoute('create-project');
@@ -110,10 +114,5 @@ export function App() {
     );
   }
 
-  return (
-    <div className="app" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--fs-text-secondary)', fontSize: 13, gap: 12, padding: 20, textAlign: 'center' }}>
-      <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--fs-text)' }}>HAP Dev Runner</div>
-      <div>请从 DevTools 启动项目以使用预览功能</div>
-    </div>
-  );
+  return <DemoPage />;
 }

@@ -411,7 +411,7 @@ const messages: Record<string, Record<string, string>> = {
 };
 
 export const SUPPORTED_LOCALES = [
-  "zh-CN", "en-US", "zh-TW", "ja", "ko", "es",
+  "en-US", "zh-CN", "zh-TW", "ja", "ko", "es",
   "fr", "de", "pt-BR", "ru", "ar", "hi",
 ];
 
@@ -422,7 +422,7 @@ export const LOCALE_LABELS: Record<string, string> = {
   "ru": "Русский", "ar": "العربية", "hi": "हिन्दी",
 };
 
-let currentLocale = "zh-CN";
+let currentLocale = "en-US";
 
 export function initLocale() {
   const saved = localStorage.getItem("hap-devtools-locale");

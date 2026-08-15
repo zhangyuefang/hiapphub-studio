@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 
-const PRESET_LOCALES = ['zh-CN', 'en-US', 'zh-TW', 'ja', 'ko', 'es', 'fr', 'de', 'pt-BR', 'ru', 'ar', 'hi'];
+const PRESET_LOCALES = ['en-US', 'zh-CN', 'zh-TW', 'ja', 'ko', 'es', 'fr', 'de', 'pt-BR', 'ru', 'ar', 'hi'];
 const LOCALE_NAMES: Record<string, string> = {
   'zh-CN': '简体中文', 'en-US': 'English', 'zh-TW': '繁體中文', 'ja': '日本語',
   'ko': '한국어', 'es': 'Español', 'fr': 'Français', 'de': 'Deutsch',
